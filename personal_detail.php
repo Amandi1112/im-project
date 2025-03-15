@@ -84,7 +84,7 @@ $result = $conn->query($sql);
         body {
             font-family: Arial, sans-serif;
             margin: 20px;
-            background-image: url('images/background.jpg');
+            background-image: url('images/background2.jpg');
             background-size: cover;
             background-repeat: no-repeat;
             background-attachment: fixed;
@@ -93,7 +93,7 @@ $result = $conn->query($sql);
             text-align: center;
             color: #fff;
             font-size: 2em;
-            text-shadow: 0 0 10px rgba(255, 255, 255, 0.8), 0 0 20px rgba(255, 255, 255, 0.6);
+            text-shadow: 0 0 10px rgba(0, 0, 0, 0.8), 0 0 20px rgba(255, 255, 255, 0.6);
         }
         .container {
             max-width: 1200px;
@@ -101,7 +101,7 @@ $result = $conn->query($sql);
             position: relative; /* Added for positioning the home button */
         }
         td {
-            color: white; /* Changed table data color to white */
+            color: black; /* Changed table data color to white */
         }
         table {
             width: 100%;
@@ -147,7 +147,7 @@ $result = $conn->query($sql);
             margin-bottom: 20px;
         }
         .btn {
-            background-color: rgb(139, 181, 226);;
+            background-color:rgb(135, 74, 0);
             color: white;
             padding: 10px 15px;
             border: none;
@@ -207,7 +207,7 @@ $result = $conn->query($sql);
         }
         /* New styles for home button */
         .home-btn {
-            background-color:rgb(139, 181, 226);
+            background-color:rgb(135, 74, 0);
             color: white;
             padding: 10px 15px;
             border: none;

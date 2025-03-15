@@ -41,7 +41,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         body {
             font-family: Arial, sans-serif;
             margin: 20px;
-            background: linear-gradient(to left, #ffffff,rgb(1, 7, 59));
+            background-color: #f0f8ff;
+            background-image: url('images/background2.jpg');
+            background-size: cover;
+            background-position: center;
         }
         form {
             max-width: 600px;
@@ -59,7 +62,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             border-radius: 4px;
         }
         button {
-            background-color:rgb(21, 188, 221);
+            background-color:rgb(135, 74, 0);
             color: white;
             padding: 10px 15px;
             border: none;
