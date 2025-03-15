@@ -47,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <style>
         body {
             font-family: Arial, sans-serif;
-            background: linear-gradient(to bottom, #06020d, #ffffff);
+            background: url('images/background2.jpg');
             margin: 0;
             padding: 0;
             display: flex;
@@ -58,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         
 
         .reset-password-container {
-            background-color: #79e0eb46;
+            background-color: #d5731846;
             padding: 20px 30px;
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -91,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         .reset-password-container button {
             width: 100%;
             padding: 10px;
-            background-color: #007bff;
+            background-color: rgb(135, 74, 0);
             color: #ffffff;
             border: none;
             border-radius: 4px;
@@ -100,7 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
 
         .reset-password-container button:hover {
-            background-color: #0056b3;
+            background-color: #f28252;
         }
 
         .reset-password-container .back-to-login {
@@ -128,7 +128,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
             <button type="submit">Reset Password</button>
             <button type="button" class="back-to-login">
-                <a href="login.php" style="text-decoration: none; color: white;">Back to login</a>
+                <a href="login.php" style="text-decoration: none; color: rgb(135, 74, 0); color:white">Back to login</a>
             </button>
         </form>
         <p>Enter your email and new password to reset your account.</p>

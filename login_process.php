@@ -28,9 +28,15 @@ if(isset($_POST['login'])) {
             $_SESSION['user_id'] = $row['id'];
             $_SESSION['user_name'] = $row['name'];
             $_SESSION['user_email'] = $row['email'];
+            $_SESSION['position'] = $row['position']; // Make sure to store position in session
             
-            // Redirect to home page with success message
-            header("Location: home.php?success=You have successfully logged in");
+            // Redirect based on position
+            if($_SESSION['position'] === 'admin') {
+                header("Location: home.php?success=You have successfully logged in");
+            } else {
+                // Redirect non-admin users to a different page
+                header("Location: dashboard.php?success=You have successfully logged in");
+            }
             exit();
         } else {
             // Wrong password

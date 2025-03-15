@@ -123,7 +123,7 @@ $result = $conn->query($sql);
             background-color: #f9f9f9;
         }
         tr:hover {
-            background-color:rgb(62, 62, 62);
+            background-color:rgb(197, 196, 196);
         }
         .success-message {
             background-color: #dff0d8;
@@ -220,7 +220,7 @@ $result = $conn->query($sql);
             margin: 10px;
         }
         .home-btn:hover {
-            background-color: #0056b3;
+            background-color: #f28252;
         }
         .header-container {
             position: relative;
@@ -240,10 +240,11 @@ $result = $conn->query($sql);
         <div class="header-container">
             <h2>Employee Records</h2>
             <a href="home.php" class="home-btn">Home</a>
+            <a href="current_employee.php" class="btn" >Current Employee</a>
         </div>
         
         <div class="actions">
-            <a href="employee.php" class="btn">Add New Employee</a>
+            <a href="employee.php" class="btn" >Add New Employee</a>
         </div>
         
         <div class="table-responsive">

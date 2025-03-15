@@ -12,6 +12,39 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Home</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* CSS for dropdown menu */
+        nav ul li {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            background-color: #f9f9f9;
+            min-width: 200px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 1;
+        }
+        
+        .dropdown-menu a {
+            color: black;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+            text-align: left;
+        }
+        
+        .dropdown-menu a:hover {
+            background-color:rgb(229, 178, 154);
+        }
+        
+        /* Show dropdown menu on hover */
+        nav ul li:hover .dropdown-menu {
+            display: block;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -20,9 +53,16 @@
             <nav>
                 <ul>
                     <li><a href="home.php" class="active">Home</a></li>
-                    <li><a href="employee.php">Employee</a></li>
-                    <li><a href="#">Services</a></li>
-                    <li><a href="#">Contact</a></li>
+                    <li>
+                        <a href="#">Employee</a>
+                        <div class="dropdown-menu">
+                            <a href="personal_detail.php">Personal Details</a>
+                            <a href="educational_background.php">Educational Background</a>
+                            <a href="work_experience.php">Work Experience</a>
+                        </div>
+                    </li>
+                    <li><a href="#">sales</a></li>
+                    <li><a href="#">inventory</a></li>
                 </ul>
             </nav>
             <div class="user-menu">

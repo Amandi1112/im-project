@@ -70,7 +70,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             cursor: pointer;
         }
         button:hover {
-            background-color:rgb(26, 60, 171);
+            background-color: #f28252;
         }
     </style>
 </head>
@@ -102,6 +102,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         <label for="date_of_birth">Date of Birth:</label>
         <input type="date" name="date_of_birth" id="date_of_birth" required>
+
+        <label for="address">Address:</label>
+        <input type="address" name="address" id="address" required>
 
         <label for="religion">Religion:</label>
         <input type="text" name="religion" id="religion" required>
