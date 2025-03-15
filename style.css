@@ -5,7 +5,7 @@
 }
 
 body {
-    background: linear-gradient(to bottom, #ffffff, #494949);
+    background: linear-gradient(to left, #ffffff, rgb(1, 7, 59));
     color: #333;
     line-height: 1.6;
 }

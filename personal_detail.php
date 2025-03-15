@@ -84,14 +84,24 @@ $result = $conn->query($sql);
         body {
             font-family: Arial, sans-serif;
             margin: 20px;
+            background-image: url('images/background.jpg');
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
         }
         h2 {
             text-align: center;
-            color: #333;
+            color: #fff;
+            font-size: 2em;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.8), 0 0 20px rgba(255, 255, 255, 0.6);
         }
         .container {
             max-width: 1200px;
             margin: auto;
+            position: relative; /* Added for positioning the home button */
+        }
+        td {
+            color: white; /* Changed table data color to white */
         }
         table {
             width: 100%;
@@ -99,12 +109,13 @@ $result = $conn->query($sql);
             margin-top: 20px;
         }
         th, td {
-            border: 1px solid #ddd;
+            border: 5px solid white;
             padding: 8px;
             text-align: left;
         }
         th {
-            background-color: #f2f2f2;
+            background-color: rgb(94, 94, 94);
+            color: white; /* Changed table heading color to white */
             position: sticky;
             top: 0;
         }
@@ -112,7 +123,7 @@ $result = $conn->query($sql);
             background-color: #f9f9f9;
         }
         tr:hover {
-            background-color: #f1f1f1;
+            background-color:rgb(62, 62, 62);
         }
         .success-message {
             background-color: #dff0d8;
@@ -136,7 +147,7 @@ $result = $conn->query($sql);
             margin-bottom: 20px;
         }
         .btn {
-            background-color: #4CAF50;
+            background-color: rgb(139, 181, 226);;
             color: white;
             padding: 10px 15px;
             border: none;
@@ -145,7 +156,7 @@ $result = $conn->query($sql);
             text-decoration: none;
         }
         .btn:hover {
-            background-color: #45a049;
+            background-color: #0056b3;
         }
         .delete-btn {
             background-color: #f44336;
@@ -194,6 +205,27 @@ $result = $conn->query($sql);
         .cancel-btn {
             background-color: #ccc;
         }
+        /* New styles for home button */
+        .home-btn {
+            background-color:rgb(139, 181, 226);
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            position: absolute;
+            top: 0;
+            right: 0;
+            margin: 10px;
+        }
+        .home-btn:hover {
+            background-color: #0056b3;
+        }
+        .header-container {
+            position: relative;
+            margin-bottom: 30px;
+        }
     </style>
     <script>
         function confirmDelete(email) {
@@ -205,7 +237,10 @@ $result = $conn->query($sql);
 </head>
 <body>
     <div class="container">
-        <h2>Employee Records</h2>
+        <div class="header-container">
+            <h2>Employee Records</h2>
+            <a href="home.php" class="home-btn">Home</a>
+        </div>
         
         <div class="actions">
             <a href="employee.php" class="btn">Add New Employee</a>

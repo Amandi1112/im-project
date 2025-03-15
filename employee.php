@@ -41,6 +41,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         body {
             font-family: Arial, sans-serif;
             margin: 20px;
+            background: linear-gradient(to left, #ffffff,rgb(1, 7, 59));
         }
         form {
             max-width: 600px;
@@ -58,7 +59,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             border-radius: 4px;
         }
         button {
-            background-color: #4CAF50;
+            background-color:rgb(21, 188, 221);
             color: white;
             padding: 10px 15px;
             border: none;
@@ -66,12 +67,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             cursor: pointer;
         }
         button:hover {
-            background-color: #45a049;
+            background-color:rgb(26, 60, 171);
         }
     </style>
 </head>
 <body>
-    <h2 style="text-align: center;">Employee Personal Data Form</h2>
+    <h2 style="text-align: center; font-weight: bold; color: black; font-size: 2em; text-shadow: 2px 2px 5px lightblue;">Employee Personal Data Form</h2>
     <form method="POST" action="">
         <label for="full_name">Full Name:</label>
         <input type="text" name="full_name" id="full_name" required>
@@ -112,6 +113,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <input type="text" name="spouse_name" id="spouse_name">
 
         <button type="submit" formaction="personal_detail.php">Submit</button>
+        <button type="button" class="button" onclick="window.location.href='personal_detail.php';">Employee Details</button>
     </form>
 </body>
 </html>
