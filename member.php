@@ -201,7 +201,8 @@ $result = $conn->query($sql);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-top: 20px;
+            margin-bottom: 18px;
         }
         .add-btn {
             background-color:rgb(219, 126, 55);
@@ -211,6 +212,9 @@ $result = $conn->query($sql);
             border-radius: 4px;
             cursor: pointer;
             font-size: 16px;
+        }
+        .add-btn:hover{
+            background-color:#f28252;
         }
         table {
             width: 100%;
@@ -232,6 +236,7 @@ $result = $conn->query($sql);
             white-space: nowrap;
         }
         .edit-btn, .delete-btn {
+            
             padding: 5px 10px;
             border: none;
             border-radius: 3px;
@@ -242,9 +247,15 @@ $result = $conn->query($sql);
             background-color:rgb(219, 126, 55);
             color: white;
         }
+        .edit-btn:hover{
+            background-color:rgb(246, 148, 74);
+        }
         .delete-btn {
             background-color: #f44336;
             color: white;
+        }
+        .delete-btn:hover{
+            background-color:#3c763d;
         }
         .pagination {
             margin-top: 20px;
@@ -334,6 +345,9 @@ $result = $conn->query($sql);
             cursor: pointer;
             font-size: 16px;
         }
+        .submit-btn:hover{
+            background-color:#f28252;
+        }
         .success-message {
             background-color: #dff0d8;
             color: #3c763d;
@@ -349,13 +363,32 @@ $result = $conn->query($sql);
             margin-bottom: 15px;
             border-radius: 4px;
             border: 1px solid #ebccd1;
+        }.nav-btn-container {
+            text-align: right; /* Center the navigation buttons */
+        }
+        .home-btn{
+            background-color: rgb(219, 126, 55);
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 15px;
+            margin-bottom: 10px;
+
+        }
+        .home-btn:hover{
+            background-color: #f28252;
         }
     </style>
 </head>
 <body>
     <div class="container">
     <h1 style="text-align: center; font-weight: bold; color: black; font-size: 2em; text-shadow: 2px 2px 5px lightblue;">Education Details</h1>
-        
+    <div class="nav-btn-container">
+        <a href="home.php" class="home-btn">Home</a>
+    </div> 
         <div class="header-actions">
             <div>
                 <span>Total Members: <?php echo $total_records; ?></span>

@@ -1,6 +1,6 @@
 <?php
 session_start();
-if(!isset($_SESSION['user_id']) || $_SESSION['position'] != 'admin') {
+if (!isset($_SESSION['user_id']) || $_SESSION['position'] != 'admin') {
     header("Location: login.php");
     exit();
 }
@@ -37,7 +37,7 @@ if(!isset($_SESSION['user_id']) || $_SESSION['position'] != 'admin') {
         }
         
         .dropdown-menu a:hover {
-            background-color:rgb(229, 178, 154);
+            background-color: rgb(229, 178, 154);
         }
         
         /* Show dropdown menu on hover */
@@ -67,14 +67,21 @@ if(!isset($_SESSION['user_id']) || $_SESSION['position'] != 'admin') {
                             <a href="work_experience.php">Work Experience</a>
                         </div>
                     </li>
-                    <li><a href="#">Members</a></li>
-                    <li><a href="#">sales reports</a></li>
-                    <li><a href="#">inventory reports</a></li>
+                    <li>
+                        <a href="#">Members</a>
+                        <div class="dropdown-menu">
+                            <a href="member.php">Bank Memberships</a>
+                            <a href="member_registration.php">Member Registration</a>
+                            <a href="purchases.php">Purchases</a>
+                        </div>
+                    </li>
+                    <li><a href="#">Sales Reports</a></li>
+                    <li><a href="#">Inventory Reports</a></li>
                 </ul>
             </nav>
             <div class="user-menu">
                 <div class="user-info">
-                    Welcome!  :  <?php echo $_SESSION['user_name']; ?>
+                    Welcome! : <?php echo $_SESSION['user_name']; ?>
                 </div>
                 <a href="logout.php" class="logout-btn">Logout</a>
             </div>
@@ -110,7 +117,7 @@ if(!isset($_SESSION['user_id']) || $_SESSION['position'] != 'admin') {
         </main>
         
         <footer>
-            <p>&copy; 2025 T&C Corporative City Shop. All rights reserved.</p>
+            <p>© 2025 T&C Corporative City Shop. All rights reserved.</p>
         </footer>
     </div>
     
