@@ -68,6 +68,16 @@ if (!isset($_SESSION['user_id']) || $_SESSION['position'] != 'admin') {
                         </div>
                     </li>
                     <li>
+                        <a href="products.php">Products</a>
+                        <div class="dropdown-menu">
+                            <a href="packaged_foods.php">Packaged Foods</a>
+                            <a href="snacks.php">Snacks</a>
+                            <a href="cooking_pantry.php">Cooking & Pantry Staples</a>
+                            <a href="personal_household.php">Personal & Household Care</a>
+                            <a href="sanitary_care.php">Sanitary Care Products</a>
+                        </div>
+                    </li>
+                    <li>
                         <a href="#">Members</a>
                         <div class="dropdown-menu">
                             <a href="member.php">Bank Memberships</a>
@@ -77,6 +87,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['position'] != 'admin') {
                     </li>
                     <li><a href="#">Sales Reports</a></li>
                     <li><a href="#">Inventory Reports</a></li>
+                    
                 </ul>
             </nav>
             <div class="user-menu">
