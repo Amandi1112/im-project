@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
+-- Create personal_details table
 CREATE TABLE personal_details (
     full_name VARCHAR(100) NOT NULL,
     email VARCHAR(100) NOT NULL PRIMARY KEY,
@@ -24,5 +25,15 @@ CREATE TABLE personal_details (
     religion VARCHAR(50) NOT NULL,
     nic VARCHAR(50) NOT NULL,
     contact_number VARCHAR(20) NOT NULL,
-    spouse_name VARCHAR(100)
+    spouse_name VARCHAR(100),
 );
+
+CREATE TABLE education_details (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    qualification VARCHAR(255) NOT NULL,
+    institute VARCHAR(255) NOT NULL,
+    study_duration VARCHAR(100) NOT NULL,
+    FOREIGN KEY (email) REFERENCES users(email) ON DELETE CASCADE ON UPDATE CASCADE
+);
+

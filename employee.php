@@ -55,12 +55,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             margin: 10px 0 5px;
         }
         input, select, textarea {
-            width: 100%;
-            padding: 8px;
-            margin-bottom: 15px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
+    width: calc(100% - 16px); /* Adjust width to match input fields */
+    padding: 8px;
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box; /* Ensures padding doesn't affect width */
+}
+
+
         button {
             background-color:rgb(135, 74, 0);
             color: white;
@@ -80,8 +83,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <label for="full_name">Full Name:</label>
         <input type="text" name="full_name" id="full_name" required>
 
-        <label for="email">Personal Email Address:</label>
-        <input type="email" name="email" id="email" required>
+        <label for="email">Email Address:</label>
+        <select name="email" id="email" required>
+            <?php
+            // Fetch email addresses from login details table
+            $result = $conn->query("SELECT email FROM users");
+            if ($result->num_rows > 0) {
+            while ($row = $result->fetch_assoc()) {
+                echo "<option value='" . $row['email'] . "'>" . $row['email'] . "</option>";
+            }
+            } else {
+            echo "<option value=''>No login users available</option>";
+            }
+            ?>
+        </select>
 
         <label for="gender">Gender:</label>
         <select name="gender" id="gender" required>

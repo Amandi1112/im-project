@@ -31,11 +31,15 @@ if(isset($_POST['login'])) {
             $_SESSION['position'] = $row['position']; // Make sure to store position in session
             
             // Redirect based on position
-            if($_SESSION['position'] === 'admin') {
+            if($_SESSION['position'] == 'admin') {
                 header("Location: home.php?success=You have successfully logged in");
+            } else if($_SESSION['position'] == 'client') {
+                header("Location: client_dashboard.php?success=You have successfully logged in");
+            } else if($_SESSION['position'] == 'accountant') {
+                header("Location: accountant_dashboard.php?success=You have successfully logged in");
             } else {
-                // Redirect non-admin users to a different page
-                header("Location: dashboard.php?success=You have successfully logged in");
+                // Fallback for unexpected position values
+                header("Location: home.php?success=You have successfully logged in");
             }
             exit();
         } else {

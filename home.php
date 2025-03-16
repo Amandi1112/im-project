@@ -1,9 +1,9 @@
 <?php
-    session_start();
-    if(!isset($_SESSION['user_id'])) {
-        header("Location: login.php");
-        exit();
-    }
+session_start();
+if(!isset($_SESSION['user_id']) || $_SESSION['position'] != 'admin') {
+    header("Location: login.php");
+    exit();
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -44,6 +44,12 @@
         nav ul li:hover .dropdown-menu {
             display: block;
         }
+        
+        /* Override container styles to reduce margins */
+        .container {
+            max-width: 95%;
+            padding: 0;
+        }
     </style>
 </head>
 <body>
@@ -61,8 +67,9 @@
                             <a href="work_experience.php">Work Experience</a>
                         </div>
                     </li>
-                    <li><a href="#">sales</a></li>
-                    <li><a href="#">inventory</a></li>
+                    <li><a href="#">Members</a></li>
+                    <li><a href="#">sales reports</a></li>
+                    <li><a href="#">inventory reports</a></li>
                 </ul>
             </nav>
             <div class="user-menu">
