@@ -29,11 +29,22 @@ CREATE TABLE personal_details (
 );
 
 CREATE TABLE education_details (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    email VARCHAR(100) NOT NULL UNIQUE,
+    email VARCHAR(100) PRIMARY KEY,
     qualification VARCHAR(255) NOT NULL,
     institute VARCHAR(255) NOT NULL,
     study_duration VARCHAR(100) NOT NULL,
     FOREIGN KEY (email) REFERENCES users(email) ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS members (
+    id INT(6) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    membership_number VARCHAR(6) NOT NULL UNIQUE,
+    full_name VARCHAR(100) NOT NULL,
+    address VARCHAR(255) NOT NULL,
+    membership_age INT(3) NOT NULL,
+    nic_number VARCHAR(12) NOT NULL UNIQUE,
+    telephone_number VARCHAR(15) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 

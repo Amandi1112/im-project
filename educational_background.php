@@ -17,10 +17,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $stmt = $conn->prepare("INSERT INTO education_details (email, qualification, institute, study_duration) VALUES (?, ?, ?, ?)");
     $stmt->bind_param("ssss", $email, $qualification, $institute, $study_duration);
 
-    if ($stmt->execute()) {
-        echo "<script>alert('Education details saved successfully!');</script>";
-    } else {
-        echo "<script>alert('Error: " . $stmt->error . "');</script>";
+    try {
+        if ($stmt->execute()) {
+            // Redirect to education_details.php after successful submission
+            header("Location: education_details.php");
+            exit();
+        }
+    } catch (mysqli_sql_exception $e) {
+        // Check if the error is due to duplicate entry (error code 1062)
+        if ($e->getCode() == 1062) {
+            echo "<script>alert('This email is already in use. Please use a different email.');</script>";
+        } else {
+            echo "<script>alert('Error: " . $e->getMessage() . "');</script>";
+        }
     }
 
     $stmt->close();
@@ -35,13 +44,26 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <title>Education Details</title>
     <style>
         body {
+            background: url(images/background2.jpg);
             font-family: Arial, sans-serif;
             margin: 20px;
             background-color: #f0f8ff;
         }
+        .header-container {
+            max-width: 1200px;
+            margin: 0 auto 30px auto; /* Centered with bottom margin */
+            text-align: center; /* Center the h2 */
+        }
+        .header-container {
+            max-width: 1200px;
+            margin: auto;
+            position: relative; /* Added for positioning the home button */
+            position: relative;
+            margin-bottom: 30px;
+        }
         form {
             max-width: 500px;
-            margin: auto;
+            margin: 0 auto 40px auto; /* Adjusted margin to space above buttons */
             background: white;
             padding: 20px;
             border-radius: 8px;
@@ -59,7 +81,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             border-radius: 4px;
             box-sizing: border-box;
         }
-        button {
+        .submit-btn-container {
+            text-align: center; /* Center the submit button */
+            margin-bottom: 20px; /* Space before additional buttons */
+        }
+        .submit-btn {
             background-color: rgb(135, 74, 0);
             color: white;
             padding: 10px 15px;
@@ -67,16 +93,36 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             border-radius: 4px;
             cursor: pointer;
             width: 100%;
+            font-size: 15px;
+            max-width: 200px; /* Optional: Limit width for better appearance */
         }
-        button:hover {
+        .submit-btn:hover {
+            background-color: #f28252;
+        }
+        .nav-btn-container {
+            text-align: center; /* Center the navigation buttons */
+        }
+        .home-btn, .current-emp-btn {
+            background-color: rgb(135, 74, 0);
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 15px;
+            margin: 0 5px; /* Space between buttons */
+        }
+        .home-btn:hover, .current-emp-btn:hover {
             background-color: #f28252;
         }
     </style>
 </head>
 <body>
-    <h2 style="text-align: center; color: black;">Education Details</h2>
-    <form method="POST" action="">
-
+    <div class="header-container">
+    <h2 style="text-align: center; font-weight: bold; color: black; font-size: 2.5em; text-shadow: 2px 2px 5px lightblue; margin-top: 70px;">Education Details</h2>
+    </div>
+    <form method="POST" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" id="email-form">
         <label for="email">Email Address:</label>
         <select name="email" id="email" required>
             <option value="">Select Email</option>
@@ -85,7 +131,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $result = $conn->query("SELECT email FROM users");
             if ($result->num_rows > 0) {
                 while ($row = $result->fetch_assoc()) {
-                    echo "<option value='" . $row['email'] . "'>" . $row['email'] . "</option>";
+                    echo "<option value='" . htmlspecialchars($row['email']) . "'>" . htmlspecialchars($row['email']) . "</option>";
                 }
             } else {
                 echo "<option value=''>No users found</option>";
@@ -101,10 +147,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         <label for="study_duration">Study Duration:</label>
         <input type="text" name="study_duration" id="study_duration" required>
-
         
-        <button type="button" class="button" onclick="window.location.href='education_details.php';">submit</button>
-
+        <div class="submit-btn-container">
+            <button type="submit" class="submit-btn">Submit</button>
+        </div>
     </form>
+    
+    <div class="nav-btn-container">
+        <a href="home.php" class="home-btn">Home</a>
+        <a href="education_details.php" class="current-emp-btn">Current Employee</a>
+    </div>
 </body>
 </html>
+
+<?php
+// Close database connection
+$conn->close();
+?>
