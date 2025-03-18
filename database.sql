@@ -55,5 +55,49 @@ CREATE TABLE IF NOT EXISTS membership_numbers (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS packaged_foods (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    item_id VARCHAR(10) NOT NULL UNIQUE,
+    name VARCHAR(255) NOT NULL,
+    category VARCHAR(100) NOT NULL,
+    total_quantity INT NOT NULL,
+    selling_quantity INT NOT NULL,
+    remaining_quantity INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
 
 
+CREATE TABLE `supplier` (
+  `supplier_id` VARCHAR(10) NOT NULL,
+  `supplier_name` VARCHAR(100) NOT NULL,
+  `nic` VARCHAR(20) NOT NULL,
+  `address` TEXT NOT NULL,
+  `registration_date` DATETIME NOT NULL,
+  PRIMARY KEY (`supplier_id`),
+  UNIQUE KEY `supplier_nic` (`nic`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+CREATE TABLE category (
+    category_id INT AUTO_INCREMENT PRIMARY KEY,
+    category_name VARCHAR(100) NOT NULL
+);
+CREATE TABLE item (
+    item_id INT AUTO_INCREMENT PRIMARY KEY,
+    item_name VARCHAR(150) NOT NULL,
+    category_id INT,
+    price DECIMAL(10,2) NOT NULL,
+    quantity INT NOT NULL,
+    FOREIGN KEY (category_id) REFERENCES category(category_id) ON DELETE CASCADE
+);
+
+CREATE TABLE supplier_item_category (
+    supplier_id INT,
+    category_id INT,
+    item_id INT,
+    PRIMARY KEY (supplier_id, item_id),
+    FOREIGN KEY (supplier_id) REFERENCES supplier(supplier_id) ON DELETE CASCADE,
+    FOREIGN KEY (category_id) REFERENCES category(category_id) ON DELETE CASCADE,
+    FOREIGN KEY (item_id) REFERENCES item(item_id) ON DELETE CASCADE
+);

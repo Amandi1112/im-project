@@ -385,7 +385,7 @@ $result = $conn->query($sql);
 </head>
 <body>
     <div class="container">
-    <h1 style="text-align: center; font-weight: bold; color: black; font-size: 2em; text-shadow: 2px 2px 5px lightblue;">Education Details</h1>
+    <h1 style="text-align: center; font-weight: bold; color: black; font-size: 2em; text-shadow: 2px 2px 5px lightblue;">Member Details</h1>
     <div class="nav-btn-container">
         <a href="home.php" class="home-btn">Home</a>
     </div> 

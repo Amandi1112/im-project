@@ -30,9 +30,29 @@ if (isset($_GET['delete'])) {
     $stmt->close(); // Close the prepared statement
 }
 
-// Fetch all records from the table
-$sql = "SELECT * FROM membership_numbers";
-$result = $conn->query($sql);
+// Initialize variables
+$search_term = "";
+$where_clause = "";
+
+// Handle Search Functionality
+if (isset($_GET['search']) && !empty($_GET['nic_search'])) {
+    $search_term = $_GET['nic_search'];
+    $where_clause = " WHERE nic_number LIKE ?";
+}
+
+// Prepare the SQL query
+$sql = "SELECT * FROM membership_numbers" . $where_clause;
+$stmt = $conn->prepare($sql);
+
+// If searching, bind the parameter
+if ($where_clause) {
+    $search_param = "%" . $search_term . "%";
+    $stmt->bind_param("s", $search_param);
+}
+
+// Execute the query
+$stmt->execute();
+$result = $stmt->get_result();
 ?>
 
 <!DOCTYPE html>
@@ -131,17 +151,75 @@ $result = $conn->query($sql);
             text-decoration: none;
             top: 0;
             right: 0;
-        
         }
         .home-btn:hover {
             background-color: #f28252;
         }
+        /* Search Form Styles */
+        .search-container {
+            margin: 20px 0;
+            display: flex;
+            justify-content: center;
+        }
+        .search-form {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+            max-width: 600px;
+        }
+        .search-input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .search-btn {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .search-btn:hover {
+            background-color: #45a049;
+        }
+        .reset-btn {
+            background-color: #f0ad4e;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .reset-btn:hover {
+            background-color: #ec971f;
+        }
+        .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
     </style>
 </head>
 <body>
-    <h1 style="text-align: center; font-weight: bold; color: black; font-size: 2.5em; text-shadow: 2px 2px 5px lightblue; margin-top: 70px;">Education Details</h1>
-     <div class="header-container">
-        <a href="home.php" class="home-btn">Home</a>   
+    <h1 style="text-align: center; font-weight: bold; color: black; font-size: 2.5em; text-shadow: 2px 2px 5px lightblue; margin-top: 70px;">Membership Details</h1>
+    
+    <div class="header-container">
+        <a href="home.php" class="home-btn">Home</a>
+    </div>
+    
+    <!-- Search Form -->
+    <div class="search-container">
+        <form class="search-form" method="GET" action="">
+            <input type="text" name="nic_search" class="search-input" placeholder="Search by NIC Number..." value="<?php echo htmlspecialchars($search_term); ?>">
+            <button type="submit" name="search" class="search-btn">Search</button>
+            <a href="<?php echo htmlspecialchars($_SERVER['PHP_SELF']); ?>" class="reset-btn">Reset</a>
+        </form>
+    </div>
+    
     <!-- Display Success or Error Messages -->
     <?php
     if (isset($success_message)) {
@@ -204,5 +282,6 @@ $result = $conn->query($sql);
 
 <?php
 // Close the connection
+$stmt->close();
 $conn->close();
 ?>

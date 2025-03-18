@@ -68,13 +68,19 @@ if (!isset($_SESSION['user_id']) || $_SESSION['position'] != 'admin') {
                         </div>
                     </li>
                     <li>
-                        <a href="products.php">Products</a>
+                        <a href="#">Suppliers</a>
                         <div class="dropdown-menu">
-                            <a href="packaged_foods.php">Packaged Foods</a>
-                            <a href="snacks.php">Snacks</a>
-                            <a href="cooking_pantry.php">Cooking & Pantry Staples</a>
-                            <a href="personal_household.php">Personal & Household Care</a>
-                            <a href="sanitary_care.php">Sanitary Care Products</a>
+                            <a href="supplier.php">Registration</a>
+                            <a href="purchases.php">Item Purchases</a>
+                            <a href="Bill_Handling.php">Handling Bills</a>
+                        </div>
+                    </li>
+                    <li>
+                        <a href="#">Products</a>
+                        <div class="dropdown-menu">
+                            <a href="Category.php">Categories</a>
+                            <a href="items.php">items</a>
+                            <a href="quantity_summary.php">Quantity Summary</a>
                         </div>
                     </li>
                     <li>
@@ -85,8 +91,14 @@ if (!isset($_SESSION['user_id']) || $_SESSION['position'] != 'admin') {
                             <a href="purchases.php">Purchases</a>
                         </div>
                     </li>
-                    <li><a href="#">Sales Reports</a></li>
-                    <li><a href="#">Inventory Reports</a></li>
+                    <li>
+                        <a href="#">Reports</a>
+                        <div class="dropdown-menu">
+                            <a href="report1.php">sales report</a>
+                            <a href="report2.php">inventory report</a>
+                            <a href="report3.php">supplier performance report</a>
+                        </div>
+                    </li>
                     
                 </ul>
             </nav>
