@@ -128,6 +128,23 @@ th {
 #errorPopup h3 {
     color: #e74c3c; /* Red */
 }
+.home-btn {
+            background-color: rgb(135, 74, 0);
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 15px;
+            margin: 0 5px; /* Space between buttons */
+        }
+        .home-btn:hover {
+            background-color: #f28252;
+        }
+        .nav-btn-container {
+            text-align: center; /* Center the navigation buttons */
+        }
 
     </style>
 </head>
@@ -195,6 +212,11 @@ th {
             echo "No suppliers registered yet.";
         }
         ?>
+        
+    </div>
+    <br><br>
+        <div class="nav-btn-container">
+        <a href="home.php" class="home-btn">Back to Home Page</a>
     </div>
 </body>
 </html>

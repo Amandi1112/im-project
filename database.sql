@@ -67,37 +67,68 @@ CREATE TABLE IF NOT EXISTS packaged_foods (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
+-- Create Suppliers Table (if not already exists)
+CREATE TABLE suppliers (
+    supplier_id VARCHAR(10) PRIMARY KEY,
+    supplier_name VARCHAR(100) NOT NULL,
+    nic VARCHAR(20) NOT NULL UNIQUE,
+    address TEXT NOT NULL,
+    registration_date DATETIME NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE `supplier` (
-  `supplier_id` VARCHAR(10) NOT NULL,
-  `supplier_name` VARCHAR(100) NOT NULL,
-  `nic` VARCHAR(20) NOT NULL,
-  `address` TEXT NOT NULL,
-  `registration_date` DATETIME NOT NULL,
-  PRIMARY KEY (`supplier_id`),
-  UNIQUE KEY `supplier_nic` (`nic`)
+-- Create Categories Table
+CREATE TABLE categories (
+    category_id INT AUTO_INCREMENT PRIMARY KEY,
+    category_name VARCHAR(100) NOT NULL UNIQUE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Create Items Table
+CREATE TABLE items (
+    item_id INT AUTO_INCREMENT PRIMARY KEY,
+    item_name VARCHAR(255) NOT NULL,
+    category_id INT NOT NULL,
+    supplier_id VARCHAR(10) NOT NULL,
+    quantity INT NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (category_id) REFERENCES categories(category_id),
+    FOREIGN KEY (supplier_id) REFERENCES supplier(supplier_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE items (
+    item_id INT AUTO_INCREMENT PRIMARY KEY,
+    item_name VARCHAR(255) NOT NULL,
+    category_id INT NOT NULL,               -- Must match categories.category_id (INT)
+    supplier_id VARCHAR(10) NOT NULL,       -- Must match suppliers.supplier_id (VARCHAR(10))
+    quantity INT NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (category_id) 
+        REFERENCES categories(category_id)
+        ON DELETE CASCADE,
+    FOREIGN KEY (supplier_id) 
+        REFERENCES supplier(supplier_id)
+        ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS categories ( category_id INT AUTO_INCREMENT PRIMARY KEY, -- INT category_name VARCHAR(100) NOT NULL UNIQUE, created_at DATETIME DEFAULT CURRENT_TIMESTAMP ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE items (
+    item_id CHAR(6) PRIMARY KEY,
+    item_name VARCHAR(255) NOT NULL,
+    category_id CHAR(6) NOT NULL,
+    supplier_id VARCHAR(10) NOT NULL,
+    quantity INT NOT NULL,
+    price_per_unit DECIMAL(10,2) NOT NULL,
+    total_price DECIMAL(10,2) NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (category_id) 
+        REFERENCES categories(category_id)
+        ON DELETE CASCADE,
+    FOREIGN KEY (supplier_id) 
+        REFERENCES supplier(supplier_id)
+        ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
-CREATE TABLE category (
-    category_id INT AUTO_INCREMENT PRIMARY KEY,
-    category_name VARCHAR(100) NOT NULL
-);
-CREATE TABLE item (
-    item_id INT AUTO_INCREMENT PRIMARY KEY,
-    item_name VARCHAR(150) NOT NULL,
-    category_id INT,
-    price DECIMAL(10,2) NOT NULL,
-    quantity INT NOT NULL,
-    FOREIGN KEY (category_id) REFERENCES category(category_id) ON DELETE CASCADE
-);
-
-CREATE TABLE supplier_item_category (
-    supplier_id INT,
-    category_id INT,
-    item_id INT,
-    PRIMARY KEY (supplier_id, item_id),
-    FOREIGN KEY (supplier_id) REFERENCES supplier(supplier_id) ON DELETE CASCADE,
-    FOREIGN KEY (category_id) REFERENCES category(category_id) ON DELETE CASCADE,
-    FOREIGN KEY (item_id) REFERENCES item(item_id) ON DELETE CASCADE
-);

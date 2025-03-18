@@ -78,9 +78,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['position'] != 'admin') {
                     <li>
                         <a href="#">Products</a>
                         <div class="dropdown-menu">
-                            <a href="Category.php">Categories</a>
-                            <a href="items.php">items</a>
-                            <a href="quantity_summary.php">Quantity Summary</a>
+                            <a href="manage_categories_items.php">Categories & Items</a>
                         </div>
                     </li>
                     <li>
