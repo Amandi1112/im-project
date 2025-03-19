@@ -117,10 +117,13 @@ if (isset($_SESSION['success'])) {
         
         .container {
     max-width: 600px;
-    background: rgb(191, 147, 93);
+
     padding: 30px;
     border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    background-color: #d5731846;
+    /* Changed color */
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     margin-bottom: 20px; /* Reduced margin-bottom */
     margin-left: auto;   /* Add auto margins */
     margin-right: auto;

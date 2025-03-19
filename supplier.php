@@ -86,10 +86,13 @@ $conn->close();
             max-width: 600px;
             margin-top:100px;
             margin: auto;
-            background: rgb(181, 137, 83);
             padding: 30px;
             border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            background-color: #d5731846;
+    /* Changed color */
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
         h2 {
             color: #333;

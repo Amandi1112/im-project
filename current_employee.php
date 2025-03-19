@@ -89,7 +89,10 @@ $result = $conn->query($sql);
             <th style="background-color: lightgray;">Actions</th>
             </tr>
             </thead>
-            <tbody style="color: white;">
+            <tbody style="color: white; background-color:rgba(196, 185, 175, 0.28);
+    /* Changed color */
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);">
             <?php if ($result->num_rows > 0): ?>
             <?php while ($row = $result->fetch_assoc()): ?>
             <tr>

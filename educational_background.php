@@ -53,6 +53,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             max-width: 1200px;
             margin: 0 auto 30px auto; /* Centered with bottom margin */
             text-align: center; /* Center the h2 */
+            
         }
         .header-container {
             max-width: 1200px;
@@ -64,10 +65,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         form {
             max-width: 500px;
             margin: 0 auto 40px auto; /* Adjusted margin to space above buttons */
-            background: white;
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            background-color: #d5731846;
+    /* Changed color */
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
         label {
             display: block;

@@ -192,9 +192,12 @@ $result = $conn->query($sql);
         .container {
             max-width: 1200px;
             margin: 0 auto;
-            background-color: #fff;
+            background-color: #d5731846;
+    /* Changed color */
+
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             padding: 20px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            
             border-radius: 5px;
         }
         .header-actions {
