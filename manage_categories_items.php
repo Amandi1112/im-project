@@ -101,6 +101,7 @@ if (isset($_SESSION['success'])) {
 }
 ?>
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -109,7 +110,7 @@ if (isset($_SESSION['success'])) {
     <style>
         body {
             font-family: Arial, sans-serif;
-            background:url(images/background4.jpg);
+            background:url("images/background60.jpg");
             margin: 0;
             padding: 20px;
         }

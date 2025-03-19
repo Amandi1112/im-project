@@ -5,11 +5,16 @@
 }
 
 body {
-    background: url('images/background2.jpg');
+    background-image: url('images/background6.jpg');
+    /* Replace with your image path */
     background-size: cover;
+    /* This ensures the image covers the entire background */
     background-position: center;
-    color: #333;
-    line-height: 1.6;
+    /* Centers the image */
+    background-repeat: no-repeat;
+    /* Prevents the image from repeating */
+    background-attachment: fixed;
+    /* Keeps the background fixed when scrolling */
 }
 
 .container {
@@ -210,7 +215,7 @@ nav ul li a:hover {
 }
 
 nav ul li a.active {
-    background-color: #4a90e2;
+    background-color: #e2964a;
     color: white;
 }
 

@@ -42,7 +42,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             font-family: Arial, sans-serif;
             margin: 20px;
             background-color: #f0f8ff;
-            background-image: url('images/background2.jpg');
+            background-image: url('images/background60.jpg');
             background-size: cover;
             background-position: center;
         }

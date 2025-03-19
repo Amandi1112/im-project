@@ -37,7 +37,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <style>
         body {
             font-family: Arial, sans-serif;
-            background:url(images/background2.jpg);
+            background:url("images/background60.jpg");
             margin-top: 100px;
             margin: auto;
             padding: 0;

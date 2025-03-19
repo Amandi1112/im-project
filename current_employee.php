@@ -71,7 +71,7 @@ $result = $conn->query($sql);
         }
     </style>
 </head>
-<body style="background-image: url('images/background2.jpg'); background-size: cover; background-repeat: no-repeat; background-attachment: fixed;"></body>
+<body style="background-image: url('images/background60.jpg'); background-size: cover; background-repeat: no-repeat; background-attachment: fixed;"></body>
     <h1>Customer Details</h1>
     <div style="display: flex; justify-content: flex-end; margin-right: 20px;">
         <button class = 'home-btn' style="background-color:rgb(246, 157, 122);">

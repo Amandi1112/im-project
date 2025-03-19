@@ -234,7 +234,7 @@ try {
         }
     </style>
 </head>
-<body>
+<body style="background:url(images/background60.jpg)">
     <div class="page-wrapper">
         <!-- Notification area outside of the main container -->
         <div class="notification-area">

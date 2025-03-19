@@ -76,7 +76,7 @@ $conn->close();
     <title>Supplier Registration</title>
     <style>
         body {
-            background:url(images/background2.jpg);
+            background:url("images/background60.jpg");
             font-family: Arial, sans-serif;
             background-color: #f4f4f4;
             margin: 0;

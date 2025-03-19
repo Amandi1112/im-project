@@ -6,7 +6,7 @@
     <title>Login</title>
     <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body style="background: url(images/background60.jpg)">
     <div class="container">
         <div class="form-container">
              <!-- Add the logo here -->

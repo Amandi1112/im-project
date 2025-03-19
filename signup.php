@@ -6,7 +6,7 @@
     <title>Sign Up</title>
     <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body style="background: url(images/background60.jpg)">
     <div class="container">
         <div class="form-container">
             <h2>Create an Account</h2>

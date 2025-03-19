@@ -76,41 +76,7 @@ CREATE TABLE suppliers (
     registration_date DATETIME NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Create Categories Table
-CREATE TABLE categories (
-    category_id INT AUTO_INCREMENT PRIMARY KEY,
-    category_name VARCHAR(100) NOT NULL UNIQUE,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Create Items Table
-CREATE TABLE items (
-    item_id INT AUTO_INCREMENT PRIMARY KEY,
-    item_name VARCHAR(255) NOT NULL,
-    category_id INT NOT NULL,
-    supplier_id VARCHAR(10) NOT NULL,
-    quantity INT NOT NULL,
-    price DECIMAL(10,2) NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (category_id) REFERENCES categories(category_id),
-    FOREIGN KEY (supplier_id) REFERENCES supplier(supplier_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-CREATE TABLE items (
-    item_id INT AUTO_INCREMENT PRIMARY KEY,
-    item_name VARCHAR(255) NOT NULL,
-    category_id INT NOT NULL,               -- Must match categories.category_id (INT)
-    supplier_id VARCHAR(10) NOT NULL,       -- Must match suppliers.supplier_id (VARCHAR(10))
-    quantity INT NOT NULL,
-    price DECIMAL(10,2) NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (category_id) 
-        REFERENCES categories(category_id)
-        ON DELETE CASCADE,
-    FOREIGN KEY (supplier_id) 
-        REFERENCES supplier(supplier_id)
-        ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS categories ( category_id INT AUTO_INCREMENT PRIMARY KEY, -- INT category_name VARCHAR(100) NOT NULL UNIQUE, created_at DATETIME DEFAULT CURRENT_TIMESTAMP ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -130,5 +96,14 @@ CREATE TABLE items (
         REFERENCES supplier(supplier_id)
         ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+CREATE TABLE activity_log (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    activity VARCHAR(255) NOT NULL,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 
 

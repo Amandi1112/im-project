@@ -180,7 +180,7 @@ $result = $conn->query($sql);
     <title>Membership Management System</title>
     <style>
         body {
-            background-image: url('images/background4.jpg');
+            background-image: url('images/background60.jpg');
             font-family: Arial, sans-serif;
             margin: 20px;
             background-color: #f5f5f5;

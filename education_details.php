@@ -27,7 +27,7 @@ if (isset($_GET['delete'])) {
     
     <style>
         body {
-            background:url(images/background2.jpg);
+            background:url("images/background60.jpg");
             font-family: Arial, sans-serif;
             margin: 20px;
             background-color: #f0f8ff;
