@@ -110,7 +110,7 @@ if (isset($_SESSION['success'])) {
     <style>
         body {
             font-family: Arial, sans-serif;
-            background:url("images/background60.jpg");
+            background-color: #aaa;
             margin: 0;
             padding: 20px;
         }
@@ -414,14 +414,14 @@ if (isset($_SESSION['success'])) {
         $result = $conn->query($sql);
         
         if ($result->num_rows > 0) {
-            echo "<table>";
-            echo "<tr><th>Item ID</th><th>Item Name</th><th>Category</th><th>Supplier</th><th>Quantity</th><th>Price per Unit</th><th>Total Price</th><th>Purchase Date</th></tr>";
+            echo "<table style='width: 60%;'>";
+            echo "<tr><th>Item ID</th><th>Item Name</th><th>Supplier</th><th>Quantity</th><th>Price per Unit</th><th>Total Price</th><th>Purchase Date</th></tr>";
             
             while($row = $result->fetch_assoc()) {
                 echo "<tr>";
                 echo "<td>" . $row["item_id"] . "</td>";
                 echo "<td>" . $row["item_name"] . "</td>";
-                echo "<td>" . $row["category_name"] . "</td>";
+                
                 echo "<td>" . $row["supplier_name"] . "</td>";
                 echo "<td>" . $row["quantity"] . "</td>";
                 echo "<td>" . $row["price_per_unit"] . "</td>";

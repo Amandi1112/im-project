@@ -82,14 +82,14 @@ $result = $conn->query($sql);
         <table border="1" style="width: 90%; font-size: 1.2em; height: auto; margin: 20px auto; table-layout: fixed; background-color:rgb(66, 31, 2);">
             <thead>
             <tr>
-            <th style="background-color: lightgray;">ID</th>
+            
             <th style="background-color: lightgray;">Name</th>
             <th style="background-color: lightgray;">Email</th>
             <th style="background-color: lightgray;">Position</th>
             <th style="background-color: lightgray;">Actions</th>
             </tr>
             </thead>
-            <tbody style="color: white; background-color:rgba(196, 185, 175, 0.28);
+            <tbody style="color: black; background-color:white;
     /* Changed color */
     border-radius: 8px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);">
@@ -97,15 +97,16 @@ $result = $conn->query($sql);
             <?php while ($row = $result->fetch_assoc()): ?>
             <tr>
                 <form method="POST">
-                <td style="color: white;"><?php echo $row['id']; ?></td>
-                <td style="color: white; font-size: 0.7em;"><?php echo $row['name']; ?></td>
+                
+                <td style="color: black; font-size: 0.7em;"><?php echo $row['name']; ?></td>
                 <td>
-                <input type="email" name="email" value="<?php echo $row['email']; ?>" required style="border: none; outline: none; background: transparent; width: 100%; font-size: 0.7em; color: white;">
+                <input type="email" name="email" value="<?php echo $row['email']; ?>" required style="border: none; outline: none; background: transparent; width: 100%; font-size: 0.7em; color: black;">
                 </td>
                 <td>
-                <select name="position" required style="width: 100%; color: white; background-color: transparent;">
+                <select name="position" required style="width: 100%; color: black; background-color: transparent;">
                 <option value="client" <?php echo $row['position'] === 'client' ? 'selected' : ''; ?>>Client</option>
                 <option value="accountant" <?php echo $row['position'] === 'accountant' ? 'selected' : ''; ?>>Accountant</option>
+                <option value="admin" <?php echo $row['position'] === 'admin' ? 'selected' : ''; ?>>Admin</option>
                 </select>
                 </td>
                 <td>

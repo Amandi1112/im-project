@@ -104,12 +104,13 @@ $result = $conn->query($sql);
             color: black; /* Changed table data color to white */
         }
         table {
+            background-color: white; /* Changed table background color to white */
             width: 100%;
             border-collapse: collapse;
             margin-top: 20px;
         }
         th, td {
-            border: 5px solid white;
+            border: 3px solid black;
             padding: 8px;
             text-align: left;
         }
