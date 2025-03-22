@@ -201,7 +201,7 @@ $recent_purchases = $conn->query($recent_purchases_query);
 </head>
 <body>
     <div class="container">
-        <h1 class="text-center" style="text-align: center; font-weight: bold; color: white; font-size: 2em; text-shadow: 2px 2px 5px lightblue;">Supplier Purchase Management</h1>
+        <h1 style="text-align: center; font-weight: bold; color: white; font-size: 2em; text-shadow: 2px 2px 5px lightblue;">Supplier Purchase Management</h1>
         
         <?php if (!empty($error)): ?>
             <div class="alert alert-danger"><?php echo $error; ?></div>

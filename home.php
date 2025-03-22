@@ -627,10 +627,12 @@ $currentTime = date("h:i A");
                         </li>
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="fas fa-box-open me-1"></i>Products
+                                <i class="fas fa-box-open me-1"></i>Inventory
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
-                                <li><a class="dropdown-item" href="manage_categories_items.php">Categories & Items</a></li>
+                                <li><a class="dropdown-item" href="manage_categories_items.php">Add New Categories</a></li>
+                                <li><a class="dropdown-item" href="safety_stock.php">Safety Stock</a></li>
+                                <li><a class="dropdown-item" href="inventory_mgt.php">Manage Inventory</a></li>
                             </ul>
                         </li>
                         <li class="nav-item dropdown">
@@ -640,7 +642,7 @@ $currentTime = date("h:i A");
                             <ul class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
                                 <li><a class="dropdown-item" href="member.php">Bank Memberships</a></li>
                                 <li><a class="dropdown-item" href="member_registration.php">Member Registration</a></li>
-                                <li><a class="dropdown-item" href="purchases.php">Purchases</a></li>
+                                <li><a class="dropdown-item" href="customer_purchases.php">Member Purchases</a></li>
                             </ul>
                         </li>
                         <li class="nav-item dropdown">
@@ -648,9 +650,9 @@ $currentTime = date("h:i A");
                                 <i class="fas fa-chart-line me-1"></i>Reports
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
-                                <li><a class="dropdown-item" href="report1.php">Sales Report</a></li>
+                                <li><a class="dropdown-item" href="customer_credit.php">Credit Balance Reports</a></li>
                                 <li><a class="dropdown-item" href="report2.php">Inventory Report</a></li>
-                                <li><a class="dropdown-item" href="report3.php">Supplier Performance Report</a></li>
+                                <li><a class="dropdown-item" href="supplier_performance.php">Supplier Performance Report</a></li>
                             </ul>
                         </li>
                     </ul>

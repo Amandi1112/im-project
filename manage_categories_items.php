@@ -13,7 +13,10 @@ if ($conn->connect_error) {
 }
 
 $error = $success = '';
+
+// Process form submissions
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // Add category form submission
     if (isset($_POST['add_category'])) {
         $category_name = trim($_POST['category_name']);
         
@@ -22,7 +25,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         } else {
             // Generate category_id starting with 'C' followed by 5 numbers
             $lastIdQuery = "SELECT MAX(CAST(SUBSTR(category_id, 2) AS UNSIGNED)) AS last_id FROM categories WHERE category_id LIKE 'C%'";
-
             $result = $conn->query($lastIdQuery);
             $row = $result->fetch_assoc();
             $lastId = $row['last_id'];
@@ -33,74 +35,63 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $category_id = 'C' . str_pad($lastId + 1, 5, '0', STR_PAD_LEFT);
             }
 
-    
-            $stmt = $conn->prepare("INSERT INTO categories (category_id, category_name) VALUES (?, ?)");
-            $stmt->bind_param("ss", $category_id, $category_name);
+            // Check if category name already exists
+            $checkStmt = $conn->prepare("SELECT category_id FROM categories WHERE category_name = ?");
+            $checkStmt->bind_param("s", $category_name);
+            $checkStmt->execute();
+            $checkResult = $checkStmt->get_result();
             
-            if ($stmt->execute()) {
-                $success = "Category added successfully!";
+            if ($checkResult->num_rows > 0) {
+                $error = "Category name already exists! Please choose a unique name.";
             } else {
-                if ($conn->errno == 1062) {
-                    $error = "Category name already exists! Please choose a unique name.";
+                // Insert new category
+                $insertStmt = $conn->prepare("INSERT INTO categories (category_id, category_name) VALUES (?, ?)");
+                $insertStmt->bind_param("ss", $category_id, $category_name);
+                
+                if ($insertStmt->execute()) {
+                    $success = "Category added successfully!";
                 } else {
                     $error = "Error adding category: " . $conn->error;
                 }
+                $insertStmt->close();
             }
-            $stmt->close();
+            $checkStmt->close();
         }
-        
     }
-    if (isset($_POST['add_item'])) {
-        $item_name = trim($_POST['item_name']);
+    
+    // Delete category form submission
+    if (isset($_POST['delete_category']) && isset($_POST['category_id'])) {
         $category_id = $_POST['category_id'];
-        $supplier_id = $_POST['supplier_id'];
-        $quantity = $_POST['quantity'];
-        $price_per_unit = $_POST['price_per_unit'] ?? 0;
-        $purchase_date = $_POST['purchase_date'];  // Get purchase date
-
         
-        if (empty($item_name) || $category_id == 0 || $supplier_id == 0 || $quantity < 1 || $price_per_unit <= 0) {
-            $error = "All fields are required with valid values!";
+        // Check if category exists before deleting
+        $checkStmt = $conn->prepare("SELECT category_id FROM categories WHERE category_id = ?");
+        $checkStmt->bind_param("s", $category_id);
+        $checkStmt->execute();
+        $checkResult = $checkStmt->get_result();
+        
+        if ($checkResult->num_rows == 0) {
+            $error = "Category not found!";
         } else {
-            // Generate item_id starting with 'i' followed by 5 numbers
-            $lastIdQuery = "SELECT MAX(CAST(SUBSTR(item_id, 2) AS UNSIGNED)) AS last_id FROM items WHERE item_id LIKE 'I%'";
-
-            $result = $conn->query($lastIdQuery);
-            $row = $result->fetch_assoc();
-            $lastId = $row['last_id'];
-
-            if ($lastId === NULL) {
-                $item_id = 'I00001';
-            } else {
-                $item_id = 'I' . str_pad($lastId + 1, 5, '0', STR_PAD_LEFT);
-            }
-
-            $total_price = $quantity * $price_per_unit;
-
-            $stmt = $conn->prepare("INSERT INTO items (item_id, item_name, category_id, supplier_id, quantity, price_per_unit, total_price, purchase_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->bind_param("ssssidds", $item_id, $item_name, $category_id, $supplier_id, $quantity, $price_per_unit, $total_price, $purchase_date);
+            $deleteStmt = $conn->prepare("DELETE FROM categories WHERE category_id = ?");
+            $deleteStmt->bind_param("s", $category_id);
             
-            if ($stmt->execute()) {
-                // Set success message in session
-                $success = "Item added successfully!";
-
-               // Redirect to the same page using the POST-Redirect-GET pattern
-               header("Location: " . $_SERVER['REQUEST_URI']);
-               exit;
-           } else {
-               $error = "Error adding item: " . $conn->error;
-           }
-           $stmt->close();
-       }
+            if ($deleteStmt->execute()) {
+                $success = "Category deleted successfully!";
+            } else {
+                $error = "Error deleting category: " . $conn->error;
+            }
+            $deleteStmt->close();
+        }
+        $checkStmt->close();
     }
 }
-// Display success message from session
+
+// Display success message from session if exists
 if (isset($_SESSION['success'])) {
     $success = $_SESSION['success'];
-    unset($_SESSION['success']); // Remove the message from session
+    unset($_SESSION['success']);
 }
 ?>
-
 
 <!DOCTYPE html>
 <html lang="en">
@@ -110,24 +101,23 @@ if (isset($_SESSION['success'])) {
     <style>
         body {
             font-family: Arial, sans-serif;
-            background-color: #aaa;
+            background: url("images/background60.jpg");
             margin: 0;
             padding: 20px;
         }
         
         .container {
-    max-width: 600px;
-
-    padding: 30px;
-    border-radius: 8px;
-    background-color: #d5731846;
-    /* Changed color */
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    margin-bottom: 20px; /* Reduced margin-bottom */
-    margin-left: auto;   /* Add auto margins */
-    margin-right: auto;
-}
+            max-width: 600px;
+            padding: 30px;
+            border-radius: 8px;
+            background-color: #d5731846;
+            /* Changed color */
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px; /* Reduced margin-bottom */
+            margin-left: auto;   /* Add auto margins */
+            margin-right: auto;
+        }
         
         h2 {
             color: #333;
@@ -288,6 +278,7 @@ if (isset($_SESSION['success'])) {
             from {top: -300px; opacity: 0}
             to {top: 0; opacity: 1}
         }
+        
         .home-btn {
             background-color: rgb(135, 74, 0);
             color: white;
@@ -299,28 +290,71 @@ if (isset($_SESSION['success'])) {
             font-size: 15px;
             margin: 0 5px; /* Space between buttons */
         }
+        
         .home-btn:hover {
             background-color: #f28252;
         }
+        
         .nav-btn-container {
             text-align: center; /* Center the navigation buttons */
+            margin-top: 20px;
         }
+        
         .btn{
-            background-color:rgb(135, 74, 0);
-            color:black;
+            background-color: rgb(135, 74, 0);
+            color: white;
         }
+        
         .btn:hover{
-           background-color:rgb(221, 125, 35);
-           color:black;
+           background-color: rgb(221, 125, 35);
+           color: white;
         }
-
+        
+        /* Delete button styling */
+        .delete-btn {
+            background-color: #f44336;
+            color: white;
+            padding: 6px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            width: auto;
+        }
+        
+        .delete-btn:hover {
+            background-color: #d32f2f;
+        }
+        
+        /* Confirmation modal */
+        #confirmDeleteModal .modal-content {
+            width: 350px;
+        }
+        
+        .modal-footer {
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .modal-footer button {
+            width: 45%;
+        }
+        
+        /* Cancel button */
+        .cancel-btn {
+            background-color: #808080;
+            color: white;
+        }
+        
+        .cancel-btn:hover {
+            background-color: #606060;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h2>Add New Category</h2>
+        <h2 style="text-align: center; font-weight: bold; color: rgb(39, 6, 34); font-size: 2em; text-shadow: 2px 2px 5px lightblue;">Add New Category</h2>
         <form method="post">
-            <input type="hidden" name="add_category">
+            <input type="hidden" name="add_category" value="1">
             <div class="form-group">
                 <label>Category Name:</label>
                 <input type="text" name="category_name" required>
@@ -330,108 +364,27 @@ if (isset($_SESSION['success'])) {
     </div>
     
     <div class="container">
-        <h2>Categories</h2>
+        <h2 style="text-align: center; font-weight: bold; color:rgb(39, 6, 34); font-size: 2em; text-shadow: 2px 2px 5px lightblue;">Categories</h2>
         <?php
         $sql = "SELECT * FROM categories";
         $result = $conn->query($sql);
         
         if ($result->num_rows > 0) {
             echo "<table>";
-            echo "<tr><th>Category ID</th><th>Category Name</th></tr>";
+            echo "<tr><th>Category ID</th><th>Category Name</th><th>Action</th></tr>";
             
             while($row = $result->fetch_assoc()) {
                 echo "<tr>";
-                echo "<td>" . $row["category_id"] . "</td>";
-                echo "<td>" . $row["category_name"] . "</td>";
+                echo "<td>" . htmlspecialchars($row["category_id"]) . "</td>";
+                echo "<td>" . htmlspecialchars($row["category_name"]) . "</td>";
+                echo "<td>
+                        <button type='button' class='delete-btn' onclick='confirmDelete(\"" . htmlspecialchars($row["category_id"]) . "\", \"" . htmlspecialchars($row["category_name"]) . "\")'>Delete</button>
+                      </td>";
                 echo "</tr>";
             }
             echo "</table>";
         } else {
             echo "No categories yet.";
-        }
-        ?>
-    </div>
-    
-    <div class="container">
-        <h2>Add New Item</h2>
-        <form method="post">
-            <input type="hidden" name="add_item">
-            <div class="form-group">
-                <label>Item Name:</label>
-                <input type="text" name="item_name" required>
-            </div>
-            
-            <div class="form-group">
-                <label>Category:</label>
-                <select name="category_id" required>
-                    <option value="0">Select Category</option>
-                    <?php
-                    $categories = $conn->query("SELECT * FROM categories");
-                    while($cat = $categories->fetch_assoc()):
-                    ?>
-                    <option value="<?= $cat['category_id'] ?>"><?= $cat['category_name'] ?></option>
-                    <?php endwhile; ?>
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label>Supplier:</label>
-                <select name="supplier_id" required>
-                    <option value="0">Select Supplier</option>
-                    <?php
-                    $supplier = $conn->query("SELECT * FROM supplier");
-                    while($sup = $supplier->fetch_assoc()):
-                    ?>
-                    <option value="<?= $sup['supplier_id'] ?>"><?= $sup['supplier_name'] ?></option>
-                    <?php endwhile; ?>
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label>Quantity:</label>
-                <input type="number" name="quantity" min="1" required>
-            </div>
-            
-            <div class="form-group">
-                <label>Price per Unit:</label>
-                <input type="number" name="price_per_unit" step="0.01" min="0.01" required>
-            </div>
-            <div class="form-group">
-                <label>Purchase Date:</label>
-                <input type="date" name="purchase_date" required>
-            </div>
-            <button type="submit" class="btn">Add Item</button>
-        </form>
-    </div>
-    
-    <div class="container">
-        <h2>Items</h2>
-        <?php
-        $sql = "SELECT i.item_id, i.item_name, c.category_name, s.supplier_name, i.quantity, i.price_per_unit, i.total_price,i.purchase_date
-                FROM items i 
-                JOIN categories c ON i.category_id = c.category_id 
-                JOIN supplier s ON i.supplier_id = s.supplier_id";
-        $result = $conn->query($sql);
-        
-        if ($result->num_rows > 0) {
-            echo "<table style='width: 60%;'>";
-            echo "<tr><th>Item ID</th><th>Item Name</th><th>Supplier</th><th>Quantity</th><th>Price per Unit</th><th>Total Price</th><th>Purchase Date</th></tr>";
-            
-            while($row = $result->fetch_assoc()) {
-                echo "<tr>";
-                echo "<td>" . $row["item_id"] . "</td>";
-                echo "<td>" . $row["item_name"] . "</td>";
-                
-                echo "<td>" . $row["supplier_name"] . "</td>";
-                echo "<td>" . $row["quantity"] . "</td>";
-                echo "<td>" . $row["price_per_unit"] . "</td>";
-                echo "<td>" . $row["total_price"] . "</td>";
-                echo "<td>" . $row["purchase_date"] . "</td>";
-                echo "</tr>";
-            }
-            echo "</table>";
-        } else {
-            echo "No items yet.";
         }
         ?>
     </div>
@@ -444,10 +397,10 @@ if (isset($_SESSION['success'])) {
                 <h3 class="modal-title">Success</h3>
             </div>
             <div class="modal-body">
-                <p><?= $success ?></p>
+                <p><?= htmlspecialchars($success) ?></p>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-success close-modal">OK</button>
+                <button type="button" class="btn btn-success close-modal">OK</button>
             </div>
         </div>
     </div>
@@ -460,10 +413,31 @@ if (isset($_SESSION['success'])) {
                 <h3 class="modal-title">Error</h3>
             </div>
             <div class="modal-body">
-                <p><?= $error ?></p>
+                <p><?= htmlspecialchars($error) ?></p>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-danger close-modal">OK</button>
+                <button type="button" class="btn btn-danger close-modal">OK</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Confirm Delete Modal -->
+    <div id="confirmDeleteModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <div class="modal-header">
+                <h3 class="modal-title">Confirm Delete</h3>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete category "<span id="categoryName"></span>"?</p>
+            </div>
+            <div class="modal-footer">
+                <form method="post" id="deleteForm">
+                    <input type="hidden" name="delete_category" value="1">
+                    <input type="hidden" name="category_id" id="categoryIdInput">
+                    <button type="button" class="btn cancel-btn" onclick="closeModal('confirmDeleteModal')">Cancel</button>
+                    <button type="submit" class="delete-btn">Delete</button>
+                </form>
             </div>
         </div>
     </div>
@@ -473,6 +447,7 @@ if (isset($_SESSION['success'])) {
             // Get modals
             var successModal = document.getElementById('successModal');
             var errorModal = document.getElementById('errorModal');
+            var confirmDeleteModal = document.getElementById('confirmDeleteModal');
             
             // Show success modal if there's a success message
             <?php if($success): ?>
@@ -490,6 +465,7 @@ if (isset($_SESSION['success'])) {
                 closeButtons[i].onclick = function() {
                     successModal.style.display = "none";
                     errorModal.style.display = "none";
+                    confirmDeleteModal.style.display = "none";
                 }
             }
             
@@ -504,15 +480,30 @@ if (isset($_SESSION['success'])) {
             
             // Close modal when clicking outside of it
             window.onclick = function(event) {
-                if (event.target == successModal || event.target == errorModal) {
+                if (event.target == successModal || event.target == errorModal || event.target == confirmDeleteModal) {
                     successModal.style.display = "none";
                     errorModal.style.display = "none";
+                    confirmDeleteModal.style.display = "none";
                 }
             }
         });
+        
+        // Function to show delete confirmation modal
+        function confirmDelete(categoryId, categoryName) {
+            document.getElementById('categoryName').textContent = categoryName;
+            document.getElementById('categoryIdInput').value = categoryId;
+            document.getElementById('confirmDeleteModal').style.display = "block";
+        }
+        
+        // Function to close a specific modal
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = "none";
+        }
     </script>
+    
     <div class="nav-btn-container">
-    <a href="home.php" class="home-btn">Back to Home Page</a>
+        <a href="home.php" class="home-btn">Back to Home Page</a>
+    </div>
 </body>
 </html>
 <?php $conn->close(); ?>
