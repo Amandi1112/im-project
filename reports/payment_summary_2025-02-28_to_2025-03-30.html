@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Payment Summary Report: 2025-02-28 to 2025-03-30</title>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+            .report-header { text-align: center; margin-bottom: 30px; }
+            .report-title { font-size: 24px; font-weight: bold; }
+            h2 { color: #333; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+            th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
+            th { background-color: #f2f2f2; }
+            .total-row td { font-weight: bold; }
+        </style>
+    </head>
+    <body>
+        <div class="report-header">
+            <div class="report-title">Payment Summary Report</div>
+            <div>Period: 2025-02-28 to 2025-03-30</div>
+            <div>Generated on: 2025-03-22 09:37:51</div>
+        </div>
+        
+        <h2>Supplier Payment Summary</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Supplier ID</th>
+                    <th>Supplier Name</th>
+                    <th>Number of Payments</th>
+                    <th>Total Amount Paid</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>S00006</td>
+                    <td>CBL - Mr. Chamod Gunarathne</td>
+                    <td>1</td>
+                    <td>$9,000.00</td>
+                </tr>
+                <tr>
+                    <td>S00004</td>
+                    <td>Kist Products-Mr. Sujeewa Sampath</td>
+                    <td>1</td>
+                    <td>$0.00</td>
+                </tr>
+                <tr>
+                    <td>S00002</td>
+                    <td>Nestlé Lanka PLC - Mr. Kumara Sampath</td>
+                    <td>1</td>
+                    <td>$0.00</td>
+                </tr>
+                <tr>
+                    <td>S00001</td>
+                    <td>Unilever Sri Lanka - Mr. Saman Kumara</td>
+                    <td>1</td>
+                    <td>$0.00</td>
+                </tr>
+                <tr class="total-row">
+                    <td colspan="3" style="text-align: right;">Grand Total:</td>
+                    <td>$9,000.00</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <h2>Category Payment Breakdown</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Category</th>
+                    <th>Number of Items</th>
+                    <th>Total Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Food Cupboard</td>
+                    <td>1</td>
+                    <td>$9,000.00</td>
+                </tr>
+            </tbody>
+        </table>
+    </body>
+    </html>

@@ -400,7 +400,7 @@ $currentTime = date("h:i A");
             position: relative;
             padding-left: 30px;
         }
-        
+        a
         .timeline:before {
             content: '';
             position: absolute;
@@ -622,7 +622,7 @@ $currentTime = date("h:i A");
                             <ul class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
                                 <li><a class="dropdown-item" href="supplier.php">Registration</a></li>
                                 <li><a class="dropdown-item" href="supplier_purchases.php">Item Purchases</a></li>
-                                <li><a class="dropdown-item" href="Bill_Handling.php">Handling Bills</a></li>
+                                <li><a class="dropdown-item" href="supplier_payments.php">Handling Bills</a></li>
                             </ul>
                         </li>
                         <li class="nav-item dropdown">
@@ -653,6 +653,7 @@ $currentTime = date("h:i A");
                                 <li><a class="dropdown-item" href="customer_credit.php">Credit Balance Reports</a></li>
                                 <li><a class="dropdown-item" href="report2.php">Inventory Report</a></li>
                                 <li><a class="dropdown-item" href="supplier_performance.php">Supplier Performance Report</a></li>
+                                <li><a class="dropdown-item" href="supplier_payment_report.php">Supplier Payment Reports</a></li>
                             </ul>
                         </li>
                     </ul>

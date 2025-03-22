@@ -247,6 +247,45 @@ function getAllTransactions($conn) {
                 display: none;
             }
         }
+        .container {
+            max-width: 600px;
+            margin-top:100px;
+            margin: auto;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            background-color: #d5731846;
+    /* Changed color */
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .nav-btn-container {
+            text-align: center; /* Center the navigation buttons */
+        }
+        .btn{
+           background-color:rgb(135, 74, 0);
+        }
+        .btn:hover{
+            background-color: rgb(221, 125, 35);
+        }
+        .home-btn {
+            background-color: rgb(135, 74, 0);
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 15px;
+            margin: 0 5px; /* Space between buttons */
+        }
+        .home-btn:hover {
+            background-color: #f28252;
+        }
+        .nav-btn-container {
+            text-align: center; /* Center the navigation buttons */
+        }
     </style>
 </head>
 <body>
@@ -266,20 +305,20 @@ function getAllTransactions($conn) {
     <?php elseif ($reportType == 'summary'): ?>
         <!-- Summary Report -->
         <div class="report-header">
-            <h1>Customer Credit Balance - Summary Report</h1>
+            <h1 style="background-color:rgb(251, 236, 226); width: 700px; text-align: center; margin-left:400px; border: radius 8px;">Customer Credit Balance - Summary Report</h1>
         </div>
         
-        <div class="report-date">
+        <div class="report-date" style="color:black; font-weight: bold; font-size: 20px;">
             Report Generated on: <?php echo date('F d, Y h:i A'); ?>
         </div>
         
         <div class="no-print">
             <a href="?report=menu" class="back-link">Back to Menu</a><br>
             <a href="javascript:window.print()" class="print-btn">Print Report</a>
-            <a href="?report=summary&export=excel" class="export-btn">Export to Excel</a>
+            
         </div>
         
-        <table class="summary-table">
+        <table class="summary-table" style="background-color:rgb(255, 255, 255);">
             <thead>
                 <tr>
                     <th>Membership No.</th>
@@ -322,16 +361,11 @@ function getAllTransactions($conn) {
     <?php elseif ($reportType == 'individual'): ?>
         <!-- Individual Member Selection or Report -->
         <div class="report-header">
-            <h1 style="background-color:rgb(239, 177, 134); width: 700px; text-align: center; margin-left:400px; border: radius 8px;">Customer Credit Balance - Individual Report</h1>
+            <h1 style="background-color:rgb(251, 236, 226); width: 700px; text-align: center; margin-left:400px; border: radius 8px;">Customer Credit Balance - Individual Report</h1>
         </div>
-        
-        <div class="no-print">
-            <a href="?report=menu" class="back-link"> Back to Menu</a>
-        </div>
-        
         <?php if (empty($selectedMember)): ?>
             <!-- Member Selection Form -->
-            <div class="report-filters">
+            <div class="container">
                 <h2 style="text-shadow: 2px 2px 5px lightblue; font-size: 25px; margin-top: 10px;">Select Member</h2>
                 <form action="" method="GET">
                     <input type="hidden" name="report" value="individual">
@@ -350,6 +384,10 @@ function getAllTransactions($conn) {
                     <button type="submit" class="btn">Generate Report</button>
                 </form>
             </div>
+            <br>
+        <div class="nav-btn-container">
+            <a href="?report=menu" class="back-link"> Back to Menu</a>
+        </div>
         <?php else: ?>
             <!-- Individual Member Report -->
             <?php
@@ -362,19 +400,19 @@ function getAllTransactions($conn) {
                 // Get transactions for this member
                 $transactionResult = getMemberTransactions($conn, $selectedMember);
             ?>
-                <div class="report-date">
-                    Report Generated on: <?php echo date('F d, Y h:i A'); ?>
+                <div class="report-date" style="color:black; font-weight: bold; font-size: 20px;">
+                    Report : <?php echo date('F d, Y h:i A'); ?>
                 </div>
                 
                 <div class="no-print">
-                    <a href="?report=individual" class="back-link">← Back to Member Selection</a><br>
+                    <a href="?report=individual" class="back-link" style="width: 216px;">← Back to Member Selection</a><br>
                     <a href="javascript:window.print()" class="print-btn">Print Report</a>
-                    <a href="?report=individual&member=<?php echo $selectedMember; ?>&export=excel" class="export-btn">Export to Excel</a>
+                    
                 </div>
                 
                 <div class="member-section">
                     <h2>Member Information</h2>
-                    <table class="summary-table">
+                    <table class="summary-table" style="background-color: white;">
                         <tr>
                             <th>Membership Number</th>
                             <td><?php echo $member['membership_number']; ?></td>
@@ -431,14 +469,20 @@ function getAllTransactions($conn) {
                         <p>No transactions found for this member.</p>
                     <?php endif; ?>
                 </div>
+               
             <?php } else { ?>
                 <div class="alert">
                     <p>Member not found. Please select a valid membership number.</p>
                     <a href="?report=individual" class="btn">Go Back</a>
                 </div>
+                
             <?php } ?>
         <?php endif; ?>
     <?php endif; ?>
+    <br>
+    <div class="nav-btn-container">
+        <a href="home.php" class="home-btn">Back to Home Page</a>
+    </div>
     
     <?php
     // Close the connection
