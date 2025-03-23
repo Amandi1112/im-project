@@ -117,7 +117,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['submit'])) {
                 $update_stmt = $conn->prepare($update_sql);
                 
                 // Use the correct data types for binding
-                $update_stmt->bind_param("dddss", $new_quantity, $price_per_unit, $total_price, $purchase_date, $item_id);
+                $update_stmt->bind_param("ddsss", $new_quantity, $price_per_unit, $total_price, $purchase_date, $item_id);
 
                 if ($update_stmt->execute()) {
                     $_SESSION['success'] = "Purchase updated successfully for Item ID: " . $item_id;
@@ -132,14 +132,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['submit'])) {
                 // Debug log
                 error_log("About to insert with supplier_id: " . $supplier_id);
                 
-                // Fixed SQL query - corrected parameter count and added created_at field
-                $insert_sql = "INSERT INTO items (item_id, item_name, category_id, supplier_id, quantity, price_per_unit, total_price, created_at, purchase_date)
-                               VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)";
-                $insert_stmt = $conn->prepare($insert_sql);
-                
-                // Use the correct data types for binding
-                // s = string, d = double/decimal, i = integer
-                $insert_stmt->bind_param("ssssddds", $item_id, $item_name, $category_id, $supplier_id, $quantity, $price_per_unit, $total_price, $purchase_date);
+                $insert_sql = "INSERT INTO items (item_id, item_name, category_id, supplier_id, quantity, price_per_unit, total_price, purchase_date)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+ $insert_stmt = $conn->prepare($insert_sql);
+ 
+ // Use the correct data types for binding
+ $insert_stmt->bind_param("ssssddds", $item_id, $item_name, $category_id, $supplier_id, $quantity, $price_per_unit, $total_price, $purchase_date);
+ 
 
                 try {
                     if ($insert_stmt->execute()) {
@@ -380,7 +379,7 @@ $recent_purchases = $conn->query($recent_purchases_query);
     </div>
     <br><br>
     <div class="nav-btn-container">
-        <a href="home.php" class="home-btn">Back to Home Page</a>
+        <a href="clerk_dashboard.php" class="home-btn">Back to Home Page</a>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>

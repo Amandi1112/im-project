@@ -1,6 +1,6 @@
 <?php
 session_start();
-if(!isset($_SESSION['user_id']) || $_SESSION['position'] != 'client') {
+if (!isset($_SESSION['user_id']) || $_SESSION['position'] != 'clerk') {
     header("Location: login.php");
     exit();
 }
@@ -35,7 +35,7 @@ if ($result->num_rows > 0) {
     $totalMembers = 0; // Default value if no members found
 }
 
-//Get the total number of suppliers
+// Get the total number of suppliers
 $sql = "SELECT COUNT(*) AS total_suppliers FROM supplier";
 $result = $conn->query($sql);
 if ($result->num_rows > 0) {
@@ -45,9 +45,27 @@ if ($result->num_rows > 0) {
     $totalSuppliers = 0;
 }
 
+// Calculate the total sales from customer transactions
+$sql = "SELECT SUM(total_price) AS total_sales FROM customer_transactions";
+$result = $conn->query($sql);
+if ($result->num_rows > 0) {
+    $row = $result->fetch_assoc();
+    $totalSales = $row["total_sales"];
+} else {
+    $totalSales = 0; // Default value if no sales found
+}
+
+// Calculate the total inventory level
+$sql = "SELECT SUM(quantity) AS quantity FROM items";
+$result = $conn->query($sql);
+if ($result->num_rows > 0) {
+    $row = $result->fetch_assoc();
+    $totalInventoryLevel = $row["quantity"];
+} else {
+    $totalInventoryLevel = 0; // Default value if no inventory found
+}
+
 // For demonstration purposes - Add some dummy data for dashboard metrics
-$monthlySales = 24850;
-$totalInventoryItems = 342;
 $recentPurchases = 15;
 
 // Get current date for dashboard
@@ -67,7 +85,7 @@ $currentTime = date("h:i A");
     <style>
         /* General Styles */
         :root {
-            --primary-color: rgb(218, 125, 32);
+            --primary-color: rgb(82, 31, 3);
             --primary-light: rgba(93, 11, 97, 0.1);
             --secondary-color: rgb(227, 121, 132);
             --accent-color:rgb(78, 154, 241);
@@ -77,7 +95,7 @@ $currentTime = date("h:i A");
             --shadow-light: 0 4px 15px rgba(0, 0, 0, 0.08);
             --shadow-medium: 0 8px 20px rgba(0, 0, 0, 0.12);
         }
-        
+
         body {
             font-family: 'Poppins', sans-serif;
             color: var(--text-main);
@@ -200,7 +218,7 @@ $currentTime = date("h:i A");
         .navbar-nav .active {
             color: var(--primary-color);
         }
-        
+
         .navbar-nav .active:after {
             content: '';
             position: absolute;
@@ -236,7 +254,7 @@ $currentTime = date("h:i A");
             gap: 25px;
             margin-bottom: 30px;
         }
-        
+
         .dashboard-full-width {
             grid-column: 1 / -1;
         }
@@ -265,7 +283,7 @@ $currentTime = date("h:i A");
             display: flex;
             align-items: center;
         }
-        
+
         .card-header i {
             margin-right: 10px;
         }
@@ -316,14 +334,14 @@ $currentTime = date("h:i A");
             color: var(--text-secondary);
             font-weight: 500;
         }
-        
+
         .metrics-container {
             display: flex;
             justify-content: space-between;
             flex-wrap: wrap;
             gap: 15px;
         }
-        
+
         .metric-card {
             background-color: #f8f9fa;
             border-radius: 8px;
@@ -334,33 +352,33 @@ $currentTime = date("h:i A");
             box-shadow: 0 2px 6px rgba(0,0,0,0.05);
             transition: all 0.3s ease;
         }
-        
+
         .metric-card:hover {
             background-color: white;
             box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         }
-        
+
         .metric-icon {
             font-size: 2rem;
             margin-bottom: 10px;
             color: var(--accent-color);
         }
-        
+
         .metric-value {
             font-size: 1.5rem;
             font-weight: 700;
             color: var(--text-main);
             margin-bottom: 5px;
         }
-        
+
         .metric-label {
             font-size: 0.9rem;
             color: var(--text-secondary);
         }
-        
+
         /* Overview Section */
         .welcome-banner {
-            background: linear-gradient(45deg, var(--primary-color),rgb(235, 66, 244));
+            background: linear-gradient(45deg, var(--primary-color),rgb(244, 146, 66));
             color: white;
             padding: 25px;
             border-radius: 8px;
@@ -368,24 +386,24 @@ $currentTime = date("h:i A");
             position: relative;
             overflow: hidden;
         }
-        
+
         .welcome-content {
             position: relative;
             z-index: 1;
         }
-        
+
         .welcome-title {
             font-size: 1.5rem;
             font-weight: 600;
             margin-bottom: 10px;
         }
-        
+
         .welcome-text {
             font-size: 1rem;
             max-width: 800px;
             margin-bottom: 0;
         }
-        
+
         .welcome-decoration {
             position: absolute;
             right: 30px;
@@ -394,13 +412,13 @@ $currentTime = date("h:i A");
             opacity: 0.1;
             color: white;
         }
-        
+
         /* Activity Timeline */
         .timeline {
             position: relative;
             padding-left: 30px;
         }
-        
+        a
         .timeline:before {
             content: '';
             position: absolute;
@@ -410,12 +428,12 @@ $currentTime = date("h:i A");
             width: 2px;
             background-color: #e9ecef;
         }
-        
+
         .timeline-item {
             position: relative;
             padding-bottom: 20px;
         }
-        
+
         .timeline-dot {
             position: absolute;
             left: -30px;
@@ -425,31 +443,31 @@ $currentTime = date("h:i A");
             background-color: var(--accent-color);
             top: 2px;
         }
-        
+
         .timeline-content {
             background-color: #f8f9fa;
             padding: 15px;
             border-radius: 5px;
         }
-        
+
         .timeline-time {
             font-size: 0.8rem;
             color: var(--text-secondary);
             margin-bottom: 5px;
         }
-        
+
         .timeline-title {
             font-size: 1rem;
             font-weight: 600;
             margin-bottom: 5px;
         }
-        
+
         .timeline-text {
             font-size: 0.9rem;
             color: var(--text-secondary);
             margin-bottom: 0;
         }
-        
+
         /* Quick Action Buttons */
         .quick-actions {
             display: flex;
@@ -457,7 +475,7 @@ $currentTime = date("h:i A");
             gap: 10px;
             margin-top: 15px;
         }
-        
+
         .action-btn {
             background-color: var(--background-light);
             color: var(--primary-color);
@@ -470,11 +488,11 @@ $currentTime = date("h:i A");
             transition: all 0.2s ease;
             text-decoration: none;
         }
-        
+
         .action-btn i {
             margin-right: 5px;
         }
-        
+
         .action-btn:hover {
             background-color: var(--primary-light);
             transform: translateY(-2px);
@@ -496,18 +514,18 @@ $currentTime = date("h:i A");
             justify-content: space-between;
             align-items: center;
         }
-        
+
         .footer-links {
             display: flex;
             gap: 15px;
         }
-        
+
         .footer-links a {
             color: var(--text-secondary);
             text-decoration: none;
             transition: all 0.2s ease;
         }
-        
+
         .footer-links a:hover {
             color: var(--primary-color);
         }
@@ -517,32 +535,32 @@ $currentTime = date("h:i A");
             .navbar-nav .nav-link {
                 padding: 12px 15px;
             }
-            
+
             .metrics-container {
                 flex-direction: column;
             }
         }
-        
+
         @media (max-width: 768px) {
             .dashboard-grid {
                 grid-template-columns: 1fr;
             }
-            
+
             .header {
                 flex-direction: column;
                 text-align: center;
             }
-            
+
             .user-menu {
                 margin-top: 15px;
             }
-            
+
             .date-display {
                 position: static;
                 text-align: center;
                 margin-top: 10px;
             }
-            
+
             .footer {
                 flex-direction: column;
                 gap: 10px;
@@ -566,7 +584,7 @@ $currentTime = date("h:i A");
                     </div>
                     <div>
                         <div>Welcome, <?php echo $_SESSION['user_name']; ?></div>
-                        <small class="text-muted">Client</small>
+                        <small class="text-muted">Clerk</small>
                     </div>
                 </div>
                 <a href="logout.php" class="logout-btn">
@@ -577,7 +595,7 @@ $currentTime = date("h:i A");
 
         <div class="welcome-banner">
             <div class="welcome-content">
-                <h2 class="welcome-title">Welcome to the Client Dashboard</h2>
+                <h2 class="welcome-title">Welcome to the Clerk Dashboard</h2>
                 <p class="welcome-text">Manage your co-op shop operations efficiently. Check the latest statistics and access important features quickly.</p>
                 <div class="mt-3">
                     <span class="badge bg-light text-dark me-2">
@@ -605,28 +623,25 @@ $currentTime = date("h:i A");
                                 <i class="fas fa-home me-1"></i>Home
                             </a>
                         </li>
-                        <li>                          <ul class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
-                                <li><a class="dropdown-item" href="personal_detail.php">Personal Details</a></li>
-                                <li><a class="dropdown-item" href="educational_background.php">Educational Background</a></li>
-                                <li><a class="dropdown-item" href="work_experience.php">Work Experience</a></li>
-                            </ul>
-                        </li>
+
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="fas fa-truck me-1"></i>Suppliers
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
                                 <li><a class="dropdown-item" href="supplier.php">Registration</a></li>
-                                <li><a class="dropdown-item" href="purchases.php">Item Purchases</a></li>
-                                
+                                <li><a class="dropdown-item" href="supplier_purchases-clerk.php">Item Purchases</a></li>
+                                <li><a class="dropdown-item" href="supplier_payments.php">Handling Bills</a></li>
                             </ul>
                         </li>
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="fas fa-box-open me-1"></i>Products
+                                <i class="fas fa-box-open me-1"></i>Inventory
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
-                                <li><a class="dropdown-item" href="manage_categories_items.php">Categories & Items</a></li>
+                                <li><a class="dropdown-item" href="manage_categories_items-clerk.php">Add New Categories</a></li>
+                                <li><a class="dropdown-item" href="safety_stock.php">Safety Stock</a></li>
+                                <li><a class="dropdown-item" href="inventory_mgt.php">Manage Inventory</a></li>
                             </ul>
                         </li>
                         <li class="nav-item dropdown">
@@ -634,17 +649,28 @@ $currentTime = date("h:i A");
                                 <i class="fas fa-users me-1"></i>Members
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
-                                <li><a class="dropdown-item" href="member.php">Bank Memberships</a></li>
+                                <li><a class="dropdown-item" href="member-clerk.php">Bank Memberships</a></li>
                                 <li><a class="dropdown-item" href="member_registration.php">Member Registration</a></li>
-                                <li><a class="dropdown-item" href="purchases.php">Purchases</a></li>
+                                <li><a class="dropdown-item" href="customer_purchases.php">Member Purchases</a></li>
                             </ul>
                         </li>
-                        
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-chart-line me-1"></i>Reports
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
+                                <li><a class="dropdown-item" href="customer_credit.php">Credit Balance Reports</a></li>
+
+                                <li><a class="dropdown-item" href="supplier_performance.php">Supplier Performance Report</a></li>
+
+                                <li><a class="dropdown-item" href="sales_summary_report.php">Sales Summary Report</a></li>
+                            </ul>
+                        </li>
                     </ul>
                 </div>
             </div>
         </nav>
-        
+
         <div class="card mb-4">
             <div class="card-header">
                 <i class="fas fa-chart-pie me-2"></i>Business Overview
@@ -658,7 +684,7 @@ $currentTime = date("h:i A");
                         <div class="metric-value"><?php echo $totalMembers; ?></div>
                         <div class="metric-label">Active Members</div>
                     </div>
-                    
+
                     <div class="metric-card">
                         <div class="metric-icon">
                             <i class="fas fa-handshake"></i>
@@ -666,26 +692,28 @@ $currentTime = date("h:i A");
                         <div class="metric-value"><?php echo $totalSuppliers; ?></div>
                         <div class="metric-label">Active Suppliers</div>
                     </div>
-                    
+
                     <div class="metric-card">
                         <div class="metric-icon">
                             <i class="fas fa-cash-register"></i>
                         </div>
-                        <div class="metric-value">$<?php echo number_format($monthlySales); ?></div>
-                        <div class="metric-label">Monthly Sales</div>
+                        <div class="metric-value">$<?php echo number_format($totalSales); ?></div>
+                        <div class="metric-label">Total Sales</div>
                     </div>
-                    
+
                     <div class="metric-card">
                         <div class="metric-icon">
                             <i class="fas fa-box"></i>
                         </div>
-                        <div class="metric-value"><?php echo $totalInventoryItems; ?></div>
-                        <div class="metric-label">Inventory Items</div>
+                        <div class="metric-value"><?php echo $totalInventoryLevel; ?></div>
+                        <div class="metric-label">Inventory Level</div>
                     </div>
                 </div>
-                
+
                 <div class="quick-actions mt-4">
-                  
+                    <a href="report1.php" class="action-btn">
+                        <i class="fas fa-file-alt"></i> View Sales Report
+                    </a>
                     <a href="report2.php" class="action-btn">
                         <i class="fas fa-warehouse"></i> Check Inventory
                     </a>
@@ -702,7 +730,7 @@ $currentTime = date("h:i A");
         <div class="dashboard-grid">
             <div class="card">
                 <div class="card-header">
-                    <i class="fas fa-user-shield me-2"></i>Client Profile
+                    <i class="fas fa-user-shield me-2"></i>Clerk Profile
                 </div>
                 <div class="card-body">
                     <p><strong>Email:</strong> <?php echo $_SESSION['user_email']; ?></p>
@@ -711,7 +739,7 @@ $currentTime = date("h:i A");
                     <span>
                         <i class="far fa-clock me-1"></i><?php echo $currentTime; ?>
                     </span></p>
-                    
+
                     <div class="d-grid gap-2 mt-3">
                         <a href="reset_password.php" class="btn btn-outline-primary">
                             <i class="fas fa-key me-1"></i> Change Password
@@ -737,7 +765,7 @@ $currentTime = date("h:i A");
                                 <div class="timeline-text">Providing items with lowest prices to the members in credit basis</div>
                             </div>
                         </div>
-                        
+
                         <div class="timeline-item">
                             <div class="timeline-dot"></div>
                             <div class="timeline-content">
@@ -746,7 +774,7 @@ $currentTime = date("h:i A");
                                 <div class="timeline-text"> Choose from a variety of products from branded and chilled. New products added monthly!</div>
                             </div>
                         </div>
-                        
+
                         <div class="timeline-item">
                             <div class="timeline-dot"></div>
                             <div class="timeline-content">
@@ -786,7 +814,7 @@ $currentTime = date("h:i A");
                                 <small class="text-muted">Manage product inventory</small>
                             </div>
                         </a>
-                        <a href="report1.php" class="list-group-item list-group-item-action d-flex align-items-center">
+                        <a href="sales_summary_report.php" class="list-group-item list-group-item-action d-flex align-items-center">
                             <i class="fas fa-chart-line me-3 text-danger"></i>
                             <div>
                                 <div class="fw-bold">Sales Reports</div>

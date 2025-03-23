@@ -33,8 +33,8 @@ if(isset($_POST['login'])) {
             // Redirect based on position
             if($_SESSION['position'] == 'admin') {
                 header("Location: home.php?success=You have successfully logged in");
-            } else if($_SESSION['position'] == 'client') {
-                header("Location: client_dashboard.php?success=You have successfully logged in");
+            } else if($_SESSION['position'] == 'clerk') {
+                header("Location: clerk_dashboard.php?success=You have successfully logged in");
             } else if($_SESSION['position'] == 'accountant') {
                 header("Location: accountant_dashboard.php?success=You have successfully logged in");
             } else {

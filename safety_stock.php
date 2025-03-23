@@ -179,8 +179,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["add_safety_stock"])) {
         ?>
     </div>
     <br><br>
-    <div class="nav-btn-container">
-        <a href="home.php" class="home-btn">Back to Home Page</a>
-    </div>
+    
 </body>
 </html>

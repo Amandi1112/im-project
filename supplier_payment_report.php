@@ -284,16 +284,10 @@ if ($result->num_rows > 0) {
         <form method="post" action="">
             <button type="submit" name="generate_report" class="btn">Generate Report</button>
         </form>
-            <div>
-        
-    
-    </div>
+            
     </div>
     <br>
-    <div class="nav-btn-container">
-        <a href="home.php" class="home-btn">Back to Home Page</a>
-    </div>
-
+    
     <script>
         document.addEventListener("DOMContentLoaded", function() {
             const notification = document.querySelector('.notification');

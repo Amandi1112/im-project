@@ -389,7 +389,9 @@ $result = $conn->query($sql);
 <body>
     <div class="container">
     <h1 style="text-align: center; font-weight: bold; color: black; font-size: 2em; text-shadow: 2px 2px 5px lightblue;">Member Details</h1>
-    
+    <div class="nav-btn-container">
+        <a href="clerk_dashboard.php" class="home-btn">Home</a>
+    </div> 
         <div class="header-actions">
             <div>
                 <span>Total Members: <?php echo $total_records; ?></span>

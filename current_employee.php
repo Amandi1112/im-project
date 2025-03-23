@@ -104,7 +104,7 @@ $result = $conn->query($sql);
                 </td>
                 <td>
                 <select name="position" required style="width: 100%; color: black; background-color: transparent;">
-                <option value="client" <?php echo $row['position'] === 'client' ? 'selected' : ''; ?>>Client</option>
+                <option value="clerk" <?php echo $row['position'] === 'clerk' ? 'selected' : ''; ?>>Clerk</option>
                 <option value="accountant" <?php echo $row['position'] === 'accountant' ? 'selected' : ''; ?>>Accountant</option>
                 <option value="admin" <?php echo $row['position'] === 'admin' ? 'selected' : ''; ?>>Admin</option>
                 </select>
@@ -133,7 +133,7 @@ $result = $conn->query($sql);
                 </td>
                 <td>
                 <select name="position" required style="width: 100%;">
-                <option value="client" <?php echo $row['position'] === 'client' ? 'selected' : ''; ?>>Client</option>
+                <option value="clerk" <?php echo $row['position'] === 'clerk' ? 'selected' : ''; ?>>Clerk</option>
                 <option value="accountant" <?php echo $row['position'] === 'accountant' ? 'selected' : ''; ?>>Accountant</option>
                 </select>
                 </td>

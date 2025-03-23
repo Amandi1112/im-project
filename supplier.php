@@ -207,9 +207,34 @@ $conn->close();
     </div>
     <br><br>
     <div class="nav-btn-container">
-        <a href="home.php" class="home-btn">Back to Home Page</a>
-        <a href="display_registered_suppliers.php" class="home-btn">View Registered Suppliers</a>
-    </div>
+    <?php
+    session_start();
+    if (isset($_SESSION['position'])) {
+        switch ($_SESSION['position']) {
+            case 'admin':
+                $dashboard = 'home.php';
+                break;
+            case 'clerk':
+                $dashboard = 'clerk_dashboard.php';
+                break;
+            case 'accountant':
+                $dashboard = 'accountant_dashboard.php';
+                break;
+            default:
+                $dashboard = 'login.php';
+                break;
+        }
+    } else {
+        $dashboard = 'login.php';
+    }
+    ?>
+    <a href="<?= $dashboard ?>" class="home-btn">Back to Home Page</a>
+</div>
+<br><br>
+<div class="nav-btn-container">
+    <a href="display_registered_suppliers.php" class="home-btn">View Registered Suppliers</a>
+</div>
+
     <?php if($error): ?>
     <div class="popup-container" id="errorPopup">
         <div class="popup">

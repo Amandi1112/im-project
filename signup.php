@@ -20,7 +20,7 @@
                     <select id="position" name="position" required>
                         <option value="" disabled selected>Select your position</option>
                         <option value="accountant">Accountant</option>
-                        <option value="client">Client</option>
+                        <option value="clerk">Clerk</option>
                         <option value="admin">Admin</option>
                     </select>
                 </div>

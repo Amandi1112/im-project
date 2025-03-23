@@ -48,14 +48,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
 
         .container {
-    max-width: 600px;
-    background: #fff;
-    padding: 30px;
+            max-width: 1000px;
+            margin-top:10px;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            background-color: #d5731846;
+    /* Changed color */
     border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    margin: 20px auto 20px; /* Add margin-top here */
-    border: 1px solid #ddd;
-}
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
 
 
 h2 {
@@ -181,7 +183,7 @@ th {
         });
     </script>
     <?php endif; ?>
-    <h2 style="text-shadow: 2px 2px 5px lightblue; font-size: 30px;">Registered Suppliers</h2>
+    <h2 style="text-shadow: 2px 2px 5px lightblue; font-size: 30px; background-color: white;">Registered Suppliers</h2>
     <div class="container">
         
         <?php
@@ -216,7 +218,7 @@ th {
     </div>
     <br><br>
         <div class="nav-btn-container">
-        <a href="home.php" class="home-btn">Back to Home Page</a>
+        <a href="supplier.php" class="home-btn">Supplier Registration</a>
     </div>
 </body>
 </html>

@@ -58,8 +58,8 @@ class InvoicePDF extends FPDF
         $this->Ln(5);
     }
     
-    // Client Info
-    function clientInfo($supplier_name, $supplier_id)
+    // clerk Info
+    function clerkInfo($supplier_name, $supplier_id)
     {
         $this->SetFont('Arial', 'B', 12);
         $this->Cell(0, 10, 'Supplier Details:', 0, 1);
@@ -222,7 +222,7 @@ $stmt->bind_param('ss', $supplier_id, $supplier_id);
     );
     
     // Add supplier info
-    $pdf->clientInfo($supplier_name, $supplier_id);
+    $pdf->clerkInfo($supplier_name, $supplier_id);
     
     // Add invoice details
     $pdf->invoiceDetails($invoice_number, $payment_date);

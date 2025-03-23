@@ -208,7 +208,7 @@ $result = $stmt->get_result();
     <h1 style="text-align: center; font-weight: bold; color: black; font-size: 2.5em; text-shadow: 2px 2px 5px lightblue; margin-top: 70px;">Membership Details</h1>
     
     <div class="header-container">
-        <a href="home.php" class="home-btn">Home</a>
+        <a href="member_registration.php" class="home-btn">Back</a>
     </div>
     
     <!-- Search Form -->

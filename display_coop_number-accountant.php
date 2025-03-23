@@ -13,7 +13,22 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
+// Handle Delete Record
+if (isset($_GET['delete'])) {
+    $id = $_GET['delete'];
 
+    // Use a prepared statement to safely delete the record
+    $stmt = $conn->prepare("DELETE FROM membership_numbers WHERE membership_number = ?");
+    $stmt->bind_param("s", $id); // Bind the parameter
+
+    if ($stmt->execute()) {
+        $success_message = "Record deleted successfully!";
+    } else {
+        $error_message = "Error deleting record: " . $stmt->error;
+    }
+
+    $stmt->close(); // Close the prepared statement
+}
 
 // Initialize variables
 $search_term = "";
@@ -227,7 +242,7 @@ $result = $stmt->get_result();
             <th>Membership Number</th>
             <th>NIC Number</th>
             <th>Created At</th>
-            
+            <th>Action</th>
         </tr>
         <?php
         if ($result->num_rows > 0) {
@@ -236,7 +251,9 @@ $result = $stmt->get_result();
                         <td>" . $row["membership_number"] . "</td>
                         <td>" . $row["nic_number"] . "</td>
                         <td>" . $row["created_at"] . "</td>
-                       
+                        <td>
+                            <a href='?delete=" . $row["membership_number"] . "' class='delete-btn'>Delete</a>
+                        </td>
                       </tr>";
             }
         } else {

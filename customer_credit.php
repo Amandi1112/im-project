@@ -493,9 +493,7 @@ function getAllTransactions($conn) {
         <?php endif; ?>
     <?php endif; ?>
     <br>
-    <div class="nav-btn-container">
-        <a href="home.php" class="home-btn">Back to Home Page</a>
-    </div>
+    
     
     <?php
     // Close the connection

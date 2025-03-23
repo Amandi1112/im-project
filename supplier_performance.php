@@ -534,10 +534,7 @@ function calculateSupplierRating($metrics) {
         </div>
     </div>
     <br><br>
-    <div class="nav-btn-container">
-        <a href="purchase_management.php" class="home-btn">Back to Purchase Management</a>
-        <a href="home.php" class="home-btn">Back to Home Page</a>
-    </div>
+    
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 </body>

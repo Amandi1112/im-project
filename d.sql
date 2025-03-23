@@ -61,3 +61,22 @@ CREATE TABLE `safety_stock` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 
+CREATE TABLE `supplier` (
+  `supplier_id` varchar(10) NOT NULL,
+  `supplier_name` varchar(100) NOT NULL,
+  `nic` varchar(20) NOT NULL,
+  `address` text NOT NULL,
+  `registration_date` datetime NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE `items` (
+  `item_id` char(6) NOT NULL,
+  `item_name` varchar(255) NOT NULL,
+  `category_id` char(6) NOT NULL,
+  `supplier_id` varchar(10) NOT NULL,
+  `quantity` int(11) NOT NULL,
+  `price_per_unit` decimal(10,2) NOT NULL,
+  `total_price` decimal(10,2) NOT NULL,
+  `created_at` datetime DEFAULT current_timestamp(),
+  `purchase_date` date DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
