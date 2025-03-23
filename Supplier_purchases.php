@@ -69,63 +69,73 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['submit'])) {
     $quantity = validateInput($_POST['quantity']);
     $price_per_unit = validateInput($_POST['price_per_unit']);
     $purchase_date = validateInput($_POST['purchase_date']);
-    
+
     // Check for empty fields
-    if (empty($item_name) || empty($category_id) || empty($supplier_id) || 
+    if (empty($item_name) || empty($category_id) || empty($supplier_id) ||
         empty($quantity) || empty($price_per_unit) || empty($purchase_date)) {
         $_SESSION['error'] = "All fields are required";
     } else {
         // Calculate total price
         $total_price = calculateTotalPrice($quantity, $price_per_unit);
-        
-        // Generate new item_id
-        $item_id = generateItemId($conn);
-        
-        // Prepare SQL statement for inserting new purchase
-        $sql = "INSERT INTO items (item_id, item_name, category_id, supplier_id, quantity, price_per_unit, total_price, purchase_date) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-        
+
+        // Check if item already exists
+        $sql = "SELECT item_id, quantity FROM items WHERE item_name = ? AND category_id = ? AND supplier_id = ?";
         $stmt = $conn->prepare($sql);
-        $stmt->bind_param("ssssidds", $item_id, $item_name, $category_id, $supplier_id, $quantity, $price_per_unit, $total_price, $purchase_date);
-        
-        // Execute the query
-        if ($stmt->execute()) {
-            $_SESSION['success'] = "Purchase added successfully with Item ID: " . $item_id;
-            
-            // Log the activity
-            $user_id = 1; // Assume logged in user ID or get from session
-            $activity = "Added new purchase: " . $item_name . " from supplier " . $supplier_id;
-            
-            $log_sql = "INSERT INTO activity_log (user_id, activity) VALUES (?, ?)";
-            $log_stmt = $conn->prepare($log_sql);
-            $log_stmt->bind_param("is", $user_id, $activity);
-            $log_stmt->execute();
-            
-            $stmt->close();
-            
-            // Redirect to the same page to prevent form resubmission
-            header("Location: " . $_SERVER['PHP_SELF']);
-            exit();
+        $stmt->bind_param("sss", $item_name, $category_id, $supplier_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        if ($result->num_rows > 0) {
+            // Item exists, update the quantity
+            $row = $result->fetch_assoc();
+            $item_id = $row['item_id'];
+            $new_quantity = $row['quantity'] + $quantity;
+            $update_sql = "UPDATE items SET quantity = ?, price_per_unit = ?, total_price = ?, purchase_date = ? WHERE item_id = ?";
+            $update_stmt = $conn->prepare($update_sql);
+            $update_stmt->bind_param("dssss", $new_quantity, $price_per_unit, $total_price, $purchase_date, $item_id);
+
+            if ($update_stmt->execute()) {
+                $_SESSION['success'] = "Purchase updated successfully for Item ID: " . $item_id;
+            } else {
+                $_SESSION['error'] = "Error updating purchase: " . $update_stmt->error;
+            }
         } else {
-            $_SESSION['error'] = "Error: " . $stmt->error;
-            
-            // Redirect to the same page
-            header("Location: " . $_SERVER['PHP_SELF']);
-            exit();
+            // Item does not exist, insert new purchase
+            $insert_sql = "INSERT INTO items (item_name, category_id, supplier_id, quantity, price_per_unit, total_price, purchase_date)
+                           VALUES (?, ?, ?, ?, ?, ?, ?)";
+            $insert_stmt = $conn->prepare($insert_sql);
+            $insert_stmt->bind_param("sssssss", $item_name, $category_id, $supplier_id, $price_per_unit, $total_price, $purchase_date);
+            if ($insert_stmt->execute()) {
+                $_SESSION['success'] = "New purchase added successfully for Item: " . $item_name;
+            } else {
+                $_SESSION['error'] = "Error adding new purchase: " . $insert_stmt->error;
+            }
         }
+
+        // Log the activity
+        $id = 1; // Assume logged in user ID or get from session
+        $activity = "Added/Updated purchase: " . $item_name . " from supplier " . $supplier_id;
+        $log_sql = "INSERT INTO activity_log (id, activity) VALUES (?, ?)";
+        $log_stmt = $conn->prepare($log_sql);
+        $log_stmt->bind_param("is", $id, $activity);
+        $log_stmt->execute();
+
+        // Redirect to the same page to prevent form resubmission
+        header("Location: " . $_SERVER['PHP_SELF']);
+        exit();
     }
-    
+
     // Redirect even if there's an error
     header("Location: " . $_SERVER['PHP_SELF']);
     exit();
 }
 
 // Get recent purchases for display
-$recent_purchases_query = "SELECT i.item_id, i.item_name, c.category_name, s.supplier_name, 
-                           i.quantity, i.price_per_unit, i.total_price, i.purchase_date 
-                           FROM items i 
-                           JOIN categories c ON i.category_id = c.category_id 
-                           JOIN supplier s ON i.supplier_id = s.supplier_id 
+$recent_purchases_query = "SELECT i.item_id, i.item_name, c.category_name, s.supplier_name,
+                           i.quantity, i.price_per_unit, i.total_price, i.purchase_date
+                           FROM items i
+                           JOIN categories c ON i.category_id = c.category_id
+                           JOIN supplier s ON i.supplier_id = s.supplier_id
                            ORDER BY i.created_at DESC LIMIT 10";
 $recent_purchases = $conn->query($recent_purchases_query);
 ?>
@@ -202,15 +212,15 @@ $recent_purchases = $conn->query($recent_purchases_query);
 <body>
     <div class="container">
         <h1 style="text-align: center; font-weight: bold; color: white; font-size: 2em; text-shadow: 2px 2px 5px lightblue;">Supplier Purchase Management</h1>
-        
+
         <?php if (!empty($error)): ?>
             <div class="alert alert-danger"><?php echo $error; ?></div>
         <?php endif; ?>
-        
+
         <?php if (!empty($success)): ?>
             <div class="alert alert-success"><?php echo $success; ?></div>
         <?php endif; ?>
-        
+
         <div class="row">
             <div class="col-md-12">
                 <div class="purchase-form">
@@ -233,7 +243,7 @@ $recent_purchases = $conn->query($recent_purchases_query);
                                 </select>
                             </div>
                         </div>
-                        
+
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <label for="supplier_id" class="form-label">Supplier</label>
@@ -251,7 +261,7 @@ $recent_purchases = $conn->query($recent_purchases_query);
                                 <input type="date" class="form-control" id="purchase_date" name="purchase_date" value="<?php echo $purchase_date; ?>">
                             </div>
                         </div>
-                        
+
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <label for="quantity" class="form-label">Quantity</label>
@@ -262,7 +272,7 @@ $recent_purchases = $conn->query($recent_purchases_query);
                                 <input type="number" class="form-control" id="price_per_unit" name="price_per_unit" value="<?php echo $price_per_unit; ?>" step="0.01" min="0">
                             </div>
                         </div>
-                        
+
                         <div class="row">
                             <div class="col-md-12">
                                 <button type="submit" name="submit" class="btn btn-primary">Add Purchase</button>
@@ -273,7 +283,7 @@ $recent_purchases = $conn->query($recent_purchases_query);
                 </div>
             </div>
         </div>
-        
+
         <div class="row mt-4">
             <div class="col-md-12">
                 <h3>Recent Purchases</h3>
@@ -327,16 +337,16 @@ $recent_purchases = $conn->query($recent_purchases_query);
         document.addEventListener('DOMContentLoaded', function() {
             const quantityInput = document.getElementById('quantity');
             const priceInput = document.getElementById('price_per_unit');
-            
+
             function updateTotal() {
                 const quantity = parseFloat(quantityInput.value) || 0;
                 const price = parseFloat(priceInput.value) || 0;
                 const total = quantity * price;
-                
+
                 // You could display this somewhere if needed
                 console.log('Total: ' + total.toFixed(2));
             }
-            
+
             quantityInput.addEventListener('input', updateTotal);
             priceInput.addEventListener('input', updateTotal);
         });

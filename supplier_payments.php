@@ -185,16 +185,20 @@ function generateInvoice($conn, $supplier_id, $amount, $payment_date, $payment_i
     }
     
     // Calculate remaining balance
-    $sql = "
-        SELECT
-            COALESCE(SUM(i.total_price), 0) - COALESCE((SELECT SUM(amount) FROM supplier_payments WHERE supplier_id = ?), 0) + ? AS balance_due
-        FROM
-            items i
-        WHERE
-            i.supplier_id = ?
-    ";
+// Calculate remaining balance
+// Calculate remaining balance
+$sql = "
+    SELECT
+        COALESCE(SUM(i.total_price), 0) - COALESCE((SELECT SUM(amount) FROM supplier_payments WHERE supplier_id = ?), 0) AS balance_due
+    FROM
+        items i
+    WHERE
+        i.supplier_id = ?
+";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param('ss', $supplier_id, $supplier_id);
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param('sds', $supplier_id, $amount, $supplier_id);
+    $stmt->bind_param('ss', $supplier_id, $supplier_id);
     $stmt->execute();
     $result = $stmt->get_result();
     $balance_due = 0;
@@ -212,9 +216,9 @@ function generateInvoice($conn, $supplier_id, $amount, $payment_date, $payment_i
     
     // Add company info
     $pdf->companyInfo(
-        'Your Company Name',
-        "123 Main Street\nCity, State, ZIP\nCountry",
-        'Phone: (123) 456-7890 | Email: info@yourcompany.com'
+        'T&C co-op city shop',
+        "Pahala Karawita, Karawita, Ratnapura, Sri Lanka",
+        'Phone: (123) 456-7890 | Email: co-op@sanasa.com'
     );
     
     // Add supplier info
@@ -541,7 +545,7 @@ if ($result && $result->num_rows > 0) {
                     <option value="" disabled selected>Select a supplier</option>
                     <?php foreach ($suppliers as $supplier): ?>
                         <option value="<?php echo $supplier['supplier_id']; ?>">
-                            <?php echo $supplier['supplier_name']; ?>
+                            <?php echo $supplier['supplier_id']; ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
@@ -592,6 +596,7 @@ if ($result && $result->num_rows > 0) {
     <br>
     <div class="container">
         <h2 class="my-4" style="text-shadow: 2px 2px 5px lightblue; font-size: 18px; font-weight:bold;">Generated Invoices</h2>
+        
         <table class="table table-bordered">
             <thead>
                 <tr>
@@ -615,12 +620,11 @@ if ($result && $result->num_rows > 0) {
                     </tr>
                 <?php endforeach; ?>
             </tbody>
+            
         </table>
     </div>
-    <br>
-    <div class="nav-btn-container">
-        <a href="home.php" class="home-btn">Back to Home Page</a>
-    </div>
+    
+    
     <?php endif; ?>
 
     <script>

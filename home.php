@@ -615,6 +615,8 @@ $currentTime = date("h:i A");
                                 <li><a class="dropdown-item" href="work_experience.php">Work Experience</a></li>
                             </ul>
                         </li>
+                        
+
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="fas fa-truck me-1"></i>Suppliers

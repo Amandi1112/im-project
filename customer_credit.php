@@ -49,8 +49,7 @@ if (isset($_GET['export']) && $_GET['export'] == 'excel') {
 // Query to get summary data - all members
 function getSummaryData($conn) {
     $query = "SELECT m.membership_number, m.nic_number, m.credit_limit, 
-              COUNT(ct.transaction_id) as transaction_count,
-              SUM(ct.total_price) as total_spent
+              COALESCE(SUM(ct.total_price), 0) as total_spent
               FROM membership_numbers m
               LEFT JOIN customer_transactions ct ON m.membership_number = ct.membership_number
               GROUP BY m.membership_number, m.nic_number, m.credit_limit
@@ -63,7 +62,7 @@ function getSummaryData($conn) {
 function getMemberDetail($conn, $membershipNumber) {
     $query = "SELECT m.membership_number, m.nic_number, m.credit_limit, 
               COUNT(ct.transaction_id) as transaction_count,
-              SUM(ct.total_price) as total_spent
+              COALESCE(SUM(ct.total_price), 0) as total_spent
               FROM membership_numbers m
               LEFT JOIN customer_transactions ct ON m.membership_number = ct.membership_number
               WHERE m.membership_number = ?
@@ -335,16 +334,27 @@ function getAllTransactions($conn) {
                 $memberResult = getSummaryData($conn);
                 if ($memberResult->num_rows > 0) {
                     while ($member = $memberResult->fetch_assoc()) {
-                        $remainingBalance = $member['credit_limit'] - ($member['total_spent'] ?: 0);
+                        // Ensure we're using numeric values for calculation
+                        $creditLimit = floatval($member['credit_limit']);
+                        $totalSpent = floatval($member['total_spent']);
+                        $remainingBalance = $creditLimit - $totalSpent;
                         $balanceClass = $remainingBalance >= 0 ? 'positive-balance' : 'negative-balance';
+                        
+                        // Get transaction count for this member
+                        $countQuery = "SELECT COUNT(*) AS count FROM customer_transactions WHERE membership_number = '".$member['membership_number']."'";
+                        $countResult = $conn->query($countQuery);
+                        $transactionCount = 0;
+                        if ($countResult && $countRow = $countResult->fetch_assoc()) {
+                            $transactionCount = $countRow['count'];
+                        }
                 ?>
                     <tr>
                         <td><?php echo $member['membership_number']; ?></td>
                         <td><?php echo $member['nic_number']; ?></td>
-                        <td><?php echo number_format($member['credit_limit'], 2); ?></td>
-                        <td><?php echo number_format($member['total_spent'] ?: 0, 2); ?></td>
+                        <td><?php echo number_format($creditLimit, 2); ?></td>
+                        <td><?php echo number_format($totalSpent, 2); ?></td>
                         <td class="<?php echo $balanceClass; ?>"><?php echo number_format($remainingBalance, 2); ?></td>
-                        <td><?php echo $member['transaction_count'] ?: 0; ?></td>
+                        <td><?php echo $transactionCount; ?></td>
                         <td class="no-print">
                             <a href="?report=individual&member=<?php echo $member['membership_number']; ?>">View Details</a>
                         </td>
@@ -394,7 +404,10 @@ function getAllTransactions($conn) {
             $memberResult = getMemberDetail($conn, $selectedMember);
             if ($memberResult->num_rows > 0) {
                 $member = $memberResult->fetch_assoc();
-                $remainingBalance = $member['credit_limit'] - ($member['total_spent'] ?: 0);
+                // Ensure we're using numeric values for calculation
+                $creditLimit = floatval($member['credit_limit']);
+                $totalSpent = floatval($member['total_spent']);
+                $remainingBalance = $creditLimit - $totalSpent;
                 $balanceClass = $remainingBalance >= 0 ? 'positive-balance' : 'negative-balance';
                 
                 // Get transactions for this member
@@ -423,11 +436,11 @@ function getAllTransactions($conn) {
                         </tr>
                         <tr>
                             <th>Credit Limit</th>
-                            <td><?php echo number_format($member['credit_limit'], 2); ?></td>
+                            <td><?php echo number_format($creditLimit, 2); ?></td>
                         </tr>
                         <tr>
                             <th>Total Spent</th>
-                            <td><?php echo number_format($member['total_spent'] ?: 0, 2); ?></td>
+                            <td><?php echo number_format($totalSpent, 2); ?></td>
                         </tr>
                         <tr>
                             <th>Remaining Balance</th>
