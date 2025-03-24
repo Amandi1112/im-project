@@ -134,8 +134,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["add_safety_stock"])) {
         <h2 style="text-align: center; text-shadow: 2px 2px 5px lightblue; font-size: 25px;">Add Safety Stock</h2>
         <form method="post" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>">
             <div class="form-group">
-                <label for="item_id">Item ID:</label>
-                <input type="text" id="item_id" name="item_id" required>
+                <label for="item_name">Item name:</label>
+                <input type="text" id="item_name" name="item_name" required>
             </div>
             <div class="form-group">
                 <label for="safety_stock_quantity">Safety Stock Quantity:</label>

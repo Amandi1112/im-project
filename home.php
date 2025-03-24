@@ -46,21 +46,14 @@ if ($result->num_rows > 0) {
 }
 
 // Calculate the total sales from customer transactions
-$sql = "SELECT SUM(total_price) AS total_sales FROM customer_transactions";
-$result = $conn->query($sql);
-if ($result->num_rows > 0) {
-    $row = $result->fetch_assoc();
-    $totalSales = $row["total_sales"];
-} else {
-    $totalSales = 0; // Default value if no sales found
-}
+
 
 // Calculate the total inventory level
-$sql = "SELECT SUM(quantity) AS quantity FROM items";
+$sql = "SELECT SUM(current_quantity) AS current_quantity FROM items";
 $result = $conn->query($sql);
 if ($result->num_rows > 0) {
     $row = $result->fetch_assoc();
-    $totalInventoryLevel = $row["quantity"];
+    $totalInventoryLevel = $row["current_quantity"];
 } else {
     $totalInventoryLevel = 0; // Default value if no inventory found
 }
@@ -646,7 +639,7 @@ $currentTime = date("h:i A");
                                 <i class="fas fa-box-open me-1"></i>Inventory
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
-                                <li><a class="dropdown-item" href="manage_categories_items.php">Add New Categories</a></li>
+                                
                                 <li><a class="dropdown-item" href="safety_stock.php">Safety Stock</a></li>
                                 <li><a class="dropdown-item" href="inventory_mgt.php">Manage Inventory</a></li>
                             </ul>
@@ -702,14 +695,6 @@ $currentTime = date("h:i A");
 
                     <div class="metric-card">
                         <div class="metric-icon">
-                            <i class="fas fa-cash-register"></i>
-                        </div>
-                        <div class="metric-value">$<?php echo number_format($totalSales); ?></div>
-                        <div class="metric-label">Total Sales</div>
-                    </div>
-
-                    <div class="metric-card">
-                        <div class="metric-icon">
                             <i class="fas fa-box"></i>
                         </div>
                         <div class="metric-value"><?php echo $totalInventoryLevel; ?></div>
@@ -742,11 +727,6 @@ $currentTime = date("h:i A");
                 <div class="card-body">
                     <p><strong>Email:</strong> <?php echo $_SESSION['user_email']; ?></p>
                     <p><strong>Security:</strong> <i class="fas fa-lock"></i> Password Protected</p>
-                    <p><strong>Last Login:</strong>
-                    <span>
-                        <i class="far fa-clock me-1"></i><?php echo $currentTime; ?>
-                    </span></p>
-
                     <div class="d-grid gap-2 mt-3">
                         <a href="reset_password.php" class="btn btn-outline-primary">
                             <i class="fas fa-key me-1"></i> Change Password

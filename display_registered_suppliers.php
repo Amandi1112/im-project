@@ -187,12 +187,12 @@ th {
     <div class="container">
         
         <?php
-        $sql = "SELECT supplier_id, supplier_name, address, nic FROM supplier";
+        $sql = "SELECT supplier_id, supplier_name, address, nic,contact_number FROM supplier";
         $result = $conn->query($sql);
         
         if ($result->num_rows > 0) {
             echo "<table>";
-            echo "<tr><th>Supplier ID</th><th>Supplier Name</th><th>Address</th><th>NIC</th><th>Actions</th></tr>";
+            echo "<tr><th>Supplier ID</th><th>Supplier Name</th><th>Address</th><th>NIC</th><th>Contact Number</th><th>Actions</th></tr>";
             
             while($row = $result->fetch_assoc()) {
                 echo "<tr>";
@@ -200,6 +200,8 @@ th {
                 echo "<td>" . $row["supplier_name"] . "</td>";
                 echo "<td>" . $row["address"] . "</td>";
                 echo "<td>" . $row["nic"] . "</td>";
+                
+                echo "<td>" . $row["contact_number"] . "</td>";
                 echo "<td>";
                 echo "<form method='post' style='display: inline-block; margin-right: 10px;'>";
                 echo "<input type='hidden' name='action' value='delete'>";
@@ -219,6 +221,7 @@ th {
     <br><br>
         <div class="nav-btn-container">
         <a href="supplier.php" class="home-btn">Supplier Registration</a>
+        <a href="Supplier_purchases.php" class="home-btn">Item Purchases</a>
     </div>
 </body>
 </html>

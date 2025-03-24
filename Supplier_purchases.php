@@ -1,6 +1,6 @@
 <?php
 // Database connection
-$servername = "127.0.0.1";
+$servername = "localhost";
 $username = "root";
 $password = "";
 $dbname = "mywebsite";
@@ -13,176 +13,203 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// Start session to store messages
-session_start();
+// Check if the request is for item details (AJAX)
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['item_name']) && isset($_POST['supplier_id']) && !isset($_POST['submit_items'])) {
+    $itemName = trim($_POST['item_name']);
+    $supplierId = trim($_POST['supplier_id']);
+    
+    // Prepare and execute query - now including supplier_id in the query
+    $sql = "SELECT i.item_id, i.price_per_unit, i.current_quantity 
+            FROM items i
+            WHERE i.item_name = ? AND i.supplier_id = ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("ss", $itemName, $supplierId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    $response = ['exists' => false];
+    
+    if ($result->num_rows > 0) {
+        $item = $result->fetch_assoc();
+        $response = [
+            'exists' => true,
+            'item_id' => $item['item_id'],
+            'price_per_unit' => $item['price_per_unit'],
+            'current_quantity' => $item['current_quantity']
+        ];
+    }
+    
+    // Return JSON response
+    header('Content-Type: application/json');
+    echo json_encode($response);
+    exit;
+}
 
-// Function to generate new item_id
-function generateItemId($conn) {
-    $sql = "SELECT MAX(SUBSTRING(item_id, 2)) as max_id FROM items";
+// Function to generate unique item code
+function generateItemCode($itemName, $supplierId, $conn) {
+    // Take first 3 letters of item name and make uppercase
+    $prefix = strtoupper(substr(preg_replace('/[^A-Za-z0-9]/', '', $itemName), 0, 3));
+    
+    // Add first 2 characters of supplier ID
+    $supplierPrefix = strtoupper(substr($supplierId, 0, 2));
+    
+    // Get current date in YYMM format
+    $datePart = date('ym');
+    
+    // Find the latest item with similar prefix to get the next sequential number
+    $sql = "SELECT item_code FROM items WHERE item_code LIKE '{$prefix}{$supplierPrefix}{$datePart}%' ORDER BY item_code DESC LIMIT 1";
     $result = $conn->query($sql);
-    $row = $result->fetch_assoc();
-    $next_id = intval($row['max_id']) + 1;
-    return 'I' . str_pad($next_id, 5, '0', STR_PAD_LEFT);
+    
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        $lastCode = $row['item_code'];
+        // Extract the numerical part
+        $sequence = intval(substr($lastCode, -4)) + 1;
+    } else {
+        $sequence = 1;
+    }
+    
+    // Format the sequence with leading zeros
+    $sequencePart = str_pad($sequence, 4, '0', STR_PAD_LEFT);
+    
+    return $prefix . $supplierPrefix . $datePart . $sequencePart;
 }
 
-// Function to calculate total price
-function calculateTotalPrice($quantity, $price_per_unit) {
-    return $quantity * $price_per_unit;
+// Function to get item details if it exists with specific supplier
+function getItemDetails($itemName, $supplierId, $conn) {
+    $sql = "SELECT item_id, item_code, price_per_unit, current_quantity 
+            FROM items 
+            WHERE item_name = ? AND supplier_id = ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("ss", $itemName, $supplierId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if ($result->num_rows > 0) {
+        return $result->fetch_assoc();
+    } else {
+        return null;
+    }
 }
 
-// Function to validate input data
-function validateInput($data) {
-    $data = trim($data);
-    $data = stripslashes($data);
-    $data = htmlspecialchars($data);
-    return $data;
+// Function to add a new item
+function addNewItem($itemName, $pricePerUnit, $supplierId, $conn) {
+    $itemCode = generateItemCode($itemName, $supplierId, $conn);
+    
+    $sql = "INSERT INTO items (item_code, item_name, price_per_unit, current_quantity, supplier_id) 
+            VALUES (?, ?, ?, 0, ?)";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("ssds", $itemCode, $itemName, $pricePerUnit, $supplierId);
+    
+    if ($stmt->execute()) {
+        return [
+            'item_id' => $conn->insert_id,
+            'item_code' => $itemCode,
+            'price_per_unit' => $pricePerUnit,
+            'current_quantity' => 0
+        ];
+    } else {
+        return null;
+    }
 }
 
-// Initialize variables
-$item_name = $category_id = $supplier_id = $quantity = $price_per_unit = $purchase_date = "";
-$error = $success = "";
-
-// Get messages from session if they exist
-if (isset($_SESSION['error'])) {
-    $error = $_SESSION['error'];
-    unset($_SESSION['error']);
+// Function to add purchase record and update item quantity
+function addPurchase($itemId, $quantity, $pricePerUnit, $purchaseDate, $expireDate, $conn) {
+    $totalPrice = $quantity * $pricePerUnit;
+    
+    // Begin transaction
+    $conn->begin_transaction();
+    
+    try {
+        // Add purchase record
+        $sql = "INSERT INTO item_purchases (item_id, quantity, price_per_unit, total_price, purchase_date, expire_date) 
+                VALUES (?, ?, ?, ?, ?, ?)";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("idddss", $itemId, $quantity, $pricePerUnit, $totalPrice, $purchaseDate, $expireDate);
+        $stmt->execute();
+        
+        // Update item quantity and price
+        $sql = "UPDATE items 
+                SET current_quantity = current_quantity + ?, 
+                    price_per_unit = ? 
+                WHERE item_id = ?";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("ddi", $quantity, $pricePerUnit, $itemId);
+        $stmt->execute();
+        
+        // Commit transaction
+        $conn->commit();
+        return true;
+    } catch (Exception $e) {
+        // Rollback in case of error
+        $conn->rollback();
+        return false;
+    }
 }
-if (isset($_SESSION['success'])) {
-    $success = $_SESSION['success'];
-    unset($_SESSION['success']);
-}
-
-// Get categories for dropdown
-$categories_query = "SELECT category_id, category_name FROM categories ORDER BY category_name";
-$categories_result = $conn->query($categories_query);
 
 // Get suppliers for dropdown
-$suppliers_query = "SELECT supplier_id, supplier_name FROM supplier ORDER BY supplier_name";
-$suppliers_result = $conn->query($suppliers_query);
-
-// Process form submission
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['submit'])) {
-    // Validate inputs
-    $item_name = validateInput($_POST['item_name']);
-    $category_id = validateInput($_POST['category_id']);
-    $supplier_id = validateInput($_POST['supplier_id']);
-    $quantity = validateInput($_POST['quantity']);
-    $price_per_unit = validateInput($_POST['price_per_unit']);
-    $purchase_date = validateInput($_POST['purchase_date']);
-
-    // Check for empty fields
-    if (empty($item_name) || empty($category_id) || empty($supplier_id) ||
-        empty($quantity) || empty($price_per_unit) || empty($purchase_date)) {
-        $_SESSION['error'] = "All fields are required";
-    } else {
-        // Validate purchase date format
-        $date = DateTime::createFromFormat('Y-m-d', $purchase_date);
-        if (!$date || $date->format('Y-m-d') !== $purchase_date) {
-            $_SESSION['error'] = "Invalid purchase date format. Use YYYY-MM-DD.";
-        } else {
-            // Debugging: Output the selected supplier_id
-            error_log("Selected supplier_id: " . $supplier_id);
-
-            // Check if supplier_id exists in the supplier table
-            $supplier_check_sql = "SELECT supplier_id FROM supplier WHERE supplier_id = ?";
-            $supplier_check_stmt = $conn->prepare($supplier_check_sql);
-            $supplier_check_stmt->bind_param("s", $supplier_id);
-            $supplier_check_stmt->execute();
-            $supplier_check_result = $supplier_check_stmt->get_result();
-
-            if ($supplier_check_result->num_rows == 0) {
-                $_SESSION['error'] = "Invalid supplier ID. Please select a valid supplier.";
-                header("Location: " . $_SERVER['PHP_SELF']);
-                exit();
-            }
-            $supplier_check_stmt->close();
-
-            // Calculate total price
-            $total_price = calculateTotalPrice($quantity, $price_per_unit);
-
-            // Check if item already exists
-            $sql = "SELECT item_id, quantity FROM items WHERE item_name = ? AND category_id = ? AND supplier_id = ?";
-            $stmt = $conn->prepare($sql);
-            $stmt->bind_param("sss", $item_name, $category_id, $supplier_id);
-            $stmt->execute();
-            $result = $stmt->get_result();
-
-            if ($result->num_rows > 0) {
-                // Item exists, update the quantity
-                $row = $result->fetch_assoc();
-                $item_id = $row['item_id'];
-                $new_quantity = $row['quantity'] + $quantity;
-                
-                $update_sql = "UPDATE items SET quantity = ?, price_per_unit = ?, total_price = ?, purchase_date = ? WHERE item_id = ?";
-                $update_stmt = $conn->prepare($update_sql);
-                
-                // Use the correct data types for binding
-                $update_stmt->bind_param("dddss", $new_quantity, $price_per_unit, $total_price, $purchase_date, $item_id);
-
-                if ($update_stmt->execute()) {
-                    $_SESSION['success'] = "Purchase updated successfully for Item ID: " . $item_id;
-                } else {
-                    $_SESSION['error'] = "Error updating purchase: " . $update_stmt->error;
-                }
-                $update_stmt->close();
-            } else {
-                // Item does not exist, insert new purchase
-                $item_id = generateItemId($conn);
-                
-                // Debug log
-                error_log("About to insert with supplier_id: " . $supplier_id);
-                
-                // Fixed SQL query - corrected parameter count and added created_at field
-                $insert_sql = "INSERT INTO items (item_id, item_name, category_id, supplier_id, quantity, price_per_unit, total_price, created_at, purchase_date)
-                               VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)";
-                $insert_stmt = $conn->prepare($insert_sql);
-                
-                // Use the correct data types for binding
-                // s = string, d = double/decimal, i = integer
-                $insert_stmt->bind_param("ssssddds", $item_id, $item_name, $category_id, $supplier_id, $quantity, $price_per_unit, $total_price, $purchase_date);
-
-                try {
-                    if ($insert_stmt->execute()) {
-                        $_SESSION['success'] = "New purchase added successfully for Item ID: " . $item_id;
-                    } else {
-                        $_SESSION['error'] = "Error adding new purchase: " . $insert_stmt->error;
-                    }
-                } catch (mysqli_sql_exception $e) {
-                    $_SESSION['error'] = "Database error: " . $e->getMessage();
-                    error_log("Insert error: " . $e->getMessage());
-                }
-                $insert_stmt->close();
-            }
-            $stmt->close();
-
-            // Log the activity
-            $id = 1; // Assume logged in user ID or get from session
-            $activity = "Added/Updated purchase: " . $item_name . " from supplier " . $supplier_id;
-            $log_sql = "INSERT INTO activity_log (id, activity) VALUES (?, ?)";
-            $log_stmt = $conn->prepare($log_sql);
-            $log_stmt->bind_param("is", $id, $activity);
-            $log_stmt->execute();
-            $log_stmt->close();
-
-            // Redirect to the same page to prevent form resubmission
-            header("Location: " . $_SERVER['PHP_SELF']);
-            exit();
+function getSuppliers($conn) {
+    $sql = "SELECT supplier_id, supplier_name FROM supplier ORDER BY supplier_name";
+    $result = $conn->query($sql);
+    $suppliers = [];
+    
+    if ($result->num_rows > 0) {
+        while($row = $result->fetch_assoc()) {
+            $suppliers[] = $row;
         }
     }
-
-    // Redirect even if there's an error
-    header("Location: " . $_SERVER['PHP_SELF']);
-    exit();
+    
+    return $suppliers;
 }
 
-// Get recent purchases for display
-$recent_purchases_query = "SELECT i.item_id, i.item_name, c.category_name, s.supplier_name,
-                           i.quantity, i.price_per_unit, i.total_price, i.purchase_date
-                           FROM items i
-                           JOIN categories c ON i.category_id = c.category_id
-                           JOIN supplier s ON i.supplier_id = s.supplier_id
-                           ORDER BY i.created_at DESC LIMIT 10";
-$recent_purchases = $conn->query($recent_purchases_query);
+// Process form submission for adding items
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['submit_items'])) {
+    $itemsData = $_POST['items'];
+    $successCount = 0;
+    $errorCount = 0;
+    
+    foreach ($itemsData as $item) {
+        $itemName = trim($item['item_name']);
+        $quantity = intval($item['quantity']);
+        $pricePerUnit = floatval($item['price_per_unit']);
+        $purchaseDate = $item['purchase_date'];
+        $expireDate = !empty($item['expire_date']) ? $item['expire_date'] : null;
+        $supplierId = $item['supplier_id']; // Get supplier ID for each item
+        
+        if (!empty($itemName) && $quantity > 0 && $pricePerUnit > 0 && !empty($supplierId)) {
+            // Check if item already exists with this supplier
+            $existingItem = getItemDetails($itemName, $supplierId, $conn);
+            
+            if ($existingItem) {
+                $itemId = $existingItem['item_id'];
+            } else {
+                // Add new item
+                $newItem = addNewItem($itemName, $pricePerUnit, $supplierId, $conn);
+                if ($newItem) {
+                    $itemId = $newItem['item_id'];
+                } else {
+                    $errorCount++;
+                    continue;
+                }
+            }
+            
+            // Add purchase record
+            if (addPurchase($itemId, $quantity, $pricePerUnit, $purchaseDate, $expireDate, $conn)) {
+                $successCount++;
+            } else {
+                $errorCount++;
+            }
+        }
+    }
+    
+    $message = "$successCount items added successfully. ";
+    if ($errorCount > 0) {
+        $message .= "$errorCount items failed to add.";
+    }
+}
+
+// Get all suppliers for the dropdown
+$suppliers = getSuppliers($conn);
 ?>
 
 <!DOCTYPE html>
@@ -190,223 +217,229 @@ $recent_purchases = $conn->query($recent_purchases_query);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Supplier Purchase Management</title>
+    <title>Bulk Item Addition</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body {
-            background:url("images/background60.jpg");
-            margin: 0;
-            padding: 20px;
-            font-weight: bold;
+        .item-row {
+            margin-bottom: 15px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
         }
-        .container {
-            background-color: #d5731846;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        .supplier-info {
+            font-size: 0.85rem;
+            margin-top: 5px;
+            color: #6c757d;
         }
-        h1 {
-            color: #0d6efd;
-            margin-bottom: 30px;
-        }
-        .form-label {
-            font-weight: 500;
-        }
-        .alert {
-            margin-top: 20px;
-        }
-        .table {
-            margin-top: 30px;
-        }
-        .purchase-form {
-            background-color:rgb(255, 245, 241);
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-        .btn btn-primary {
-            background-color: rgb(219, 126, 55);
-            border-color:rgb(219, 126, 55);
-        }
-        .btn btn-primary:hover {
-            background-color: #0b5ed7;
-            border-color: #0a58ca;
-        }
-        .home-btn {
-            background-color: rgb(135, 74, 0);
-            color: white;
-            padding: 10px 15px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            text-decoration: none;
-            font-size: 15px;
-            margin: 0 5px; /* Space between buttons */
-        }
-        .home-btn:hover {
-            background-color: #f28252;
-        }
-        .nav-btn-container {
-            text-align: center; /* Center the navigation buttons */
-        }
+        
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1 style="text-align: center; font-weight: bold; color: white; font-size: 2em; text-shadow: 2px 2px 5px lightblue;">Supplier Purchase Management</h1>
-
-        <?php if (!empty($error)): ?>
-            <div class="alert alert-danger"><?php echo $error; ?></div>
+    <div class="container mt-5">
+        <h2>Bulk Item Addition</h2>
+        
+        <?php if(isset($message)): ?>
+        <div class="alert alert-info">
+            <?php echo $message; ?>
+        </div>
         <?php endif; ?>
-
-        <?php if (!empty($success)): ?>
-            <div class="alert alert-success"><?php echo $success; ?></div>
-        <?php endif; ?>
-
-        <div class="row">
-            <div class="col-md-12">
-                <div class="purchase-form">
-                    <h3>Add New Purchase</h3>
-                    <form method="post" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>">
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="item_name" class="form-label">Item Name</label>
-                                <input type="text" class="form-control" id="item_name" name="item_name" value="<?php echo $item_name; ?>">
+        
+        <form method="post" action="">
+            <div class="supplier-info mb-3">
+                <strong>Note:</strong> Items are linked to specific suppliers. You can now select different suppliers for each item.
+            </div>
+            
+            <div id="items-container">
+                <div class="item-row">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="mb-2">
+                                <label class="form-label">Item Name</label>
+                                <input type="text" class="form-control item-name" name="items[0][item_name]" required>
                             </div>
-                            <div class="col-md-6">
-                                <label for="category_id" class="form-label">Category</label>
-                                <select class="form-select" id="category_id" name="category_id">
-                                    <option value="">Select Category</option>
-                                    <?php 
-                                    // Reset result pointer to beginning
-                                    $categories_result->data_seek(0);
-                                    while($category = $categories_result->fetch_assoc()): 
-                                    ?>
-                                        <option value="<?php echo $category['category_id']; ?>" <?php if($category_id == $category['category_id']) echo "selected"; ?>>
-                                            <?php echo $category['category_name']; ?>
-                                        </option>
-                                    <?php endwhile; ?>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="mb-2">
+                                <label class="form-label">Supplier</label>
+                                <select class="form-select supplier-select" name="items[0][supplier_id]" required>
+                                    <option value="">-- Select --</option>
+                                    <?php foreach($suppliers as $supplier): ?>
+                                    <option value="<?php echo $supplier['supplier_id']; ?>"><?php echo $supplier['supplier_name']; ?></option>
+                                    <?php endforeach; ?>
                                 </select>
                             </div>
                         </div>
-
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="supplier_id" class="form-label">Supplier</label>
-                                <select class="form-select" id="supplier_id" name="supplier_id">
-                                    <option value="">Select Supplier</option>
-                                    <?php 
-                                    // Reset result pointer to beginning
-                                    $suppliers_result->data_seek(0);
-                                    while($supplier = $suppliers_result->fetch_assoc()): 
-                                    ?>
-                                        <option value="<?php echo $supplier['supplier_id']; ?>" <?php if($supplier_id == $supplier['supplier_id']) echo "selected"; ?>>
-                                            <?php echo $supplier['supplier_name']; ?>
-                                        </option>
-                                    <?php endwhile; ?>
-                                </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="purchase_date" class="form-label">Purchase Date</label>
-                                <input type="date" class="form-control" id="purchase_date" name="purchase_date" value="<?php echo $purchase_date; ?>">
+                        <div class="col-md-1">
+                            <div class="mb-2">
+                                <label class="form-label">Quantity</label>
+                                <input type="number" class="form-control" name="items[0][quantity]" min="1" required>
                             </div>
                         </div>
-
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="quantity" class="form-label">Quantity</label>
-                                <input type="number" class="form-control" id="quantity" name="quantity" value="<?php echo $quantity; ?>" min="1">
-                            </div>
-                            <div class="col-md-6">
-                                <label for="price_per_unit" class="form-label">Price Per Unit</label>
-                                <input type="number" class="form-control" id="price_per_unit" name="price_per_unit" value="<?php echo $price_per_unit; ?>" step="0.01" min="0">
+                        <div class="col-md-1">
+                            <div class="mb-2">
+                                <label class="form-label">Price/Unit</label>
+                                <input type="number" step="0.01" class="form-control price-per-unit" name="items[0][price_per_unit]" required>
                             </div>
                         </div>
-
-                        <div class="row">
-                            <div class="col-md-12">
-                                <button type="submit" name="submit" class="btn btn-primary">Add Purchase</button>
-                                <button type="reset" class="btn btn-secondary">Reset</button>
+                        <div class="col-md-2">
+                            <div class="mb-2">
+                                <label class="form-label">Purchase Date</label>
+                                <input type="date" class="form-control" name="items[0][purchase_date]" value="<?php echo date('Y-m-d'); ?>" required>
                             </div>
                         </div>
-                    </form>
+                        <div class="col-md-2">
+                            <div class="mb-2">
+                                <label class="form-label">Expire Date</label>
+                                <input type="date" class="form-control" name="items[0][expire_date]">
+                            </div>
+                        </div>
+                        <div class="col-md-1">
+                            <div class="mb-2">
+                                <label class="form-label">&nbsp;</label>
+                                <button type="button" class="btn btn-danger form-control remove-item">X</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-
-        <div class="row mt-4">
-            <div class="col-md-12">
-                <h3>Recent Purchases</h3>
-                <div class="table-responsive">
-                    <table class="table table-striped table-hover">
-                        <thead class="table-primary">
-                            <tr>
-                                <th>Item ID</th>
-                                <th>Item Name</th>
-                                <th>Category</th>
-                                <th>Supplier</th>
-                                <th>Quantity</th>
-                                <th>Price/Unit</th>
-                                <th>Total</th>
-                                <th>Purchase Date</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php if ($recent_purchases && $recent_purchases->num_rows > 0): ?>
-                                <?php while($row = $recent_purchases->fetch_assoc()): ?>
-                                    <tr>
-                                        <td><?php echo $row['item_id']; ?></td>
-                                        <td><?php echo $row['item_name']; ?></td>
-                                        <td><?php echo $row['category_name']; ?></td>
-                                        <td><?php echo $row['supplier_name']; ?></td>
-                                        <td><?php echo $row['quantity']; ?></td>
-                                        <td><?php echo number_format($row['price_per_unit'], 2); ?></td>
-                                        <td><?php echo number_format($row['total_price'], 2); ?></td>
-                                        <td><?php echo date('Y-m-d', strtotime($row['purchase_date'])); ?></td>
-                                    </tr>
-                                <?php endwhile; ?>
-                            <?php else: ?>
-                                <tr>
-                                    <td colspan="8" class="text-center">No purchases found</td>
-                                </tr>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
-                </div>
+            
+            <div class="mb-3">
+                <button type="button" class="btn btn-secondary" id="add-item">Add Another Item</button>
+                <button type="submit" class="btn btn-primary" name="submit_items">Submit All Items</button>
+                <a href="home.php" class="btn btn-light">Back to Home</a>
+                <a href="display_purchase_details.php" class="btn btn-light">View Purchases</a>
             </div>
-        </div>
-    </div>
-    <br><br>
-    <div class="nav-btn-container">
-        <a href="home.php" class="home-btn">Back to Home Page</a>
+            
+        </form>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
-        // Calculate total price automatically
-        document.addEventListener('DOMContentLoaded', function() {
-            const quantityInput = document.getElementById('quantity');
-            const priceInput = document.getElementById('price_per_unit');
-
-            function updateTotal() {
-                const quantity = parseFloat(quantityInput.value) || 0;
-                const price = parseFloat(priceInput.value) || 0;
-                const total = quantity * price;
-
-                // You could display this somewhere if needed
-                console.log('Total: ' + total.toFixed(2));
+        $(document).ready(function() {
+            let itemCount = 0;
+            
+            // Add new item row
+            $('#add-item').click(function() {
+                itemCount++;
+                
+                // Get the suppliers options HTML
+                let suppliersOptions = '';
+                <?php foreach($suppliers as $supplier): ?>
+                suppliersOptions += '<option value="<?php echo $supplier['supplier_id']; ?>"><?php echo $supplier['supplier_name']; ?></option>';
+                <?php endforeach; ?>
+                
+                const newRow = `
+                    <div class="item-row">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="mb-2">
+                                    <label class="form-label">Item Name</label>
+                                    <input type="text" class="form-control item-name" name="items[${itemCount}][item_name]" required>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="mb-2">
+                                    <label class="form-label">Supplier</label>
+                                    <select class="form-select supplier-select" name="items[${itemCount}][supplier_id]" required>
+                                        <option value="">-- Select --</option>
+                                        ${suppliersOptions}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-1">
+                                <div class="mb-2">
+                                    <label class="form-label">Quantity</label>
+                                    <input type="number" class="form-control" name="items[${itemCount}][quantity]" min="1" required>
+                                </div>
+                            </div>
+                            <div class="col-md-1">
+                                <div class="mb-2">
+                                    <label class="form-label">Price/Unit</label>
+                                    <input type="number" step="0.01" class="form-control price-per-unit" name="items[${itemCount}][price_per_unit]" required>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="mb-2">
+                                    <label class="form-label">Purchase Date</label>
+                                    <input type="date" class="form-control" name="items[${itemCount}][purchase_date]" value="${new Date().toISOString().split('T')[0]}" required>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="mb-2">
+                                    <label class="form-label">Expire Date</label>
+                                    <input type="date" class="form-control" name="items[${itemCount}][expire_date]">
+                                </div>
+                            </div>
+                            <div class="col-md-1">
+                                <div class="mb-2">
+                                    <label class="form-label">&nbsp;</label>
+                                    <button type="button" class="btn btn-danger form-control remove-item">X</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                $('#items-container').append(newRow);
+            });
+            
+            // Remove item row
+            $(document).on('click', '.remove-item', function() {
+                if ($('.item-row').length > 1) {
+                    $(this).closest('.item-row').remove();
+                } else {
+                    alert('You need at least one item');
+                }
+            });
+            
+            // Check if item exists and fetch details
+            $(document).on('blur', '.item-name', function() {
+                const itemNameInput = $(this);
+                const itemName = itemNameInput.val().trim();
+                const currentRow = itemNameInput.closest('.item-row');
+                const supplierSelect = currentRow.find('.supplier-select');
+                const supplierId = supplierSelect.val();
+                
+                if (itemName !== '' && supplierId !== '') {
+                    checkItem(itemNameInput, supplierId);
+                }
+            });
+            
+            // Also check when supplier changes
+            $(document).on('change', '.supplier-select', function() {
+                const supplierSelect = $(this);
+                const supplierId = supplierSelect.val();
+                const currentRow = supplierSelect.closest('.item-row');
+                const itemNameInput = currentRow.find('.item-name');
+                const itemName = itemNameInput.val().trim();
+                
+                if (itemName !== '' && supplierId !== '') {
+                    checkItem(itemNameInput, supplierId);
+                }
+            });
+            
+            // Function to check item existence
+            function checkItem(itemNameInput, supplierId) {
+                const itemName = itemNameInput.val().trim();
+                const currentRow = itemNameInput.closest('.item-row');
+                
+                $.ajax({
+                    url: window.location.href,
+                    type: 'POST',
+                    data: { 
+                        item_name: itemName,
+                        supplier_id: supplierId
+                    },
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.exists) {
+                            currentRow.find('.price-per-unit').val(response.price_per_unit);
+                            alert(`Item exists with current quantity: ${response.current_quantity} from this supplier`);
+                        }
+                    }
+                });
             }
-
-            quantityInput.addEventListener('input', updateTotal);
-            priceInput.addEventListener('input', updateTotal);
         });
     </script>
 </body>
 </html>
-
-<?php
-// Close the database connection
-$conn->close();
-?>

@@ -15,11 +15,12 @@ if ($conn->connect_error) {
 $error = $success = '';
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Check if all required fields are set
-    if (isset($_POST['supplier_name']) && isset($_POST['nic']) && isset($_POST['address'])) {
+    if (isset($_POST['supplier_name']) && isset($_POST['nic']) && isset($_POST['address']) && isset($_POST['contact_number'])) {
         $supplier_name = $_POST['supplier_name'];
         $nic = $_POST['nic'];
         $address = $_POST['address'];
         $reg_date = date('Y-m-d H:i:s');
+        $contact_number=$_POST['contact_number'];
 
         // Generate supplier_id starting with 's' followed by 5 numbers
         $lastIdQuery = "SELECT MAX(CAST(SUBSTR(supplier_id, 2) AS UNSIGNED)) AS last_id FROM supplier WHERE supplier_id LIKE 'S%'";
@@ -47,8 +48,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $error = "Supplier with this NIC already exists!";
             } else {
                 // Insert new supplier
-                $stmt = $conn->prepare("INSERT INTO supplier (supplier_id, supplier_name, nic, address, registration_date) VALUES (?, ?, ?, ?, ?)");
-                $stmt->bind_param("sssss", $supplier_id, $supplier_name, $nic, $address, $reg_date);
+                $stmt = $conn->prepare("INSERT INTO supplier (supplier_id, supplier_name, nic, address, registration_date,contact_number) VALUES (?, ?, ?, ?, ?, ?)");
+                $stmt->bind_param("ssssss", $supplier_id, $supplier_name, $nic, $address, $reg_date, $contact_number);
+
 
                 if ($stmt->execute()) {
                     $success = "Supplier registered successfully!";
@@ -189,6 +191,7 @@ $conn->close();
             <div class="form-group">
                 <label>Supplier Name:</label>
                 <input type="text" name="supplier_name" required>
+                <p class="note" style="color:black">Format: company name - agent's name</p>
             </div>
             
             <div class="form-group">
@@ -201,34 +204,21 @@ $conn->close();
                 <label>Address:</label>
                 <input type="text" name="address" required>
             </div>
+            <div class="form-group">
+    <label>Contact Number: </label>
+    <input type="text" name="contact_number" pattern="0[0-9]{9}" maxlength="10" required 
+        title="Contact number must start with 0 and be exactly 10 digits long.">
+</div>
+
             
             <button type="submit">Register Supplier</button>
+            
         </form>
     </div>
     <br><br>
     <div class="nav-btn-container">
-    <?php
-    session_start();
-    if (isset($_SESSION['position'])) {
-        switch ($_SESSION['position']) {
-            case 'admin':
-                $dashboard = 'home.php';
-                break;
-            case 'clerk':
-                $dashboard = 'clerk_dashboard.php';
-                break;
-            case 'accountant':
-                $dashboard = 'accountant_dashboard.php';
-                break;
-            default:
-                $dashboard = 'login.php';
-                break;
-        }
-    } else {
-        $dashboard = 'login.php';
-    }
-    ?>
-    <a href="<?= $dashboard ?>" class="home-btn">Back to Home Page</a>
+    
+    <a href="home.php" class="home-btn">Back to Home Page</a>
 </div>
 <br><br>
 <div class="nav-btn-container">

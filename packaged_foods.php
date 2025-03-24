@@ -558,4 +558,9 @@ if (isset($_SESSION['message'])) {
 <?php
 // Close the database connection
 $conn->close();
+
 ?>
+
+
+
+

@@ -541,11 +541,11 @@ if ($result && $result->num_rows > 0) {
             <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
             <div class="form-group">
                 <label for="supplier_id">Supplier</label>
-                <select class="form-control" id="supplier_id" name="supplier_id" required>
+                <select class="form-control" id="supplier_name" name="supplier_name" required>
                     <option value="" disabled selected>Select a supplier</option>
                     <?php foreach ($suppliers as $supplier): ?>
-                        <option value="<?php echo $supplier['supplier_id']; ?>">
-                            <?php echo $supplier['supplier_id']; ?>
+                        <option value="<?php echo $supplier['supplier_name']; ?>">
+                            <?php echo $supplier['supplier_name']; ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
