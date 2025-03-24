@@ -631,7 +631,8 @@ $currentTime = date("h:i A");
                             <ul class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
                                 <li><a class="dropdown-item" href="supplier.php">Registration</a></li>
                                 <li><a class="dropdown-item" href="supplier_purchases.php">Item Purchases</a></li>
-                                <li><a class="dropdown-item" href="supplier_payments.php">Handling Bills</a></li>
+                                <li><a class="dropdown-item" href="supplier_payments.php">Supplier Payment Balance</a></li>
+                                <li><a class="dropdown-item" href="actual_payment_supplier.php">Payment Handling</a></li>
                             </ul>
                         </li>
                         <li class="nav-item dropdown">

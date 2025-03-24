@@ -13,10 +13,32 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
+// AJAX request for supplier suggestions
+if ($_SERVER["REQUEST_METHOD"] == "GET" && isset($_GET['search_term'])) {
+    $searchTerm = $conn->real_escape_string($_GET['search_term']);
+    $sql = "SELECT supplier_id, supplier_name FROM supplier 
+            WHERE supplier_name LIKE '%$searchTerm%' 
+            ORDER BY supplier_name LIMIT 10";
+    $result = $conn->query($sql);
+    
+    $suggestions = [];
+    while ($row = $result->fetch_assoc()) {
+        $suggestions[] = [
+            'id' => $row['supplier_id'],
+            'name' => $row['supplier_name']
+        ];
+    }
+    
+    header('Content-Type: application/json');
+    echo json_encode($suggestions);
+    exit;
+}
+
 // Initialize filter variables
 $start_date = isset($_GET['start_date']) ? $_GET['start_date'] : '';
 $end_date = isset($_GET['end_date']) ? $_GET['end_date'] : '';
-$supplier_filter = isset($_GET['supplier']) ? $_GET['supplier'] : '';
+$supplier_filter = isset($_GET['supplier_id']) ? $_GET['supplier_id'] : '';
+$supplier_name = isset($_GET['supplier_name']) ? $_GET['supplier_name'] : '';
 
 // Function to get all purchases with item and supplier details
 function getPurchaseDetails($conn, $start_date = '', $end_date = '', $supplier_filter = '') {
@@ -87,24 +109,8 @@ function getPurchaseDetails($conn, $start_date = '', $end_date = '', $supplier_f
     return $purchases;
 }
 
-// Function to get all suppliers for filter dropdown
-function getSuppliers($conn) {
-    $sql = "SELECT supplier_id, supplier_name FROM supplier ORDER BY supplier_name";
-    $result = $conn->query($sql);
-    $suppliers = [];
-    
-    if ($result->num_rows > 0) {
-        while($row = $result->fetch_assoc()) {
-            $suppliers[] = $row;
-        }
-    }
-    
-    return $suppliers;
-}
-
 // Get all purchase details with filters
 $purchases = getPurchaseDetails($conn, $start_date, $end_date, $supplier_filter);
-$suppliers = getSuppliers($conn);
 ?>
 
 <!DOCTYPE html>
@@ -114,6 +120,7 @@ $suppliers = getSuppliers($conn);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Purchased Items Details</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.13.2/themes/base/jquery-ui.min.css">
     <style>
         .table-responsive {
             margin-top: 20px;
@@ -139,6 +146,17 @@ $suppliers = getSuppliers($conn);
             border-radius: 5px;
             margin-bottom: 20px;
         }
+        .ui-autocomplete {
+            max-height: 200px;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+        .supplier-search-container {
+            position: relative;
+        }
+        .hidden-id-field {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -163,15 +181,13 @@ $suppliers = getSuppliers($conn);
                         <input type="date" class="form-control" id="end_date" name="end_date" value="<?php echo $end_date; ?>">
                     </div>
                     <div class="col-md-3">
-                        <label for="supplier" class="form-label">Supplier</label>
-                        <select class="form-select" id="supplier" name="supplier">
-                            <option value="">All Suppliers</option>
-                            <?php foreach($suppliers as $supplier): ?>
-                                <option value="<?php echo $supplier['supplier_id']; ?>" <?php echo ($supplier_filter == $supplier['supplier_id']) ? 'selected' : ''; ?>>
-                                    <?php echo $supplier['supplier_name']; ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
+                        <label for="supplier_name" class="form-label">Supplier</label>
+                        <div class="supplier-search-container">
+                            <input type="text" class="form-control" id="supplier_name" name="supplier_name" 
+                                   value="<?php echo htmlspecialchars($supplier_name); ?>" 
+                                   placeholder="Type supplier name...">
+                            <input type="hidden" id="supplier_id" name="supplier_id" value="<?php echo $supplier_filter; ?>">
+                        </div>
                     </div>
                     <div class="col-md-3 d-flex align-items-end">
                         <button type="submit" class="btn btn-primary me-2">Filter</button>
@@ -256,6 +272,8 @@ $suppliers = getSuppliers($conn);
         </div>
     </div>
 
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // Set default date values to today and one month ago
@@ -270,6 +288,49 @@ $suppliers = getSuppliers($conn);
                 document.getElementById('start_date').value = oneMonthAgoStr;
                 document.getElementById('end_date').value = today;
             }
+        });
+
+        // Supplier autocomplete functionality
+        $(function() {
+            $("#supplier_name").autocomplete({
+                source: function(request, response) {
+                    $.get({
+                        url: window.location.href,
+                        data: { search_term: request.term },
+                        dataType: "json",
+                        success: function(data) {
+                            response($.map(data, function(item) {
+                                return {
+                                    label: item.name,
+                                    value: item.name,
+                                    id: item.id
+                                };
+                            }));
+                        }
+                    });
+                },
+                minLength: 2,
+                select: function(event, ui) {
+                    $("#supplier_id").val(ui.item.id);
+                    $("#supplier_name").val(ui.item.label);
+                    return false;
+                },
+                focus: function(event, ui) {
+                    $("#supplier_name").val(ui.item.label);
+                    return false;
+                }
+            }).data("ui-autocomplete")._renderItem = function(ul, item) {
+                return $("<li>")
+                    .append("<div>" + item.label + "</div>")
+                    .appendTo(ul);
+            };
+
+            // Clear hidden ID field when user clears the text input
+            $("#supplier_name").on('input', function() {
+                if ($(this).val() === '') {
+                    $("#supplier_id").val('');
+                }
+            });
         });
     </script>
 </body>
