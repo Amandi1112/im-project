@@ -1,584 +1,385 @@
 <?php
-// Database configuration
-$servername = "localhost";
-$username = "root";
-$password = "";
-$dbname = "mywebsite";
+// Database Configuration (Replace with your actual database credentials)
+$DB_HOST = 'localhost';
+$DB_NAME = 'mywebsite';
+$DB_USER = 'root';
+$DB_PASS = '';
 
-// Create connection
-$conn = new mysqli($servername, $username, $password);
+// Member Registration Class
+class MemberRegistration {
+    private $conn;
 
-// Check connection
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
-
-// Create database if not exists
-$sql = "CREATE DATABASE IF NOT EXISTS $dbname";
-if ($conn->query($sql) !== TRUE) {
-    echo "Error creating database: " . $conn->error;
-}
-
-// Select database
-$conn->select_db($dbname);
-
-// Create members table if not exists
-$sql = "CREATE TABLE IF NOT EXISTS members (
-    id INT(6) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    membership_number VARCHAR(6) NOT NULL UNIQUE,
-    full_name VARCHAR(100) NOT NULL,
-    address VARCHAR(255) NOT NULL,
-    membership_age INT(3) NOT NULL,
-    nic_number VARCHAR(12) NOT NULL UNIQUE,
-    telephone_number VARCHAR(15) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-)";
-
-if ($conn->query($sql) !== TRUE) {
-    echo "Error creating table: " . $conn->error;
-}
-
-// Insert sample data if table is empty
-$result = $conn->query("SELECT COUNT(*) as count FROM members");
-$row = $result->fetch_assoc();
-
-if ($row['count'] == 0) {
-    // Sample data generation
-    $first_names = array("John", "Jane", "Michael", "Emily", "David", "Sarah", "Robert", "Linda", "William", "Elizabeth",
-                        "Richard", "Jennifer", "Thomas", "Susan", "Charles", "Margaret", "James", "Jessica", "Andrew", "Karen");
-    $last_names = array("Smith", "Johnson", "Williams", "Brown", "Jones", "Miller", "Davis", "Garcia", "Rodriguez", "Wilson",
-                        "Martinez", "Anderson", "Taylor", "Thomas", "Hernandez", "Moore", "Martin", "Jackson", "Thompson", "White");
-    $streets = array("Main St", "Oak Ave", "Maple Rd", "Cedar Ln", "Pine Dr", "Elm St", "Washington Ave", "Park Rd", "Lake Blvd", "River Dr");
-    $cities = array("Springfield", "Rivertown", "Oakville", "Maplewood", "Lakeside", "Hillcrest", "Westwood", "Eastdale", "Northfield", "Southport");
-    
-    // Prepare the statement
-    $stmt = $conn->prepare("INSERT INTO members (membership_number, full_name, address, membership_age, nic_number, telephone_number) VALUES (?, ?, ?, ?, ?, ?)");
-    
-    // Generate 100 sample members
-    for ($i = 1; $i <= 100; $i++) {
-        // Generate membership number: B + 5 digits
-        $membership_number = 'B' . str_pad($i, 5, '0', STR_PAD_LEFT);
-        
-        // Generate full name
-        $first_name = $first_names[array_rand($first_names)];
-        $last_name = $last_names[array_rand($last_names)];
-        $full_name = $first_name . ' ' . $last_name;
-        
-        // Generate address
-        $house_number = rand(1, 999);
-        $street = $streets[array_rand($streets)];
-        $city = $cities[array_rand($cities)];
-        $address = $house_number . ' ' . $street . ', ' . $city;
-        
-        // Generate membership age (1-20 years)
-        $membership_age = rand(1, 20);
-        
-        // Generate NIC number (9 digits + v)
-        $nic_base = str_pad(rand(100000000, 999999999), 9, '0', STR_PAD_LEFT);
-        $nic_number = $nic_base . 'v';
-        
-        
-        // Generate telephone number
-        $telephone_number = '0' . rand(700000000, 799999999);
-        
-        // Bind parameters and execute
-        $stmt->bind_param("sssiss", $membership_number, $full_name, $address, $membership_age, $nic_number, $telephone_number);
-        $stmt->execute();
+    public function __construct($database_connection) {
+        $this->conn = $database_connection;
     }
-    
-    $stmt->close();
+
+    // Generate cooperative number: C + 5 digits
+    private function generateCoopNumber() {
+        $stmt = $this->conn->query("SELECT MAX(coop_number) AS last_number FROM members");
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        $lastNumber = $result['last_number'] ? intval(substr($result['last_number'], 1)) : 0;
+        $newNumber = str_pad($lastNumber + 1, 5, '0', STR_PAD_LEFT);
+        
+        return 'C' . $newNumber;
+    }
+
+    // Calculate age from date of birth
+    private function calculateAge($date_of_birth) {
+        $birthdate = new DateTime($date_of_birth);
+        $today = new DateTime('today');
+        return $today->diff($birthdate)->y;
+    }
+
+    // Comprehensive input validation
+    private function validateMemberData($data) {
+        $errors = [];
+
+        // Validate full name
+        if (empty($data['full_name']) || !preg_match('/^[A-Za-z\s\-\']+$/', $data['full_name'])) {
+            $errors[] = "Invalid full name";
+        }
+
+        // Validate NIC
+        if (empty($data['nic']) || 
+            (!preg_match('/^[0-9]{9}[vVxX]?$/', $data['nic']) && 
+             !preg_match('/^[0-9]{12}$/', $data['nic']))) {
+            $errors[] = "Invalid NIC number";
+        }
+
+        // Validate date of birth
+        if (empty($data['date_of_birth']) || 
+            new DateTime($data['date_of_birth']) >= new DateTime('today')) {
+            $errors[] = "Invalid date of birth";
+        }
+
+        // Validate telephone number
+        if (empty($data['telephone_number']) || 
+            !preg_match('/^(0[0-9]{9}|\+[0-9]{10,14})$/', $data['telephone_number'])) {
+            $errors[] = "Invalid telephone number";
+        }
+
+        // Validate monthly income
+        if (!is_numeric($data['monthly_income']) || 
+            $data['monthly_income'] < 0 || 
+            $data['monthly_income'] > 1000000) {
+            $errors[] = "Invalid monthly income";
+        }
+
+        // Validate address
+        if (empty($data['address']) || strlen($data['address']) < 10) {
+            $errors[] = "Invalid or too short address";
+        }
+
+        return $errors;
+    }
+
+    public function addMember($memberData) {
+        // Validate member data
+        $validationErrors = $this->validateMemberData($memberData);
+        if (!empty($validationErrors)) {
+            return [
+                'success' => false,
+                'errors' => $validationErrors
+            ];
+        }
+
+        // Generate cooperative membership number
+        $coop_number = $this->generateCoopNumber();
+
+        // Calculate age
+        $age = $this->calculateAge($memberData['date_of_birth']);
+
+        // Prepare SQL statement
+        $sql = "INSERT INTO members (
+            full_name, 
+            bank_membership_number, 
+            coop_number,
+            address, 
+            nic, 
+            date_of_birth, 
+            age,
+            telephone_number, 
+            occupation, 
+            monthly_income
+        ) VALUES (
+            :full_name, 
+            :bank_membership_number, 
+            :coop_number,
+            :address, 
+            :nic, 
+            :date_of_birth, 
+            :age,
+            :telephone_number, 
+            :occupation, 
+            :monthly_income
+        )";
+
+        try {
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bindValue(':full_name', $memberData['full_name']);
+            $stmt->bindValue(':bank_membership_number', $memberData['bank_membership_number']);
+            $stmt->bindValue(':coop_number', $coop_number);
+            $stmt->bindValue(':address', $memberData['address']);
+            $stmt->bindValue(':nic', $memberData['nic']);
+            $stmt->bindValue(':date_of_birth', $memberData['date_of_birth']);
+            $stmt->bindValue(':age', $age);
+            $stmt->bindValue(':telephone_number', $memberData['telephone_number']);
+            $stmt->bindValue(':occupation', $memberData['occupation']);
+            $stmt->bindValue(':monthly_income', $memberData['monthly_income']);
+
+            $result = $stmt->execute();
+
+            return [
+                'success' => $result,
+                'coop_number' => $coop_number
+            ];
+
+        } catch (PDOException $e) {
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
 }
 
-// Handle adding new member
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['add_member'])) {
-    // Generate the next membership number
-    $result = $conn->query("SELECT MAX(SUBSTRING(membership_number, 2)) as max_num FROM members");
-    $row = $result->fetch_assoc();
-    $next_num = intval($row['max_num']) + 1;
-    $membership_number = 'B' . str_pad($next_num, 5, '0', STR_PAD_LEFT);
-    
-    $full_name = $_POST['full_name'];
-    $address = $_POST['address'];
-    $membership_age = $_POST['membership_age'];
-    $nic_number = $_POST['nic_number'];
-    $telephone_number = $_POST['telephone_number'];
-    
-    $stmt = $conn->prepare("INSERT INTO members (membership_number, full_name, address, membership_age, nic_number, telephone_number) VALUES (?, ?, ?, ?, ?, ?)");
-    $stmt->bind_param("sssiss", $membership_number, $full_name, $address, $membership_age, $nic_number, $telephone_number);
-    
+// Handle AJAX Request
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
-        $stmt->execute();
-        // Success message
-        $add_success = true;
+        // Database connection
+        $pdo = new PDO("mysql:host={$DB_HOST};dbname={$DB_NAME}", $DB_USER, $DB_PASS);
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+        $memberRegistration = new MemberRegistration($pdo);
+
+        // Sanitize and validate input
+        $memberData = [
+            'full_name' => filter_input(INPUT_POST, 'full_name', FILTER_SANITIZE_STRING),
+            'bank_membership_number' => filter_input(INPUT_POST, 'bank_membership_number', FILTER_SANITIZE_STRING),
+            'address' => filter_input(INPUT_POST, 'address', FILTER_SANITIZE_STRING),
+            'nic' => filter_input(INPUT_POST, 'nic', FILTER_SANITIZE_STRING),
+            'date_of_birth' => filter_input(INPUT_POST, 'date_of_birth', FILTER_SANITIZE_STRING),
+            'telephone_number' => filter_input(INPUT_POST, 'telephone_number', FILTER_SANITIZE_STRING),
+            'occupation' => filter_input(INPUT_POST, 'occupation', FILTER_SANITIZE_STRING),
+            'monthly_income' => filter_input(INPUT_POST, 'monthly_income', FILTER_VALIDATE_FLOAT)
+        ];
+
+        $result = $memberRegistration->addMember($memberData);
+
+        // Return JSON response
+        header('Content-Type: application/json');
+        echo json_encode($result);
+        exit;
+
     } catch (Exception $e) {
-        // Error message - likely duplicate NIC
-        $add_error = $e->getMessage();
+        // Error handling
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => false,
+            'error' => $e->getMessage()
+        ]);
+        exit;
     }
-    
-    $stmt->close();
-    
-    // Redirect to avoid resubmission
-    header("Location: " . $_SERVER['PHP_SELF']);
-    exit();
 }
-
-// Handle delete request
-if (isset($_GET['delete']) && !empty($_GET['delete'])) {
-    $id = intval($_GET['delete']);
-    $stmt = $conn->prepare("DELETE FROM members WHERE id = ?");
-    $stmt->bind_param("i", $id);
-    $stmt->execute();
-    $stmt->close();
-    
-    // Redirect to avoid resubmission
-    header("Location: " . $_SERVER['PHP_SELF']);
-    exit();
-}
-
-// Handle form submission for editing
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_member'])) {
-    $id = $_POST['id'];
-    $membership_number = $_POST['membership_number'];
-    $full_name = $_POST['full_name'];
-    $address = $_POST['address'];
-    $membership_age = $_POST['membership_age'];
-    $nic_number = $_POST['nic_number'];
-    $telephone_number = $_POST['telephone_number'];
-    
-    $stmt = $conn->prepare("UPDATE members SET membership_number=?, full_name=?, address=?, membership_age=?, nic_number=?, telephone_number=? WHERE id=?");
-    $stmt->bind_param("sssissi", $membership_number, $full_name, $address, $membership_age, $nic_number, $telephone_number, $id);
-    $stmt->execute();
-    $stmt->close();
-    
-    // Redirect to avoid resubmission
-    header("Location: " . $_SERVER['PHP_SELF']);
-    exit();
-}
-
-// Handle pagination
-$records_per_page = 10;
-$page = isset($_GET['page']) ? intval($_GET['page']) : 1;
-$offset = ($page - 1) * $records_per_page;
-
-// Get total number of records
-$result = $conn->query("SELECT COUNT(*) as total FROM members");
-$row = $result->fetch_assoc();
-$total_records = $row['total'];
-$total_pages = ceil($total_records / $records_per_page);
-
-// Fetch members with pagination
-$sql = "SELECT * FROM members ORDER BY id LIMIT $offset, $records_per_page";
-$result = $conn->query($sql);
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Membership Management System</title>
-    <style>
-        body {
-            background-image: url('images/background60.jpg');
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            background-color: #f5f5f5;
-        }
-        h1 {
-            text-align: center;
-            color: #333;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background-color: #d5731846;
-    /* Changed color */
-
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            padding: 20px;
-            
-            border-radius: 5px;
-        }
-        .header-actions {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 20px;
-            margin-bottom: 18px;
-        }
-        .add-btn {
-            background-color:rgb(219, 126, 55);
-            color: white;
-            padding: 10px 15px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-        .add-btn:hover{
-            background-color:#f28252;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        th, td {
-            padding: 10px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-        th {
-            background-color: #f2f2f2;
-        }
-        tr:hover {
-            background-color: #f5f5f5;
-        }
-        .action-buttons {
-            white-space: nowrap;
-        }
-        .edit-btn, .delete-btn {
-            
-            padding: 5px 10px;
-            border: none;
-            border-radius: 3px;
-            cursor: pointer;
-            margin-right: 5px;
-        }
-        .edit-btn {
-            background-color:rgb(219, 126, 55);
-            color: white;
-        }
-        .edit-btn:hover{
-            background-color:rgb(246, 148, 74);
-        }
-        .delete-btn {
-            background-color: #f44336;
-            color: white;
-        }
-        .delete-btn:hover{
-            background-color:#3c763d;
-        }
-        .pagination {
-            margin-top: 20px;
-            text-align: center;
-            
-        }
-        .pagination a {
-            background-color: #a94442;
-            color: black;
-            float: left;
-            padding: 8px 16px;
-            text-decoration: none;
-            border: 1px solid #ddd;
-            margin: 0 4px;
-        }
-        .pagination a.active {
-            background-color: #4CAF50;
-            color: white;
-            border: 1px solid #4CAF50;
-        }
-        .pagination a:hover:not(.active) {
-            background-color: #ddd;
-        }
-        /* Modal styles */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0,0,0,0.4);
-        }
-        .modal-content {
-            background-color: #fefefe;
-            margin: 10% auto;
-            padding: 20px;
-            border: 1px solid #888;
-            width: 60%;
-            border-radius: 5px;
-        }
-        .close {
-            color: #aaa;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-        }
-        .close:hover,
-        .close:focus {
-            color: black;
-            text-decoration: none;
-            cursor: pointer;
-        }
-        form {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-        input[type="text"],
-        input[type="number"] {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            box-sizing: border-box;
-        }
-        .form-submit {
-            grid-column: span 2;
-            text-align: center;
-        }
-        .submit-btn {
-            background-color:rgb(219, 126, 55);
-            color: white;
-            padding: 10px 15px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-        .submit-btn:hover{
-            background-color:#f28252;
-        }
-        .success-message {
-            background-color: #dff0d8;
-            color: #3c763d;
-            padding: 10px;
-            margin-bottom: 15px;
-            border-radius: 4px;
-            border: 1px solid #d6e9c6;
-        }
-        .error-message {
-            background-color: #f2dede;
-            color: #a94442;
-            padding: 10px;
-            margin-bottom: 15px;
-            border-radius: 4px;
-            border: 1px solid #ebccd1;
-        }.nav-btn-container {
-            text-align: right; /* Center the navigation buttons */
-        }
-        .home-btn{
-            background-color: rgb(219, 126, 55);
-            color: white;
-            padding: 10px 15px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            text-decoration: none;
-            font-size: 15px;
-            margin-bottom: 10px;
-
-        }
-        .home-btn:hover{
-            background-color: #f28252;
-        }
-    </style>
+    <title>Member Registration System</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 </head>
-<body>
-    <div class="container">
-    <h1 style="text-align: center; font-weight: bold; color: black; font-size: 2em; text-shadow: 2px 2px 5px lightblue;">Member Details</h1>
-    
-        <div class="header-actions">
-            <div>
-                <span>Total Members: <?php echo $total_records; ?></span>
-            </div>
-            <button class="add-btn" onclick="openAddModal()">Add New Member</button>
-        </div>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+    <div class="w-full max-w-2xl bg-white p-8 rounded-lg shadow-md">
+        <h2 class="text-2xl font-bold mb-6 text-center text-gray-800">Member Registration</h2>
         
-        <?php if(isset($add_success) && $add_success): ?>
-        <div class="success-message">Member added successfully!</div>
-        <?php endif; ?>
-        
-        <?php if(isset($add_error)): ?>
-        <div class="error-message">Error: <?php echo $add_error; ?></div>
-        <?php endif; ?>
-        
-        <table>
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Membership #</th>
-                    <th>Full Name</th>
-                    <th>Address</th>
-                    <th>Membership Age</th>
-                    <th>NIC Number</th>
-                    <th>Telephone</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php while($row = $result->fetch_assoc()): ?>
-                <tr>
-                    <td><?php echo $row['id']; ?></td>
-                    <td><?php echo htmlspecialchars($row['membership_number']); ?></td>
-                    <td><?php echo htmlspecialchars($row['full_name']); ?></td>
-                    <td><?php echo htmlspecialchars($row['address']); ?></td>
-                    <td><?php echo $row['membership_age']; ?></td>
-                    <td><?php echo htmlspecialchars($row['nic_number']); ?></td>
-                    <td><?php echo htmlspecialchars($row['telephone_number']); ?></td>
-                    <td class="action-buttons">
-                        <button class="edit-btn" onclick="openEditModal(<?php echo htmlspecialchars(json_encode($row)); ?>)">Edit</button>
-                        <a href="?delete=<?php echo $row['id']; ?>" class="delete-btn" onclick="return confirm('Are you sure you want to delete this member?')">Delete</a>
-                    </td>
-                </tr>
-                <?php endwhile; ?>
-            </tbody>
-        </table>
-        
-        <!-- Pagination -->
-        <div class="pagination">
-            <?php for($i = 1; $i <= $total_pages; $i++): ?>
-                <a href="?page=<?php echo $i; ?>" <?php if($i == $page) echo "class='active'"; ?>><?php echo $i; ?></a>
-            <?php endfor; ?>
-        </div>
-    </div>
+        <form id="memberRegistrationForm" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="full_name" class="block text-sm font-medium text-gray-700">Full Name</label>
+                    <input type="text" id="full_name" name="full_name" required 
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                </div>
 
-    <!-- Edit Modal -->
-    <div id="editModal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeEditModal()">&times;</span>
-            <h2>Edit Member</h2>
-            <form method="POST" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>">
-                <input type="hidden" id="edit_id" name="id">
-                
-                <div class="form-group">
-                    <label for="membership_number">Membership Number:</label>
-                    <input type="text" id="edit_membership_number" name="membership_number" required pattern="B\d{5}" title="Format should be B followed by 5 digits">
+                <div>
+                    <label for="bank_membership_number" class="block text-sm font-medium text-gray-700">Bank Membership Number</label>
+                    <input type="text" id="bank_membership_number" name="bank_membership_number" required 
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
                 </div>
-                
-                <div class="form-group">
-                    <label for="full_name">Full Name:</label>
-                    <input type="text" id="edit_full_name" name="full_name" required>
+            </div>
+
+            <div>
+                <label for="address" class="block text-sm font-medium text-gray-700">Address</label>
+                <textarea id="address" name="address" required 
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"></textarea>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="nic" class="block text-sm font-medium text-gray-700">NIC Number</label>
+                    <input type="text" id="nic" name="nic" required 
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
                 </div>
-                
-                <div class="form-group">
-                    <label for="address">Address:</label>
-                    <input type="text" id="edit_address" name="address" required>
+
+                <div>
+                    <label for="date_of_birth" class="block text-sm font-medium text-gray-700">Date of Birth</label>
+                    <input type="date" id="date_of_birth" name="date_of_birth" required 
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
                 </div>
-                
-                <div class="form-group">
-                    <label for="membership_age">Membership Age (years):</label>
-                    <input type="number" id="edit_membership_age" name="membership_age" required min="1">
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="telephone_number" class="block text-sm font-medium text-gray-700">Telephone Number</label>
+                    <input type="tel" id="telephone_number" name="telephone_number" required 
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
                 </div>
-                
-                <div class="form-group">
-                    <label for="nic_number">NIC Number:</label>
-                    <input type="text" id="edit_nic_number" name="nic_number" required pattern="\d{9}v" title="Format should be 9 digits followed by v">
+
+                <div>
+                    <label for="occupation" class="block text-sm font-medium text-gray-700">Occupation</label>
+                    <input type="text" id="occupation" name="occupation" 
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
                 </div>
-                
-                <div class="form-group">
-                    <label for="telephone_number">Telephone Number:</label>
-                    <input type="text" id="edit_telephone_number" name="telephone_number" required pattern="0\d{9}" title="Format should be 0 followed by 9 digits">
-                </div>
-                
-                <div class="form-submit">
-                    <button type="submit" name="update_member" class="submit-btn">Update Member</button>
-                </div>
-            </form>
-        </div>
-    </div>
-    
-    <!-- Add Modal -->
-    <div id="addModal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeAddModal()">&times;</span>
-            <h2>Add New Member</h2>
-            <form method="POST" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>">
-                <div class="form-group">
-                    <label for="full_name">Full Name:</label>
-                    <input type="text" id="add_full_name" name="full_name" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="address">Address:</label>
-                    <input type="text" id="add_address" name="address" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="membership_age">Membership Age (years):</label>
-                    <input type="number" id="add_membership_age" name="membership_age" required min="1">
-                </div>
-                
-                <div class="form-group">
-                    <label for="nic_number">NIC Number:</label>
-                    <input type="text" id="add_nic_number" name="nic_number" required pattern="\d{9}v" title="Format should be 9 digits followed by v">
-                </div>
-                
-                <div class="form-group">
-                    <label for="telephone_number">Telephone Number:</label>
-                    <input type="text" id="add_telephone_number" name="telephone_number" required pattern="0\d{9}" title="Format should be 0 followed by 9 digits">
-                </div>
-                
-                <div class="form-submit">
-                    <button type="submit" name="add_member" class="submit-btn">Add Member</button>
-                </div>
-            </form>
-        </div>
+            </div>
+
+            <div>
+                <label for="monthly_income" class="block text-sm font-medium text-gray-700">Monthly Income</label>
+                <input type="number" id="monthly_income" name="monthly_income" required 
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+            </div>
+
+            <div class="text-center">
+                <button type="submit" 
+                    class="bg-indigo-600 text-white px-6 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                    Register Member
+                </button>
+                 </button>
+                <button type="reset" id="resetFormBtn"
+                    class="bg-gray-300 text-gray-700 px-6 py-2 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
+                    Reset Form
+                </button>
+            </div>
+        </form>
     </div>
 
     <script>
-        // Get the modals
-        const editModal = document.getElementById("editModal");
-        const addModal = document.getElementById("addModal");
-        
-        // Open the edit modal with member data
-        function openEditModal(member) {
-            document.getElementById("edit_id").value = member.id;
-            document.getElementById("edit_membership_number").value = member.membership_number;
-            document.getElementById("edit_full_name").value = member.full_name;
-            document.getElementById("edit_address").value = member.address;
-            document.getElementById("edit_membership_age").value = member.membership_age;
-            document.getElementById("edit_nic_number").value = member.nic_number;
-            document.getElementById("edit_telephone_number").value = member.telephone_number;
-            editModal.style.display = "block";
-        }
-        
-        // Close the edit modal
-        function closeEditModal() {
-            editModal.style.display = "none";
-        }
-        
-        // Open the add modal
-        function openAddModal() {
-            document.getElementById("add_full_name").value = "";
-            document.getElementById("add_address").value = "";
-            document.getElementById("add_membership_age").value = "";
-            document.getElementById("add_nic_number").value = "";
-            document.getElementById("add_telephone_number").value = "";
-            addModal.style.display = "block";
-        }
-        
-        // Close the add modal
-        function closeAddModal() {
-            addModal.style.display = "none";
-        }
-        
-        // Close the modals if clicked outside
-        window.onclick = function(event) {
-            if (event.target == editModal) {
-                editModal.style.display = "none";
+    $(document).ready(function() {
+        // Toastr configuration
+        toastr.options = {
+            "closeButton": true,
+            "progressBar": true,
+            "positionClass": "toast-top-right",
+            "preventDuplicates": true,
+        };
+
+        // Form submission handler
+        $('#memberRegistrationForm').on('submit', function(e) {
+            e.preventDefault();
+
+            // Client-side validation
+            if (!validateForm()) {
+                return;
             }
-            if (event.target == addModal) {
-                addModal.style.display = "none";
+
+            // Disable submit button to prevent multiple submissions
+            const submitButton = $('button[type="submit"]');
+            submitButton.prop('disabled', true).html('Processing...');
+
+            // Prepare form data
+            const formData = new FormData(this);
+
+            // AJAX submission
+            $.ajax({
+                url: '',  // Submit to same page
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        toastr.success('Member registered successfully!', 'Success', {
+                            onHidden: function() {
+                                // Reset form
+                                $('#memberRegistrationForm')[0].reset();
+                            }
+                        });
+
+                        // If coop number is returned, display it
+                        if (response.coop_number) {
+                            toastr.info(`Cooperative Number: ${response.coop_number}`, 'Cooperative Number');
+                        }
+                    } else {
+                        // Handle validation errors
+                        if (response.errors) {
+                            response.errors.forEach(error => {
+                                toastr.error(error, 'Validation Error');
+                            });
+                        } else {
+                            toastr.error(response.error || 'Registration failed', 'Error');
+                        }
+                    }
+                },
+                error: function(xhr, status, error) {
+                    toastr.error('An unexpected error occurred', 'Error');
+                    console.error(error);
+                },
+                complete: function() {
+                    // Re-enable submit button
+                    submitButton.prop('disabled', false).html('Register Member');
+                }
+            });
+        });
+
+        // Client-side form validation
+        function validateForm() {
+            let isValid = true;
+            const fields = [
+                'full_name', 'bank_membership_number', 'address', 
+                'nic', 'date_of_birth', 'telephone_number', 
+                'monthly_income'
+            ];
+
+            fields.forEach(field => {
+                const $field = $(`#${field}`);
+                const value = $field.val().trim();
+
+                // Basic validation
+                if (!value) {
+                    toastr.error(`${$field.prev('label').text()} is required`, 'Validation Error');
+                    isValid = false;
+                }
+            });
+
+            // Additional specific validations
+            const nicRegex = /^([0-9]{9}[vVxX]?|[0-9]{12})$/;
+            if (!nicRegex.test($('#nic').val())) {
+                toastr.error('Invalid NIC number format', 'Validation Error');
+                isValid = false;
             }
+
+            const telephoneRegex = /^(0[0-9]{9}|\+[0-9]{10,14})$/;
+            if (!telephoneRegex.test($('#telephone_number').val())) {
+                toastr.error('Invalid telephone number format', 'Validation Error');
+                isValid = false;
+            }
+
+            // Date of birth validation
+            const dob = new Date($('#date_of_birth').val());
+            const today = new Date();
+            if (dob >= today) {
+                toastr.error('Date of birth cannot be in the future', 'Validation Error');
+                isValid = false;
+            }
+
+            return isValid;
         }
+    });
     </script>
 </body>
 </html>
-
-<?php
-// Close database connection
-$conn->close();
-?>

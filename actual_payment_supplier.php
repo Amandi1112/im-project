@@ -361,6 +361,7 @@ $items = $conn->query("SELECT * FROM items ORDER BY item_name");
         <?php endwhile; ?>
     </datalist>
     <input type="hidden" id="selected_supplier_id" name="selected_supplier_id">
+    
 </div>
 
 <script>
