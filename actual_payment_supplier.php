@@ -333,9 +333,7 @@ $items = $conn->query("SELECT * FROM items ORDER BY item_name");
             <li class="nav-item" role="presentation">
                 <button class="nav-link active" id="payments-tab" data-bs-toggle="tab" data-bs-target="#payments" type="button" role="tab">Payments</button>
             </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="invoices-tab" data-bs-toggle="tab" data-bs-target="#invoices" type="button" role="tab">Invoices</button>
-            </li>
+            
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="balances-tab" data-bs-toggle="tab" data-bs-target="#balances" type="button" role="tab">Balances</button>
             </li>

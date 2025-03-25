@@ -17,10 +17,10 @@ class MemberRegistration {
     private function generateCoopNumber() {
         $stmt = $this->conn->query("SELECT MAX(coop_number) AS last_number FROM members");
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        
+
         $lastNumber = $result['last_number'] ? intval(substr($result['last_number'], 1)) : 0;
         $newNumber = str_pad($lastNumber + 1, 5, '0', STR_PAD_LEFT);
-        
+
         return 'C' . $newNumber;
     }
 
@@ -29,6 +29,14 @@ class MemberRegistration {
         $birthdate = new DateTime($date_of_birth);
         $today = new DateTime('today');
         return $today->diff($birthdate)->y;
+    }
+
+    // Check for duplicate NIC
+    private function checkDuplicateNIC($nic) {
+        $stmt = $this->conn->prepare("SELECT COUNT(*) FROM members WHERE nic = :nic");
+        $stmt->bindParam(':nic', $nic);
+        $stmt->execute();
+        return $stmt->fetchColumn() > 0;
     }
 
     // Comprehensive input validation
@@ -41,27 +49,32 @@ class MemberRegistration {
         }
 
         // Validate NIC
-        if (empty($data['nic']) || 
-            (!preg_match('/^[0-9]{9}[vVxX]?$/', $data['nic']) && 
+        if (empty($data['nic']) ||
+            (!preg_match('/^[0-9]{9}[vVxX]?$/', $data['nic']) &&
              !preg_match('/^[0-9]{12}$/', $data['nic']))) {
             $errors[] = "Invalid NIC number";
         }
 
+        // Check for duplicate NIC
+        if ($this->checkDuplicateNIC($data['nic'])) {
+            $errors[] = "NIC number already exists in the system";
+        }
+
         // Validate date of birth
-        if (empty($data['date_of_birth']) || 
+        if (empty($data['date_of_birth']) ||
             new DateTime($data['date_of_birth']) >= new DateTime('today')) {
             $errors[] = "Invalid date of birth";
         }
 
         // Validate telephone number
-        if (empty($data['telephone_number']) || 
+        if (empty($data['telephone_number']) ||
             !preg_match('/^(0[0-9]{9}|\+[0-9]{10,14})$/', $data['telephone_number'])) {
             $errors[] = "Invalid telephone number";
         }
 
         // Validate monthly income
-        if (!is_numeric($data['monthly_income']) || 
-            $data['monthly_income'] < 0 || 
+        if (!is_numeric($data['monthly_income']) ||
+            $data['monthly_income'] < 0 ||
             $data['monthly_income'] > 1000000) {
             $errors[] = "Invalid monthly income";
         }
@@ -69,6 +82,13 @@ class MemberRegistration {
         // Validate address
         if (empty($data['address']) || strlen($data['address']) < 10) {
             $errors[] = "Invalid or too short address";
+        }
+
+        // Validate credit limit
+        if (!is_numeric($data['credit_limit']) ||
+            $data['credit_limit'] < 0 ||
+            $data['credit_limit'] > 1000000) {
+            $errors[] = "Invalid credit limit";
         }
 
         return $errors;
@@ -92,27 +112,29 @@ class MemberRegistration {
 
         // Prepare SQL statement
         $sql = "INSERT INTO members (
-            full_name, 
-            bank_membership_number, 
+            full_name,
+            bank_membership_number,
             coop_number,
-            address, 
-            nic, 
-            date_of_birth, 
+            address,
+            nic,
+            date_of_birth,
             age,
-            telephone_number, 
-            occupation, 
-            monthly_income
+            telephone_number,
+            occupation,
+            monthly_income,
+            credit_limit
         ) VALUES (
-            :full_name, 
-            :bank_membership_number, 
+            :full_name,
+            :bank_membership_number,
             :coop_number,
-            :address, 
-            :nic, 
-            :date_of_birth, 
+            :address,
+            :nic,
+            :date_of_birth,
             :age,
-            :telephone_number, 
-            :occupation, 
-            :monthly_income
+            :telephone_number,
+            :occupation,
+            :monthly_income,
+            :credit_limit
         )";
 
         try {
@@ -127,6 +149,7 @@ class MemberRegistration {
             $stmt->bindValue(':telephone_number', $memberData['telephone_number']);
             $stmt->bindValue(':occupation', $memberData['occupation']);
             $stmt->bindValue(':monthly_income', $memberData['monthly_income']);
+            $stmt->bindValue(':credit_limit', $memberData['credit_limit']);
 
             $result = $stmt->execute();
 
@@ -162,7 +185,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'date_of_birth' => filter_input(INPUT_POST, 'date_of_birth', FILTER_SANITIZE_STRING),
             'telephone_number' => filter_input(INPUT_POST, 'telephone_number', FILTER_SANITIZE_STRING),
             'occupation' => filter_input(INPUT_POST, 'occupation', FILTER_SANITIZE_STRING),
-            'monthly_income' => filter_input(INPUT_POST, 'monthly_income', FILTER_VALIDATE_FLOAT)
+            'monthly_income' => filter_input(INPUT_POST, 'monthly_income', FILTER_VALIDATE_FLOAT),
+            'credit_limit' => filter_input(INPUT_POST, 'credit_limit', FILTER_VALIDATE_FLOAT)
         ];
 
         $result = $memberRegistration->addMember($memberData);
@@ -197,72 +221,92 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body class="bg-gray-100 min-h-screen flex items-center justify-center">
     <div class="w-full max-w-2xl bg-white p-8 rounded-lg shadow-md">
         <h2 class="text-2xl font-bold mb-6 text-center text-gray-800">Member Registration</h2>
-        
+
         <form id="memberRegistrationForm" class="space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label for="full_name" class="block text-sm font-medium text-gray-700">Full Name</label>
-                    <input type="text" id="full_name" name="full_name" required 
+                    <input type="text" id="full_name" name="full_name" required
                         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
                 </div>
 
                 <div>
                     <label for="bank_membership_number" class="block text-sm font-medium text-gray-700">Bank Membership Number</label>
-                    <input type="text" id="bank_membership_number" name="bank_membership_number" required 
+                    <input type="text" id="bank_membership_number" name="bank_membership_number"
+                        maxlength="6"
+                        pattern="[A-Za-z0-9]{6}"
+                        required
                         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                    <p class="text-xs text-gray-500 mt-1">Format: letter 'B'+ 5 numbers</p>
                 </div>
             </div>
 
             <div>
                 <label for="address" class="block text-sm font-medium text-gray-700">Address</label>
-                <textarea id="address" name="address" required 
+                <textarea id="address" name="address" required
                     class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"></textarea>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label for="nic" class="block text-sm font-medium text-gray-700">NIC Number</label>
-                    <input type="text" id="nic" name="nic" required 
+                    <input type="text" id="nic" name="nic" required
                         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
                 </div>
 
                 <div>
                     <label for="date_of_birth" class="block text-sm font-medium text-gray-700">Date of Birth</label>
-                    <input type="date" id="date_of_birth" name="date_of_birth" required 
+                    <input type="date" id="date_of_birth" name="date_of_birth" required
                         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
                 </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label for="telephone_number" class="block text-sm font-medium text-gray-700">Telephone Number</label>
-                    <input type="tel" id="telephone_number" name="telephone_number" required 
+                    <label for="age" class="block text-sm font-medium text-gray-700">Age</label>
+                    <input type="text" id="age" name="age" readonly
                         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
                 </div>
 
                 <div>
-                    <label for="occupation" class="block text-sm font-medium text-gray-700">Occupation</label>
-                    <input type="text" id="occupation" name="occupation" 
+                    <label for="telephone_number" class="block text-sm font-medium text-gray-700">Telephone Number</label>
+                    <input type="tel" id="telephone_number" name="telephone_number" required
                         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
                 </div>
             </div>
 
-            <div>
-                <label for="monthly_income" class="block text-sm font-medium text-gray-700">Monthly Income</label>
-                <input type="number" id="monthly_income" name="monthly_income" required 
-                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="occupation" class="block text-sm font-medium text-gray-700">Occupation</label>
+                    <input type="text" id="occupation" name="occupation"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                </div>
+
+                <div>
+                    <label for="monthly_income" class="block text-sm font-medium text-gray-700">Monthly Income</label>
+                    <input type="number" id="monthly_income" name="monthly_income" required
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="credit_limit" class="block text-sm font-medium text-gray-700">Credit Limit</label>
+                    <input type="number" id="credit_limit" name="credit_limit" required
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                </div>
             </div>
 
             <div class="text-center">
-                <button type="submit" 
+                <button type="submit"
                     class="bg-indigo-600 text-white px-6 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
                     Register Member
                 </button>
-                 </button>
                 <button type="reset" id="resetFormBtn"
                     class="bg-gray-300 text-gray-700 px-6 py-2 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
                     Reset Form
                 </button>
+                <a href="home.php" class="block mt-4 text-indigo-600 hover:underline">Back to Home</a>
             </div>
         </form>
     </div>
@@ -276,6 +320,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             "positionClass": "toast-top-right",
             "preventDuplicates": true,
         };
+
+        // Calculate age based on date of birth
+        $('#date_of_birth').on('change', function() {
+            const dob = new Date($(this).val());
+            const today = new Date();
+            const age = today.getFullYear() - dob.getFullYear();
+            const monthDifference = today.getMonth() - dob.getMonth();
+            if (monthDifference < 0 || (monthDifference === 0 && today.getDate() < dob.getDate())) {
+                $('#age').val(age - 1);
+            } else {
+                $('#age').val(age);
+            }
+        });
 
         // Form submission handler
         $('#memberRegistrationForm').on('submit', function(e) {
@@ -340,9 +397,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         function validateForm() {
             let isValid = true;
             const fields = [
-                'full_name', 'bank_membership_number', 'address', 
-                'nic', 'date_of_birth', 'telephone_number', 
-                'monthly_income'
+                'full_name', 'bank_membership_number', 'address',
+                'nic', 'date_of_birth', 'telephone_number',
+                'monthly_income', 'credit_limit'
             ];
 
             fields.forEach(field => {
@@ -374,6 +431,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             const today = new Date();
             if (dob >= today) {
                 toastr.error('Date of birth cannot be in the future', 'Validation Error');
+                isValid = false;
+            }
+
+            // Credit limit validation
+            const creditLimit = parseFloat($('#credit_limit').val());
+            if (isNaN(creditLimit) || creditLimit < 0 || creditLimit > 1000000) {
+                toastr.error('Invalid credit limit', 'Validation Error');
                 isValid = false;
             }
 

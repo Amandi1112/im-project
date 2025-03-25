@@ -640,8 +640,7 @@ $currentTime = date("h:i A");
                                 <i class="fas fa-box-open me-1"></i>Inventory
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
-                                
-                                <li><a class="dropdown-item" href="safety_stock.php">Safety Stock</a></li>
+                                <li><a class="dropdown-item" href="display_purchase_details.php">Purchase Item Details</a></li>
                                 <li><a class="dropdown-item" href="inventory_mgt.php">Manage Inventory</a></li>
                             </ul>
                         </li>
@@ -650,9 +649,9 @@ $currentTime = date("h:i A");
                                 <i class="fas fa-users me-1"></i>Members
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
-                                <li><a class="dropdown-item" href="member.php">Bank Memberships</a></li>
-                                <li><a class="dropdown-item" href="member_registration.php">Member Registration</a></li>
-                                <li><a class="dropdown-item" href="customer_purchases.php">Member Purchases</a></li>
+                                <li><a class="dropdown-item" href="member.php">Member Registration</a></li>
+                                <li><a class="dropdown-item" href="view_registered_members.php">Membership Numbers</a></li>
+                                <li><a class="dropdown-item" href="purchase.php">Member Purchases</a></li>
                             </ul>
                         </li>
                         <li class="nav-item dropdown">
