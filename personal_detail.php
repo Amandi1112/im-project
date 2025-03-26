@@ -84,7 +84,7 @@ $result = $conn->query($sql);
         body {
             font-family: Arial, sans-serif;
             margin: 20px;
-            background-image: url('images/background60.jpg');
+            background-color:rgb(235, 244, 253);
             background-size: cover;
             background-repeat: no-repeat;
             background-attachment: fixed;
@@ -148,7 +148,7 @@ $result = $conn->query($sql);
             margin-bottom: 20px;
         }
         .btn {
-            background-color:rgb(135, 74, 0);
+            background-color:rgb(0, 56, 135);
             color: white;
             padding: 10px 15px;
             border: none;
@@ -208,7 +208,7 @@ $result = $conn->query($sql);
         }
         /* New styles for home button */
         .home-btn {
-            background-color:rgb(135, 74, 0);
+            background-color:rgb(0, 56, 135);
             color: white;
             padding: 10px 15px;
             border: none;

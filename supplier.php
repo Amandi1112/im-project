@@ -78,7 +78,7 @@ $conn->close();
     <title>Supplier Registration</title>
     <style>
         body {
-            background:url("images/background60.jpg");
+            
             font-family: Arial, sans-serif;
             background-color: #f4f4f4;
             margin: 0;
@@ -91,7 +91,7 @@ $conn->close();
             padding: 30px;
             border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            background-color: #d5731846;
+            background-color:rgba(194, 222, 252, 0.28);
     /* Changed color */
     border-radius: 8px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
@@ -118,7 +118,7 @@ $conn->close();
             box-sizing: border-box;
         }
         button {
-            background-color:rgb(135, 74, 0);
+            background-color:rgb(0, 56, 135);
             color: white;
             padding: 10px 20px;
             border: none;
@@ -128,7 +128,7 @@ $conn->close();
             font-size: 16px;
         }
         button:hover {
-            background-color:rgb(221, 125, 35);
+            background-color:rgb(35, 196, 221);
         }
         .note {
             font-size: 12px;
@@ -164,7 +164,7 @@ $conn->close();
             color: red;
         }
         .home-btn {
-            background-color: rgb(135, 74, 0);
+            background-color: rgb(0, 110, 135);
             color: white;
             padding: 10px 15px;
             border: none;
@@ -175,7 +175,7 @@ $conn->close();
             margin: 0 5px; /* Space between buttons */
         }
         .home-btn:hover {
-            background-color: #f28252;
+            background-color:rgb(82, 159, 242);
         }
         .nav-btn-container {
             text-align: center; /* Center the navigation buttons */

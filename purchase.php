@@ -27,13 +27,30 @@ if (isset($_GET['action'])) {
     
     if ($_GET['action'] == 'get_item_info' && isset($_GET['id'])) {
         $stmt = $pdo->prepare("
-            SELECT i.*, s.supplier_name 
+            SELECT i.*, 
+                   GROUP_CONCAT(DISTINCT s.supplier_name SEPARATOR ', ') as supplier_names,
+                   COUNT(DISTINCT i2.item_id) as supplier_count
             FROM items i
             LEFT JOIN supplier s ON i.supplier_id = s.supplier_id
+            LEFT JOIN items i2 ON i.item_name = i2.item_name AND i2.item_id != i.item_id
             WHERE i.item_id = ?
+            GROUP BY i.item_id
         ");
         $stmt->execute([$_GET['id']]);
         $item = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        // Also check if there are other items with the same name from different suppliers
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*) as count 
+            FROM items 
+            WHERE item_name = (SELECT item_name FROM items WHERE item_id = ?) 
+            AND item_id != ?
+        ");
+        $stmt->execute([$_GET['id'], $_GET['id']]);
+        $sameNameCount = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        $item['has_multiple_suppliers'] = ($sameNameCount['count'] > 0);
+        
         echo json_encode($item ? $item : null);
         exit;
     }
@@ -76,7 +93,7 @@ if (isset($_GET['action'])) {
 
 // Function to generate invoice PDF
 function generateInvoicePDF($purchaseId, $pdo) {
-    // Get purchase details
+    // Get purchase details for all items in this transaction
     $stmt = $pdo->prepare("
         SELECT p.*, m.full_name, m.bank_membership_number, m.coop_number, m.address, m.telephone_number,
                i.item_name, i.price_per_unit, i.item_code, s.supplier_name
@@ -84,12 +101,24 @@ function generateInvoicePDF($purchaseId, $pdo) {
         JOIN members m ON p.member_id = m.id
         JOIN items i ON p.item_id = i.item_id
         LEFT JOIN supplier s ON i.supplier_id = s.supplier_id
-        WHERE p.purchase_id = ?
+        WHERE p.purchase_id = ? OR 
+              (p.member_id = (SELECT member_id FROM purchases WHERE purchase_id = ?) AND 
+              p.purchase_date = (SELECT purchase_date FROM purchases WHERE purchase_id = ?))
+        ORDER BY p.purchase_id
     ");
-    $stmt->execute([$purchaseId]);
-    $purchase = $stmt->fetch(PDO::FETCH_ASSOC);
+    $stmt->execute([$purchaseId, $purchaseId, $purchaseId]);
+    $purchases = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-    if (!$purchase) die("Invalid purchase ID");
+    if (empty($purchases)) die("Invalid purchase ID");
+
+    // Get the first purchase for member/supplier info (they'll be the same for all)
+    $firstPurchase = $purchases[0];
+    
+    // Calculate totals
+    $subtotal = 0;
+    foreach ($purchases as $purchase) {
+        $subtotal += $purchase['total_price'];
+    }
 
     // Create PDF with professional design
     $pdf = new FPDF('P','mm','A4');
@@ -137,7 +166,7 @@ function generateInvoicePDF($purchaseId, $pdo) {
     $pdf->SetXY(10, 45);
     $pdf->Cell(50,5,'Invoice Date:',0,0);
     $pdf->SetFont('Helvetica','B',10);
-    $pdf->Cell(0,5,$purchase['purchase_date'],0,1);
+    $pdf->Cell(0,5,$firstPurchase['purchase_date'],0,1);
     
     $pdf->SetFont('Helvetica','',10);
     $pdf->SetXY(10, 50);
@@ -155,25 +184,25 @@ function generateInvoicePDF($purchaseId, $pdo) {
     $pdf->SetFont('Helvetica','',10);
     
     $pdf->SetXY(12, 68);
-    $pdf->Cell(86,5,$purchase['full_name'],0,1);
+    $pdf->Cell(86,5,$firstPurchase['full_name'],0,1);
     $pdf->SetXY(12, 73);
-    $pdf->Cell(86,5,$purchase['address'],0,1);
+    $pdf->Cell(86,5,$firstPurchase['address'],0,1);
     $pdf->SetXY(12, 78);
-    $pdf->Cell(86,5,'Tel: '.$purchase['telephone_number'],0,1);
+    $pdf->Cell(86,5,'Tel: '.$firstPurchase['telephone_number'],0,1);
     $pdf->SetXY(12, 83);
-    $pdf->Cell(86,5,'Coop: '.$purchase['coop_number'],0,1);
+    $pdf->Cell(86,5,'Coop: '.$firstPurchase['coop_number'],0,1);
     $pdf->SetXY(12, 88);
-    $pdf->Cell(86,5,'Bank: '.$purchase['bank_membership_number'],0,1);
+    $pdf->Cell(86,5,'Bank: '.$firstPurchase['bank_membership_number'],0,1);
     
     // Supplier Info (if available)
-    if (!empty($purchase['supplier_name'])) {
+    if (!empty($firstPurchase['supplier_name'])) {
         $pdf->Rect(110, 60, 90, 20, 'F');
         $pdf->SetFont('Helvetica','B',12);
         $pdf->SetXY(110, 60);
         $pdf->Cell(90,8,'SUPPLIER',0,1,'L');
         $pdf->SetFont('Helvetica','',10);
         $pdf->SetXY(112, 68);
-        $pdf->Cell(86,5,$purchase['supplier_name'],0,1);
+        $pdf->Cell(86,5,$firstPurchase['supplier_name'],0,1);
     }
     
     // ========== ITEM TABLE ========== //
@@ -191,16 +220,25 @@ function generateInvoicePDF($purchaseId, $pdo) {
     $pdf->Cell(20,10,'QTY',1,0,'C',true);
     $pdf->Cell(30,10,'TOTAL',1,1,'R',true);
     
-    // Table Row
+    // Table Rows
     $pdf->SetTextColor($darkColor[0], $darkColor[1], $darkColor[2]);
     $pdf->SetFont('Helvetica','',10);
     
-    $pdf->Cell(15,10,'1',1,0,'C');
-    $pdf->Cell(60,10,$purchase['item_name'],1,0,'L');
-    $pdf->Cell(35,10,$purchase['item_code'],1,0,'C');
-    $pdf->Cell(25,10,'Rs. '.number_format($purchase['price_per_unit'],2),1,0,'R');
-    $pdf->Cell(20,10,$purchase['quantity'],1,0,'C');
-    $pdf->Cell(30,10,'Rs. '.number_format($purchase['total_price'],2),1,1,'R');
+    $rowNum = 1;
+    foreach ($purchases as $purchase) {
+        $pdf->Cell(15,10,$rowNum,1,0,'C');
+        $pdf->Cell(60,10,$purchase['item_name'],1,0,'L');
+        $pdf->Cell(35,10,$purchase['item_code'],1,0,'C');
+        $pdf->Cell(25,10,'Rs. '.number_format($purchase['price_per_unit'],2),1,0,'R');
+        $pdf->Cell(20,10,$purchase['quantity'],1,0,'C');
+        $pdf->Cell(30,10,'Rs. '.number_format($purchase['total_price'],2),1,1,'R');
+        $rowNum++;
+    }
+    
+    // Subtotal row
+    $pdf->SetFont('Helvetica','B',10);
+    $pdf->Cell(155,10,'SUBTOTAL',1,0,'R');
+    $pdf->Cell(30,10,'Rs. '.number_format($subtotal,2),1,1,'R');
     
     // ========== PAGE 2: SUMMARY & FOOTER ========== //
     $pdf->AddPage();
@@ -213,15 +251,15 @@ function generateInvoicePDF($purchaseId, $pdo) {
     
     $pdf->SetFont('Helvetica','',10);
     $pdf->Cell(140,8,'Previous Credit Balance:',0,0,'R');
-    $pdf->Cell(30,8,'Rs. '.number_format($purchase['current_credit_balance'] - $purchase['total_price'],2),0,1,'R');
+    $pdf->Cell(30,8,'Rs. '.number_format($firstPurchase['current_credit_balance'] - $subtotal,2),0,1,'R');
     
     $pdf->Cell(140,8,'Purchase Amount:',0,0,'R');
-    $pdf->Cell(30,8,'Rs. '.number_format($purchase['total_price'],2),0,1,'R');
+    $pdf->Cell(30,8,'Rs. '.number_format($subtotal,2),0,1,'R');
     
     $pdf->SetFont('Helvetica','B',10);
     $pdf->Cell(140,8,'New Credit Balance:',0,0,'R');
     $pdf->SetFillColor($accentColor[0], $accentColor[1], $accentColor[2]);
-    $pdf->Cell(30,8,'Rs. '.number_format($purchase['current_credit_balance'],2),1,1,'R',true);
+    $pdf->Cell(30,8,'Rs. '.number_format($firstPurchase['current_credit_balance'],2),1,1,'R',true);
     
     // Terms and Conditions
     $pdf->SetY(80);
@@ -231,15 +269,6 @@ function generateInvoicePDF($purchaseId, $pdo) {
     
     $pdf->SetFont('Helvetica','',10);
     $pdf->MultiCell(0,6,"1. Payment is due within 30 days of invoice date.\n2. Late payments will incur a 2% monthly interest charge.\n3. Goods remain property of Cooperative Shop until paid in full.\n4. Please quote invoice number when making payments.",0,'L');
-    
-    // Payment Instructions
-    $pdf->SetY(120);
-    $pdf->SetFont('Helvetica','B',12);
-    $pdf->Cell(0,8,'PAYMENT INSTRUCTIONS',0,1,'L');
-    $pdf->Ln(2);
-    
-    $pdf->SetFont('Helvetica','',10);
-    $pdf->MultiCell(0,6,"Bank Name: Cooperative Bank\nAccount Name: Cooperative Shop\nAccount Number: 1234567890\nBranch: Colombo Main Branch\nSWIFT: COOPSLKL\nPlease email payment confirmation to accounts@coopshop.lk",0,'L');
     
     // Footer
     $pdf->SetY(-30);
@@ -251,7 +280,6 @@ function generateInvoicePDF($purchaseId, $pdo) {
     
     // Output the PDF
     $pdf->Output('I', 'Invoice_'.$purchaseId.'.pdf');
-
 }
 
 // Handle form submission
@@ -628,6 +656,27 @@ $transactions = $pdo->query("
             text-decoration: underline;
         }
         
+        /* New styles for item tooltip */
+        .item-search {
+            position: relative;
+        }
+        
+        .item-search:hover::after {
+            content: attr(title);
+            position: absolute;
+            bottom: 100%;
+            left: 0;
+            background-color: #333;
+            color: white;
+            padding: 5px;
+            border-radius: 4px;
+            white-space: pre-line;
+            z-index: 100;
+            min-width: 200px;
+            font-size: 14px;
+            pointer-events: none;
+        }
+        
         @media (max-width: 768px) {
             .info-grid {
                 grid-template-columns: 1fr;
@@ -916,6 +965,26 @@ $transactions = $pdo->query("
                             .then(data => {
                                 if (data) {
                                     priceDisplay.textContent = 'Rs. ' + data.price_per_unit.toLocaleString();
+                                    
+                                    // Create a tooltip with additional info
+                                    let tooltipText = `Available Quantity: ${data.current_quantity}`;
+                                    
+                                    if (data.has_multiple_suppliers) {
+                                        tooltipText += "\nNote: This item is available from multiple suppliers";
+                                    }
+                                    
+                                    // Update the search input with the tooltip
+                                    itemSearch.title = tooltipText;
+                                    
+                                    // Show a notification if multiple suppliers
+                                    if (data.has_multiple_suppliers) {
+                                        alert("Note: This item is available from multiple suppliers. Please verify you're selecting the correct one.");
+                                    }
+                                    
+                                    // Update quantity input max value
+                                    quantityInput.max = data.current_quantity;
+                                    quantityInput.placeholder = `Max: ${data.current_quantity}`;
+                                    
                                     calculateRowTotal(row);
                                 }
                             });
@@ -926,6 +995,9 @@ $transactions = $pdo->query("
                 // If no match found, clear the values
                 itemIdInput.value = '';
                 priceDisplay.textContent = 'Rs. 0.00';
+                itemSearch.title = '';
+                quantityInput.max = '';
+                quantityInput.placeholder = 'Qty';
                 calculateRowTotal(row);
             });
             

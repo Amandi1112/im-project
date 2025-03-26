@@ -1,11 +1,11 @@
 <?php
-// Database connection
+// Database connection details
 $servername = "localhost";
 $username = "root";
 $password = "";
 $dbname = "mywebsite";
 
-// Create connection
+// Establish database connection
 $conn = new mysqli($servername, $username, $password, $dbname);
 
 // Check connection
@@ -173,6 +173,10 @@ function getSupplierTotals($conn, $start_date = '', $end_date = '', $supplier_fi
 // Get all purchase details with filters
 $purchases = getPurchaseDetails($conn, $start_date, $end_date, $supplier_filter);
 $supplierTotals = getSupplierTotals($conn, $start_date, $end_date, $supplier_filter);
+
+// Prepare data for chart
+$labels = array_column($supplierTotals, 'supplier_name');
+$data = array_column($supplierTotals, 'supplier_total');
 ?>
 
 <!DOCTYPE html>
@@ -183,66 +187,212 @@ $supplierTotals = getSupplierTotals($conn, $start_date, $end_date, $supplier_fil
     <title>Purchased Items Details</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.13.2/themes/base/jquery-ui.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .filter-section {
+            background-color: #ecf0f1;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            color: #34495e;
+            margin-bottom: 5px;
+        }
+
+        .form-control {
+            border-radius: 5px;
+            border: 1px solid #bdc3c7;
+            padding: 8px 12px;
+            margin-bottom: 15px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .form-control:focus {
+            border-color: #3498db;
+            outline: none;
+            box-shadow: 0 0 5px rgba(52, 152, 219, 0.5);
+        }
+
+        .btn-primary,
+        .btn-secondary {
+            color: #fff;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .btn-primary {
+            background-color: #3498db;
+        }
+
+        .btn-primary:hover {
+            background-color: #2980b9;
+        }
+
+        .btn-secondary {
+            background-color: #95a5a6;
+        }
+
+        .btn-secondary:hover {
+            background-color: #7f8c8d;
+        }
+
+        .supplier-search-container {
+            position: relative;
+        }
+
+        .ui-autocomplete {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            z-index: 1000;
+            background-color: #fff;
+            border: 1px solid #bdc3c7;
+            border-radius: 5px;
+            margin-top: 2px;
+            padding: 0;
+            list-style: none;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .ui-autocomplete li {
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .ui-autocomplete li:hover {
+            background-color: #f0f3f4;
+        }
+
+        .supplier-totals {
+            margin-bottom: 30px;
+        }
+
+        .supplier-totals h4 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            margin-bottom: 15px;
+        }
+
+        .card-body {
+            padding: 15px;
+        }
+
+        .card-title {
+            color: #34495e;
+            margin-bottom: 10px;
+        }
+
+        .card-text {
+            color: #7f8c8d;
+            font-size: 1rem;
+        }
+
         .table-responsive {
-            margin-top: 20px;
+            overflow-x: auto;
         }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        .table th,
+        .table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
         .table th {
-            background-color: #f8f9fa;
-            position: sticky;
-            top: 0;
+            background-color: #f0f3f4;
+            color: #34495e;
+            font-weight: 600;
         }
+
+        .table tbody tr:hover {
+            background-color: #f9fafa;
+        }
+
         .total-row {
             font-weight: bold;
-            background-color: #f8f9fa;
+            background-color: #f0f3f4;
         }
+
         .expired {
             background-color: #ffe6e6;
+            color: #c0392b;
         }
+
         .expiring-soon {
             background-color: #fff3cd;
+            color: #d35400;
         }
-        .filter-section {
-            background-color: #f8f9fa;
+
+        .alert-info {
+            background-color: #e7f5ff;
+            color: #3498db;
             padding: 15px;
             border-radius: 5px;
             margin-bottom: 20px;
         }
-        .ui-autocomplete {
-            max-height: 200px;
-            overflow-y: auto;
-            overflow-x: hidden;
+
+        .text-end {
+            text-align: right;
         }
-        .supplier-search-container {
-            position: relative;
-        }
-        .hidden-id-field {
-            display: none;
-        }
-        .supplier-totals {
-            margin-bottom: 20px;
-        }
-        .supplier-totals h4 {
-            margin-bottom: 15px;
-        }
-        .supplier-totals .card {
-            margin-bottom: 10px;
-        }
-        .supplier-totals .card-body {
-            padding: 10px 15px;
-        }
-        .text-center {
-            text-align: center;
+
+        /* Styles for chart container */
+        .chart-container {
+            width: 80%;
             margin: auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
     </style>
 </head>
 <body>
-    <h1 class="text-center">Purchased amount Details</h1>
-        <br><br>
+    <div class="container">
+        <h1>Purchased amount Details</h1>
+
         <!-- Filter Section -->
         <div class="filter-section">
-            <form method="GET" action="">
+            <form id="filterForm" method="GET" action="">
                 <div class="row">
                     <div class="col-md-3">
                         <label for="start_date" class="form-label">From Date</label>
@@ -255,9 +405,15 @@ $supplierTotals = getSupplierTotals($conn, $start_date, $end_date, $supplier_fil
                     <div class="col-md-3">
                         <label for="supplier_name" class="form-label">Supplier</label>
                         <div class="supplier-search-container">
-                            <input type="text" class="form-control" id="supplier_name" name="supplier_name" 
-                                   value="<?php echo htmlspecialchars($supplier_name); ?>" 
-                                   placeholder="Type supplier name...">
+                            <input 
+                                type="text" 
+                                class="form-control" 
+                                id="supplier_name" 
+                                name="supplier_name" 
+                                value="<?php echo htmlspecialchars($supplier_name); ?>" 
+                                placeholder="Type supplier name..."
+                                aria-label="Supplier name"
+                                aria-describedby="supplier-name-help">
                             <input type="hidden" id="supplier_id" name="supplier_id" value="<?php echo $supplier_filter; ?>">
                         </div>
                     </div>
@@ -268,7 +424,7 @@ $supplierTotals = getSupplierTotals($conn, $start_date, $end_date, $supplier_fil
                 </div>
             </form>
         </div>
-        
+
         <!-- Supplier Totals Section -->
         <div class="supplier-totals">
             <h4>Supplier Totals</h4>
@@ -284,6 +440,11 @@ $supplierTotals = getSupplierTotals($conn, $start_date, $end_date, $supplier_fil
                 </div>
                 <?php endforeach; ?>
             </div>
+        </div>
+
+        <!-- Chart Visualization -->
+        <div class="chart-container">
+            <canvas id="supplierChart"></canvas>
         </div>
         
         <div class="table-responsive">
@@ -364,23 +525,59 @@ $supplierTotals = getSupplierTotals($conn, $start_date, $end_date, $supplier_fil
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // Set default date values to today and one month ago
-        document.addEventListener('DOMContentLoaded', function() {
-            const today = new Date().toISOString().split('T')[0];
-            const oneMonthAgo = new Date();
-            oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-            const oneMonthAgoStr = oneMonthAgo.toISOString().split('T')[0];
-            
-            // Only set defaults if no dates are already selected
-            if (!document.getElementById('start_date').value && !document.getElementById('end_date').value) {
-                document.getElementById('start_date').value = oneMonthAgoStr;
-                document.getElementById('end_date').value = today;
-            }
-        });
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-        // Supplier autocomplete functionality
+    <script>
+        // Chart.js code
+        const chartData = {
+            labels: <?php echo json_encode($labels); ?>,
+            datasets: [{
+                label: 'Total Purchase Amount',
+                data: <?php echo json_encode($data); ?>,
+                backgroundColor: [
+                    'rgba(255, 99, 132, 0.2)',
+                    'rgba(54, 162, 235, 0.2)',
+                    'rgba(255, 206, 86, 0.2)',
+                    'rgba(75, 192, 192, 0.2)',
+                    'rgba(153, 102, 255, 0.2)',
+                    'rgba(255, 159, 64, 0.2)'
+                ],
+                borderColor: [
+                    'rgba(255, 99, 132, 1)',
+                    'rgba(54, 162, 235, 1)',
+                    'rgba(255, 206, 86, 1)',
+                    'rgba(75, 192, 192, 1)',
+                    'rgba(153, 102, 255, 1)',
+                    'rgba(255, 159, 64, 1)'
+                ],
+                borderWidth: 1
+            }]
+        };
+
+        const chartConfig = {
+            type: 'bar',
+            data: chartData,
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        };
+
+        const supplierChart = new Chart(
+            document.getElementById('supplierChart'),
+            chartConfig
+        );
+
         $(function() {
+            // Initialize datepicker
+            flatpickr("#start_date, #end_date", {
+                dateFormat: "Y-m-d",
+            });
+
             $("#supplier_name").autocomplete({
                 source: function(request, response) {
                     $.get({

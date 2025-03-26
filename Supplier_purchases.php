@@ -1,24 +1,24 @@
 <?php
-// Database connection
+// Database connection details
 $servername = "localhost";
 $username = "root";
 $password = "";
 $dbname = "mywebsite";
 
-// Create connection
+// Establish database connection
 $conn = new mysqli($servername, $username, $password, $dbname);
 
-// Check connection
+// Check if connection was successful
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// Check if the request is for item details (AJAX)
+// Handle AJAX request for item details based on item_name and supplier_id
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['item_name']) && isset($_POST['supplier_id']) && !isset($_POST['submit_items'])) {
     $itemName = trim($_POST['item_name']);
     $supplierId = trim($_POST['supplier_id']);
     
-    // Prepare and execute query - now including supplier_id in the query
+    // Prepare SQL query to fetch item details
     $sql = "SELECT i.item_id, i.price_per_unit, i.current_quantity 
             FROM items i
             WHERE i.item_name = ? AND i.supplier_id = ?";
@@ -29,6 +29,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['item_name']) && isset(
     
     $response = ['exists' => false];
     
+    // If item exists, populate the response array
     if ($result->num_rows > 0) {
         $item = $result->fetch_assoc();
         $response = [
@@ -39,31 +40,39 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['item_name']) && isset(
         ];
     }
     
-    // Return JSON response
+    // Send JSON response
     header('Content-Type: application/json');
     echo json_encode($response);
     exit;
 }
 
-// Function to generate unique item code
+/**
+ * Generates a unique item code based on item name, supplier ID, and date.
+ *
+ * @param string $itemName The name of the item.
+ * @param string $supplierId The ID of the supplier.
+ * @param mysqli $conn The database connection object.
+ *
+ * @return string A unique item code.
+ */
 function generateItemCode($itemName, $supplierId, $conn) {
-    // Take first 3 letters of item name and make uppercase
+    // Create item name prefix (first 3 letters, uppercase)
     $prefix = strtoupper(substr(preg_replace('/[^A-Za-z0-9]/', '', $itemName), 0, 3));
     
-    // Add first 2 characters of supplier ID
+    // Create supplier ID prefix (first 2 characters, uppercase)
     $supplierPrefix = strtoupper(substr($supplierId, 0, 2));
     
     // Get current date in YYMM format
     $datePart = date('ym');
     
-    // Find the latest item with similar prefix to get the next sequential number
+    // Find the latest item with similar prefix to determine the next sequence number
     $sql = "SELECT item_code FROM items WHERE item_code LIKE '{$prefix}{$supplierPrefix}{$datePart}%' ORDER BY item_code DESC LIMIT 1";
     $result = $conn->query($sql);
     
     if ($result->num_rows > 0) {
         $row = $result->fetch_assoc();
         $lastCode = $row['item_code'];
-        // Extract the numerical part
+        // Extract the numerical sequence part
         $sequence = intval(substr($lastCode, -4)) + 1;
     } else {
         $sequence = 1;
@@ -75,7 +84,15 @@ function generateItemCode($itemName, $supplierId, $conn) {
     return $prefix . $supplierPrefix . $datePart . $sequencePart;
 }
 
-// Function to get item details if it exists with specific supplier
+/**
+ * Retrieves item details based on item name and supplier ID.
+ *
+ * @param string $itemName The name of the item.
+ * @param string $supplierId The ID of the supplier.
+ * @param mysqli $conn The database connection object.
+ *
+ * @return array|null Item details if found, null otherwise.
+ */
 function getItemDetails($itemName, $supplierId, $conn) {
     $sql = "SELECT item_id, item_code, price_per_unit, current_quantity 
             FROM items 
@@ -92,7 +109,16 @@ function getItemDetails($itemName, $supplierId, $conn) {
     }
 }
 
-// Function to add a new item
+/**
+ * Adds a new item to the database.
+ *
+ * @param string $itemName The name of the item.
+ * @param float $pricePerUnit The price per unit of the item.
+ * @param string $supplierId The ID of the supplier.
+ * @param mysqli $conn The database connection object.
+ *
+ * @return array|null The new item's details if added successfully, null otherwise.
+ */
 function addNewItem($itemName, $pricePerUnit, $supplierId, $conn) {
     $itemCode = generateItemCode($itemName, $supplierId, $conn);
     
@@ -113,22 +139,33 @@ function addNewItem($itemName, $pricePerUnit, $supplierId, $conn) {
     }
 }
 
-// Function to add purchase record and update item quantity
+/**
+ * Adds a purchase record and updates the item quantity in the database.
+ *
+ * @param int $itemId The ID of the item.
+ * @param int $quantity The quantity purchased.
+ * @param float $pricePerUnit The price per unit at the time of purchase.
+ * @param string $purchaseDate The date of purchase.
+ * @param string|null $expireDate The expiration date of the item, if applicable.
+ * @param mysqli $conn The database connection object.
+ *
+ * @return bool True if the purchase was added successfully, false otherwise.
+ */
 function addPurchase($itemId, $quantity, $pricePerUnit, $purchaseDate, $expireDate, $conn) {
     $totalPrice = $quantity * $pricePerUnit;
     
-    // Begin transaction
+    // Start transaction to ensure atomicity
     $conn->begin_transaction();
     
     try {
-        // Add purchase record
+        // Insert purchase record
         $sql = "INSERT INTO item_purchases (item_id, quantity, price_per_unit, total_price, purchase_date, expire_date) 
                 VALUES (?, ?, ?, ?, ?, ?)";
         $stmt = $conn->prepare($sql);
         $stmt->bind_param("idddss", $itemId, $quantity, $pricePerUnit, $totalPrice, $purchaseDate, $expireDate);
         $stmt->execute();
         
-        // Update item quantity and price
+        // Update item quantity and price in the items table
         $sql = "UPDATE items 
                 SET current_quantity = current_quantity + ?, 
                     price_per_unit = ? 
@@ -137,17 +174,23 @@ function addPurchase($itemId, $quantity, $pricePerUnit, $purchaseDate, $expireDa
         $stmt->bind_param("ddi", $quantity, $pricePerUnit, $itemId);
         $stmt->execute();
         
-        // Commit transaction
+        // Commit the transaction
         $conn->commit();
         return true;
     } catch (Exception $e) {
-        // Rollback in case of error
+        // Rollback transaction in case of any error
         $conn->rollback();
         return false;
     }
 }
 
-// Get suppliers for dropdown
+/**
+ * Retrieves all suppliers from the database, ordered by name.
+ *
+ * @param mysqli $conn The database connection object.
+ *
+ * @return array An array of suppliers.
+ */
 function getSuppliers($conn) {
     $sql = "SELECT supplier_id, supplier_name FROM supplier ORDER BY supplier_name";
     $result = $conn->query($sql);
@@ -162,7 +205,7 @@ function getSuppliers($conn) {
     return $suppliers;
 }
 
-// Process form submission for adding items
+// Process form submission for adding multiple items
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['submit_items'])) {
     $itemsData = $_POST['items'];
     $successCount = 0;
@@ -177,13 +220,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['submit_items'])) {
         $supplierId = $item['supplier_id']; // Get supplier ID for each item
         
         if (!empty($itemName) && $quantity > 0 && $pricePerUnit > 0 && !empty($supplierId)) {
-            // Check if item already exists with this supplier
+            // Check if the item already exists with this supplier
             $existingItem = getItemDetails($itemName, $supplierId, $conn);
             
             if ($existingItem) {
                 $itemId = $existingItem['item_id'];
             } else {
-                // Add new item
+                // If the item doesn't exist, add it as a new item
                 $newItem = addNewItem($itemName, $pricePerUnit, $supplierId, $conn);
                 if ($newItem) {
                     $itemId = $newItem['item_id'];
@@ -202,13 +245,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['submit_items'])) {
         }
     }
     
+    // Construct a message based on the number of successful and failed item additions
     $message = "$successCount items added successfully. ";
     if ($errorCount > 0) {
         $message .= "$errorCount items failed to add.";
     }
 }
 
-// Get all suppliers for the dropdown
+// Fetch all suppliers for the dropdown list
 $suppliers = getSuppliers($conn);
 ?>
 
@@ -218,47 +262,83 @@ $suppliers = getSuppliers($conn);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bulk Item Addition</title>
+    
+    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <!-- Custom Styles -->
     <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .container {
+            margin-top: 30px;
+        }
+        h2 {
+            color: #343a40;
+        }
         .item-row {
             margin-bottom: 15px;
-            padding: 10px;
-            border: 1px solid #ddd;
+            padding: 15px;
+            border: 1px solid #ced4da;
             border-radius: 5px;
-            background-color: #f9f9f9;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .form-label {
+            font-weight: 500;
+            color: #495057;
         }
         .supplier-info {
             font-size: 0.85rem;
             margin-top: 5px;
             color: #6c757d;
         }
-        
+        .btn-primary {
+            background-color: #007bff;
+            border-color: #007bff;
+        }
+        .btn-primary:hover {
+            background-color: #0069d9;
+            border-color: #0062cc;
+        }
+        .remove-item {
+            color: #fff;
+        }
     </style>
 </head>
 <body>
     <div class="container mt-5">
         <h2>Bulk Item Addition</h2>
         
+        <!-- Display message if there are any success or error messages -->
         <?php if(isset($message)): ?>
         <div class="alert alert-info">
             <?php echo $message; ?>
         </div>
         <?php endif; ?>
         
+        <!-- Form for adding items -->
         <form method="post" action="">
+            <!-- Supplier information note -->
             <div class="supplier-info mb-3">
                 <strong>Note:</strong> Items are linked to specific suppliers. You can now select different suppliers for each item.
             </div>
             
+            <!-- Container for dynamically added item rows -->
             <div id="items-container">
+                <!-- Initial item row -->
                 <div class="item-row">
                     <div class="row">
+                        <!-- Item Name -->
                         <div class="col-md-3">
                             <div class="mb-2">
                                 <label class="form-label">Item Name</label>
                                 <input type="text" class="form-control item-name" name="items[0][item_name]" required>
                             </div>
                         </div>
+                        <!-- Supplier Selection -->
                         <div class="col-md-2">
                             <div class="mb-2">
                                 <label class="form-label">Supplier</label>
@@ -270,51 +350,62 @@ $suppliers = getSuppliers($conn);
                                 </select>
                             </div>
                         </div>
+                        <!-- Quantity -->
                         <div class="col-md-1">
                             <div class="mb-2">
                                 <label class="form-label">Quantity</label>
                                 <input type="number" class="form-control" name="items[0][quantity]" min="1" required>
                             </div>
                         </div>
+                        <!-- Price per Unit -->
                         <div class="col-md-1">
                             <div class="mb-2">
                                 <label class="form-label">Price/Unit</label>
                                 <input type="number" step="0.01" class="form-control price-per-unit" name="items[0][price_per_unit]" required>
                             </div>
                         </div>
+                        <!-- Purchase Date -->
                         <div class="col-md-2">
                             <div class="mb-2">
                                 <label class="form-label">Purchase Date</label>
                                 <input type="date" class="form-control" name="items[0][purchase_date]" value="<?php echo date('Y-m-d'); ?>" required>
                             </div>
                         </div>
+                        <!-- Expire Date -->
                         <div class="col-md-2">
                             <div class="mb-2">
                                 <label class="form-label">Expire Date</label>
                                 <input type="date" class="form-control" name="items[0][expire_date]">
                             </div>
                         </div>
+                        <!-- Remove Item Button -->
                         <div class="col-md-1">
                             <div class="mb-2">
                                 <label class="form-label">&nbsp;</label>
-                                <button type="button" class="btn btn-danger form-control remove-item">X</button>
+                                <button type="button" class="btn btn-danger form-control remove-item"><i class="fas fa-trash"></i></button>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
             
+            <!-- Add Item and Submit Buttons -->
             <div class="mb-3">
-                <button type="button" class="btn btn-secondary" id="add-item">Add Another Item</button>
-                <button type="submit" class="btn btn-primary" name="submit_items">Submit All Items</button>
-                <a href="home.php" class="btn btn-light">Back to Home</a>
-                <a href="display_purchase_details.php" class="btn btn-light">View Purchases</a>
+                <button type="button" class="btn btn-secondary" id="add-item"><i class="fas fa-plus"></i> Add Another Item</button>
+                <button type="submit" class="btn btn-primary" name="submit_items"><i class="fas fa-save"></i> Submit All Items</button>
+                 <!-- Back to Home Link -->
+                <a href="home.php" class="btn btn-light"><i class="fas fa-home"></i> Back to Home</a>
+                <!-- View Purchases Link -->
+                <a href="display_purchase_details.php" class="btn btn-light"><i class="fas fa-eye"></i> View Purchases</a>
             </div>
             
         </form>
     </div>
 
+    <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         $(document).ready(function() {
             let itemCount = 0;
@@ -323,12 +414,13 @@ $suppliers = getSuppliers($conn);
             $('#add-item').click(function() {
                 itemCount++;
                 
-                // Get the suppliers options HTML
+                // Fetch the suppliers options HTML
                 let suppliersOptions = '';
                 <?php foreach($suppliers as $supplier): ?>
-                suppliersOptions += '<option value="<?php echo $supplier['supplier_id']; ?>"><?php echo $supplier['supplier_name']; ?></option>';
+                suppliersOptions += `<option value="<?php echo $supplier['supplier_id']; ?>"><?php echo $supplier['supplier_name']; ?></option>`;
                 <?php endforeach; ?>
                 
+                // Construct the new row HTML
                 const newRow = `
                     <div class="item-row">
                         <div class="row">
@@ -374,7 +466,7 @@ $suppliers = getSuppliers($conn);
                             <div class="col-md-1">
                                 <div class="mb-2">
                                     <label class="form-label">&nbsp;</label>
-                                    <button type="button" class="btn btn-danger form-control remove-item">X</button>
+                                    <button type="button" class="btn btn-danger form-control remove-item"><i class="fas fa-trash"></i></button>
                                 </div>
                             </div>
                         </div>
@@ -388,7 +480,7 @@ $suppliers = getSuppliers($conn);
                 if ($('.item-row').length > 1) {
                     $(this).closest('.item-row').remove();
                 } else {
-                    alert('You need at least one item');
+                    alert('You need to have at least one item.');
                 }
             });
             
@@ -405,7 +497,7 @@ $suppliers = getSuppliers($conn);
                 }
             });
             
-            // Also check when supplier changes
+            // Check when supplier changes
             $(document).on('change', '.supplier-select', function() {
                 const supplierSelect = $(this);
                 const supplierId = supplierSelect.val();
@@ -418,7 +510,7 @@ $suppliers = getSuppliers($conn);
                 }
             });
             
-            // Function to check item existence
+            // Function to check item existence via AJAX
             function checkItem(itemNameInput, supplierId) {
                 const itemName = itemNameInput.val().trim();
                 const currentRow = itemNameInput.closest('.item-row');
@@ -434,7 +526,7 @@ $suppliers = getSuppliers($conn);
                     success: function(response) {
                         if (response.exists) {
                             currentRow.find('.price-per-unit').val(response.price_per_unit);
-                            alert(`Item exists with current quantity: ${response.current_quantity} from this supplier`);
+                            alert(`Item already exists with current quantity: ${response.current_quantity} from this supplier.`);
                         }
                     }
                 });

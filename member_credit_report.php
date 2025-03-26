@@ -49,7 +49,7 @@ class PDF extends FPDF {
         // Line break
         $this->Ln(10);
         
-        // Table header
+        // Table header - Updated with consistent column widths
         $this->SetFont('Arial','B',10);
         $this->SetFillColor(58, 83, 155); // Dark blue header
         $this->SetTextColor(255);
@@ -73,7 +73,7 @@ class PDF extends FPDF {
         $this->Cell(0, 10, 'Confidential - For internal use only', 0, 0, 'R');
     }
     
-    // Colored table row
+    // Colored table row - Updated to match header widths exactly
     function fillRow($data) {
         $this->SetFont('Arial','',9);
         
@@ -95,6 +95,7 @@ class PDF extends FPDF {
         
         $available = $data['credit_limit'] - $data['current_credit_balance'];
         
+        // Column widths exactly match the header
         $this->Cell(15, 7, $data['id'], 'LR', 0, 'C', true);
         $this->Cell(55, 7, $data['full_name'], 'LR', 0, 'L', true);
         $this->Cell(30, 7, $data['coop_number'], 'LR', 0, 'C', true);
@@ -126,10 +127,10 @@ if (isset($_GET['export']) && $_GET['export'] == 'pdf') {
             $pdf->fillRow($row);
         }
         
-        // Add totals row
+        // Add totals row - Updated to match column widths
         $pdf->SetFont('Arial','B',10);
         $pdf->SetFillColor(220, 220, 220); // Light gray for totals
-        $pdf->Cell(100, 7, 'TOTALS', 'LTB', 0, 'R', true);
+        $pdf->Cell(100, 7, 'TOTALS', 'LTB', 0, 'R', true); // 15+55+30=100
         
         $total_limit = $conn->query("SELECT SUM(credit_limit) as total FROM members")->fetch_assoc()['total'];
         $total_balance = $conn->query("SELECT SUM(current_credit_balance) as total FROM members")->fetch_assoc()['total'];
@@ -217,7 +218,7 @@ if (isset($_GET['export']) && $_GET['export'] == 'pdf') {
             justify-content: flex-end;
             gap: 10px;
         }
-        
+
         .btn-pdf {
             background-color: var(--negative-color);
             border-color: var(--negative-color);
@@ -231,14 +232,39 @@ if (isset($_GET['export']) && $_GET['export'] == 'pdf') {
         .table-report {
             width: 100%;
             border-collapse: collapse;
+            background-color: white;
         }
         
         .table-report thead th {
             background-color: var(--primary-color);
             color: white;
             padding: 12px 15px;
-            text-align: left;
             font-weight: 600;
+        }
+        
+        /* Updated column width styles to match PDF */
+        .table-report th:nth-child(1),
+        .table-report td:nth-child(1) {
+            width: 5%;
+        }
+        
+        .table-report th:nth-child(2),
+        .table-report td:nth-child(2) {
+            width: 35%;
+        }
+        
+        .table-report th:nth-child(3),
+        .table-report td:nth-child(3) {
+            width: 15%;
+        }
+        
+        .table-report th:nth-child(4),
+        .table-report td:nth-child(4),
+        .table-report th:nth-child(5),
+        .table-report td:nth-child(5),
+        .table-report th:nth-child(6),
+        .table-report td:nth-child(6) {
+            width: 15%;
         }
         
         .table-report tbody tr {
@@ -308,21 +334,20 @@ if (isset($_GET['export']) && $_GET['export'] == 'pdf') {
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }
-            
         }
     </style>
 </head>
 <body>
     <div class="report-container">
         <div class="report-header">
-            <img src="logo.png" alt="Logo" class="report-logo no-print"> <!-- Replace with your logo -->
+            <img src="images/logo.jpeg" alt="Logo" class="report-logo no-print">
             <h2>Member Credit Balance Report</h2>
             <p>Generated on <?php echo date('F j, Y, g:i a'); ?></p>
         </div>
         
-        <div class="report-body">
+        <div class="report-body" style="background-color:rgb(200, 240, 253);">
             <div class="action-buttons no-print">
-                <a href="?export=pdf" class="btn btn-pdf text-white">
+                <a href="?export=pdf" class="btn btn-pdf text-black">
                     <i class="fas fa-file-pdf"></i> Export as PDF
                 </a>
                 <button onclick="window.print()" class="btn btn-print text-white">

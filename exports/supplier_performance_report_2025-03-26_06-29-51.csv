@@ -1,0 +1,10 @@
+"Supplier ID","Supplier Name","Contact Number","Total Purchases","Total Purchase Value","Avg Price Per Unit","Unique Items Supplied","Total Payments","Last Purchase Date","Payment Coverage Ratio"
+S00009,manchee-amandi,0705623114,1,"15,000.00",150.00,1,"15,000.00",2025-03-26,100.00%
+S00006,"CBL - Mr. Chamod Gunarathne",0756498115,2,"1,600.00",125.00,3,0.00,2025-03-25,0.00%
+S00007,"Maliban - chamodi",0705623118,0,0.00,0.00,0,0.00,,0.00%
+S00008,CBL-amandi,0705623114,0,0.00,0.00,0,0.00,,0.00%
+S00001,"ABC Foods - Mr. Saman Kumara",0705612334,0,0.00,0.00,1,500.00,,0.00%
+S00002,"Nestlé Lanka PLC - Mr. Kumara Sampath",0705612344,0,0.00,0.00,1,400.00,,0.00%
+S00003,"Prima Ceylon - Mr. Dunith Kumara",0705612332,0,0.00,0.00,0,0.00,,0.00%
+S00004,"Kist Products-Mr. Sujeewa Sampath",0705612384,0,0.00,0.00,0,0.00,,0.00%
+S00005,"Maliban Biscuit Manufactories - Mr. fernando",0789645116,0,0.00,0.00,0,0.00,,0.00%

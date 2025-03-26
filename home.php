@@ -45,9 +45,6 @@ if ($result->num_rows > 0) {
     $totalSuppliers = 0;
 }
 
-// Calculate the total sales from customer transactions
-
-
 // Calculate the total inventory level
 $sql = "SELECT SUM(current_quantity) AS current_quantity FROM items";
 $result = $conn->query($sql);
@@ -57,10 +54,6 @@ if ($result->num_rows > 0) {
 } else {
     $totalInventoryLevel = 0; // Default value if no inventory found
 }
-
-// Get current date for dashboard
-$currentDate = date("F j, Y");
-$currentTime = date("h:i A");
 
 ?>
 <!DOCTYPE html>
@@ -75,9 +68,9 @@ $currentTime = date("h:i A");
     <style>
         /* General Styles */
         :root {
-            --primary-color: rgb(82, 31, 3);
-            --primary-light: rgba(93, 11, 97, 0.1);
-            --secondary-color: rgb(227, 121, 132);
+            --primary-color: rgb(6, 4, 24);
+            --primary-light: rgba(17, 11, 97, 0.1);
+            --secondary-color: rgb(121, 144, 227);
             --accent-color:rgb(78, 154, 241);
             --text-main: #2c3e50;
             --text-secondary: #5d6778;
@@ -87,11 +80,12 @@ $currentTime = date("h:i A");
         }
 
         body {
+            font-weight: bold;
             font-family: 'Poppins', sans-serif;
             color: var(--text-main);
             margin: 0;
             padding: 0;
-            background: url('images/background60.jpg') no-repeat center center fixed;
+            background-color:rgb(209, 208, 241);
             background-size: cover;
             position: relative;
             min-height: 100vh;
@@ -167,7 +161,7 @@ $currentTime = date("h:i A");
         }
 
         .logout-btn:hover {
-            background-color: #c82333;
+            background-color:rgb(35, 43, 200);
             color: white;
             transform: translateY(-2px);
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
@@ -298,7 +292,7 @@ $currentTime = date("h:i A");
         }
 
         .card-body a:hover {
-            color: rgb(150, 30, 155);
+            color: rgb(30, 57, 155);
             text-decoration: underline;
         }
 
@@ -339,7 +333,7 @@ $currentTime = date("h:i A");
             flex: 1;
             min-width: 200px;
             text-align: center;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
             transition: all 0.3s ease;
         }
 
@@ -368,7 +362,7 @@ $currentTime = date("h:i A");
 
         /* Overview Section */
         .welcome-banner {
-            background: linear-gradient(45deg, var(--primary-color),rgb(244, 146, 66));
+            background: linear-gradient(45deg, var(--primary-color),rgb(66, 155, 244));
             color: white;
             padding: 25px;
             border-radius: 8px;
@@ -558,7 +552,7 @@ $currentTime = date("h:i A");
         }
     </style>
 </head>
-<body>
+<body style="font-weight: bold;"> 
     <div class="container">
         <header class="header">
             <div class="d-flex align-items-center">
@@ -592,7 +586,7 @@ $currentTime = date("h:i A");
                         <i class="far fa-calendar me-1"></i><?php echo $currentDate; ?>
                     </span>
                     <span class="badge bg-light text-dark">
-                        <i class="far fa-clock me-1"></i><?php echo $currentTime; ?>
+                        <i class="far fa-clock me-1"></i><span id="currentTime"><?php echo $currentTime; ?></span>
                     </span>
                 </div>
             </div>
@@ -631,7 +625,7 @@ $currentTime = date("h:i A");
                             <ul class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
                                 <li><a class="dropdown-item" href="supplier.php">Registration</a></li>
                                 <li><a class="dropdown-item" href="supplier_purchases.php">Item Purchases</a></li>
-                                <li><a class="dropdown-item" href="supplier_payments.php">Supplier Payment Balance</a></li>
+                                <li><a class="dropdown-item" href="supplier_payments.php">Supplier Purchased amount Details</a></li>
                                 <li><a class="dropdown-item" href="actual_payment_supplier.php">Payment Handling</a></li>
                             </ul>
                         </li>
@@ -640,8 +634,8 @@ $currentTime = date("h:i A");
                                 <i class="fas fa-box-open me-1"></i>Inventory
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
-                                <li><a class="dropdown-item" href="display_purchase_details.php">Purchase Item Details</a></li>
-                                <li><a class="dropdown-item" href="inventory_mgt.php">Manage Inventory</a></li>
+                                <li><a class="dropdown-item" href="display_purchase_details.php">Current Stock</a></li>
+                                <li><a class="dropdown-item" href="inventory.php">Transaction summary</a></li>
                             </ul>
                         </li>
                         <li class="nav-item dropdown">
@@ -656,14 +650,12 @@ $currentTime = date("h:i A");
                         </li>
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="fas fa-chart-line me-1"></i>Reports
-                            </a>
+                                <i class="fas fa-chart-line me-1"></i>Reports</a>
                             <ul class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
-                                <li><a class="dropdown-item" href="customer_credit.php">Credit Balance Reports</a></li>
-                                <li><a class="dropdown-item" href="report2.php">Inventory Report</a></li>
-                                <li><a class="dropdown-item" href="supplier_performance.php">Supplier Performance Report</a></li>
-                                <li><a class="dropdown-item" href="supplier_payment_report.php">Supplier Payment Reports</a></li>
-                                <li><a class="dropdown-item" href="sales_summary_report.php">Sales Summary Report</a></li>
+                                <li><a class="dropdown-item" href="member_credit_report.php">Credit Balance Reports</a></li>
+                                <li><a class="dropdown-item" href="report2.php">Purchase Details Report</a></li>
+                                <li><a class="dropdown-item" href="supplier_performance_report.php">Supplier Performance Report</a></li>
+                                
                             </ul>
                         </li>
                     </ul>
@@ -681,7 +673,7 @@ $currentTime = date("h:i A");
                         <div class="metric-icon">
                             <i class="fas fa-users"></i>
                         </div>
-                        <div class="metric-value"><?php echo $totalMembers; ?></div>
+                        <div class="metric-value" id="totalMembers"><?php echo $totalMembers; ?></div>
                         <div class="metric-label">Active Members</div>
                     </div>
 
@@ -689,7 +681,7 @@ $currentTime = date("h:i A");
                         <div class="metric-icon">
                             <i class="fas fa-handshake"></i>
                         </div>
-                        <div class="metric-value"><?php echo $totalSuppliers; ?></div>
+                        <div class="metric-value" id="totalSuppliers"><?php echo $totalSuppliers; ?></div>
                         <div class="metric-label">Active Suppliers</div>
                     </div>
 
@@ -697,7 +689,7 @@ $currentTime = date("h:i A");
                         <div class="metric-icon">
                             <i class="fas fa-box"></i>
                         </div>
-                        <div class="metric-value"><?php echo $totalInventoryLevel; ?></div>
+                        <div class="metric-value" id="totalInventoryLevel"><?php echo $totalInventoryLevel; ?></div>
                         <div class="metric-label">Inventory Level</div>
                     </div>
                 </div>
@@ -824,5 +816,42 @@ $currentTime = date("h:i A");
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // JavaScript to update the current time every second
+        function updateCurrentTime() {
+            const currentTimeElement = document.getElementById('currentTime');
+            const now = new Date();
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            const formattedHours = hours % 12 || 12; // Convert 0 to 12 for 12-hour format
+            const formattedMinutes = minutes < 10 ? '0' + minutes : minutes;
+            currentTimeElement.textContent = `${formattedHours}:${formattedMinutes} ${ampm}`;
+        }
+
+        // Update the time immediately and then every second
+        updateCurrentTime();
+        setInterval(updateCurrentTime, 1000);
+
+        // JavaScript to handle form validation (example for changing password)
+        document.querySelector('.btn-outline-primary').addEventListener('click', function(event) {
+            event.preventDefault();
+            const newPassword = prompt("Enter your new password:");
+            if (newPassword) {
+                // Add your password change logic here
+                alert("Password changed successfully!");
+            }
+        });
+
+        // JavaScript to handle profile update (example)
+        document.querySelector('.btn-outline-secondary').addEventListener('click', function(event) {
+            event.preventDefault();
+            const newEmail = prompt("Enter your new email:");
+            if (newEmail) {
+                // Add your profile update logic here
+                alert("Profile updated successfully!");
+            }
+        });
+    </script>
 </body>
 </html>

@@ -391,7 +391,7 @@ ob_end_flush();
                         <option value="telephone_number">Telephone Number</option>
                     </select>
 
-                    <input type="text" name="filter_value" placeholder="Filter Value"
+                    <input type="text" name="filter_value" placeholder=""
                         class="border rounded px-3 py-2 col-span-2 md:col-span-1">
 
                     <button type="submit" class="bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-600">
