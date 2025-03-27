@@ -6,11 +6,11 @@
     <title>Sign Up</title>
     <link rel="stylesheet" href="style.css">
 </head>
-<body style="background: url(images/background60.jpg)">
+<body style="background-color:aliceblue; font-weight: bold;">
     <div class="container">
-        <div class="form-container">
+        <div class="form-container"  style="background-color:rgb(208, 227, 255); font-weight: bold;">
             <h2>Create an Account</h2>
-            <form action="signup_process.php" method="post">
+            
                 <div class="form-group">
                     <label for="name">Full Name</label>
                     <input type="text" id="name" name="name" required>
@@ -36,8 +36,8 @@
                     <label for="confirm_password">Confirm Password</label>
                     <input type="password" id="confirm_password" name="confirm_password" required>
                 </div>
-                <div class="form-button">
-                    <button type="submit" name="signup">Sign Up</button>
+                <div class="form-button" style="background-color:rgb(46, 133, 204)">
+                    <button type="submit" name="signup" style="background-color:rgb(46, 133, 204);">Sign Up</button>
                 </div>
                 <div class="form-footer">
                     <p>Already have an account? <a href="login.php">Login</a></p>
@@ -50,3 +50,7 @@
     <script src="popup.js"></script>
 </body>
 </html>
+
+
+
+<form action="signup_process.php" method="post"></form>
