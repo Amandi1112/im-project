@@ -181,18 +181,26 @@ $data = array_column($supplierTotals, 'supplier_total');
 
 <!DOCTYPE html>
 <html lang="en">
-<head>
+<
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Purchased Items Details</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.13.2/themes/base/jquery-ui.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+        
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f7f6;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
             color: #333;
         }
 
@@ -200,42 +208,67 @@ $data = array_column($supplierTotals, 'supplier_total');
             max-width: 1200px;
             margin: 20px auto;
             padding: 20px;
-            background-color: #fff;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            background-color: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
         }
 
         h1 {
             color: #2c3e50;
             text-align: center;
             margin-bottom: 30px;
+            font-weight: 600;
+            font-size: 28px;
+            position: relative;
+            padding-bottom: 10px;
+        }
+
+        h1::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 3px;
+            background: linear-gradient(to right, #667eea, #764ba2);
+            border-radius: 3px;
         }
 
         .filter-section {
-            background-color: #ecf0f1;
+            background-color: rgba(236, 240, 241, 0.7);
             padding: 20px;
             border-radius: 8px;
             margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .filter-section:hover {
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
         }
 
         .form-label {
             color: #34495e;
             margin-bottom: 5px;
+            font-weight: 500;
+            font-size: 14px;
         }
 
         .form-control {
-            border-radius: 5px;
+            border-radius: 6px;
             border: 1px solid #bdc3c7;
-            padding: 8px 12px;
+            padding: 10px 12px;
             margin-bottom: 15px;
             width: 100%;
             box-sizing: border-box;
+            font-size: 14px;
+            transition: all 0.2s;
         }
 
         .form-control:focus {
-            border-color: #3498db;
+            border-color: #667eea;
             outline: none;
-            box-shadow: 0 0 5px rgba(52, 152, 219, 0.5);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
         }
 
         .btn-primary,
@@ -243,25 +276,32 @@ $data = array_column($supplierTotals, 'supplier_total');
             color: #fff;
             border: none;
             padding: 10px 15px;
-            border-radius: 5px;
+            border-radius: 6px;
             cursor: pointer;
-            transition: background-color 0.3s ease;
+            transition: all 0.3s ease;
+            font-weight: 500;
         }
 
         .btn-primary {
-            background-color: #3498db;
+            background: linear-gradient(to right, #667eea, #764ba2);
+            box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
         }
 
         .btn-primary:hover {
-            background-color: #2980b9;
+            background: linear-gradient(to right, #5a6fd1, #6a4299);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(102, 126, 234, 0.4);
         }
 
         .btn-secondary {
-            background-color: #95a5a6;
+            background: linear-gradient(to right, #95a5a6, #7f8c8d);
+            box-shadow: 0 4px 10px rgba(149, 165, 166, 0.3);
         }
 
         .btn-secondary:hover {
-            background-color: #7f8c8d;
+            background: linear-gradient(to right, #7f8c8d, #6c7a7b);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(149, 165, 166, 0.4);
         }
 
         .supplier-search-container {
@@ -275,17 +315,19 @@ $data = array_column($supplierTotals, 'supplier_total');
             z-index: 1000;
             background-color: #fff;
             border: 1px solid #bdc3c7;
-            border-radius: 5px;
+            border-radius: 6px;
             margin-top: 2px;
             padding: 0;
             list-style: none;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            font-family: 'Poppins', sans-serif;
         }
 
         .ui-autocomplete li {
             padding: 8px 12px;
             cursor: pointer;
-            transition: background-color 0.2s ease;
+            transition: all 0.2s;
+            font-size: 14px;
         }
 
         .ui-autocomplete li:hover {
@@ -299,12 +341,22 @@ $data = array_column($supplierTotals, 'supplier_total');
         .supplier-totals h4 {
             color: #2c3e50;
             margin-bottom: 20px;
+            font-weight: 600;
+            font-size: 20px;
         }
 
         .card {
             border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
             margin-bottom: 15px;
+            border: none;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
         }
 
         .card-body {
@@ -314,21 +366,26 @@ $data = array_column($supplierTotals, 'supplier_total');
         .card-title {
             color: #34495e;
             margin-bottom: 10px;
+            font-weight: 600;
+            font-size: 16px;
         }
 
         .card-text {
             color: #7f8c8d;
-            font-size: 1rem;
+            font-size: 14px;
         }
 
         .table-responsive {
             overflow-x: auto;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
         }
 
         .table {
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 20px;
+            font-size: 14px;
         }
 
         .table th,
@@ -339,36 +396,42 @@ $data = array_column($supplierTotals, 'supplier_total');
         }
 
         .table th {
-            background-color: #f0f3f4;
-            color: #34495e;
-            font-weight: 600;
+            background: linear-gradient(to right, #667eea, #764ba2);
+            color: white;
+            font-weight: 500;
+        }
+
+        .table tbody tr {
+            transition: all 0.2s;
         }
 
         .table tbody tr:hover {
-            background-color: #f9fafa;
+            background-color: rgba(102, 126, 234, 0.05);
         }
 
         .total-row {
-            font-weight: bold;
-            background-color: #f0f3f4;
+            font-weight: 600;
+            background-color: rgba(102, 126, 234, 0.1);
         }
 
         .expired {
-            background-color: #ffe6e6;
+            background-color: rgba(255, 99, 71, 0.1);
             color: #c0392b;
         }
 
         .expiring-soon {
-            background-color: #fff3cd;
+            background-color: rgba(255, 193, 7, 0.1);
             color: #d35400;
         }
 
         .alert-info {
-            background-color: #e7f5ff;
+            background-color: rgba(52, 152, 219, 0.1);
             color: #3498db;
             padding: 15px;
-            border-radius: 5px;
+            border-radius: 6px;
             margin-bottom: 20px;
+            border-left: 4px solid #3498db;
+            font-size: 14px;
         }
 
         .text-end {
@@ -377,14 +440,45 @@ $data = array_column($supplierTotals, 'supplier_total');
 
         /* Styles for chart container */
         .chart-container {
-            width: 80%;
-            margin: auto;
+            width: 100%;
+            margin: 30px 0;
             padding: 20px;
-            background-color: #fff;
+            background-color: rgba(255, 255, 255, 0.8);
             border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            h1 {
+                font-size: 24px;
+                margin-bottom: 20px;
+            }
+            
+            .card {
+                margin-bottom: 10px;
+            }
+            
+            .table th,
+            .table td {
+                padding: 8px 10px;
+                font-size: 13px;
+            }
+            
+            .btn-group {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+                margin-bottom: 10px;
+            }
         }
     </style>
+
 </head>
 <body>
     <div class="container">

@@ -250,162 +250,364 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['submit_items'])) {
     if ($errorCount > 0) {
         $message .= "$errorCount items failed to add.";
     }
+    // Redirect to prevent form resubmission on refresh
+    header("Location: " . $_SERVER['PHP_SELF']);
+    exit();
 }
 
 // Fetch all suppliers for the dropdown list
 $suppliers = getSuppliers($conn);
 ?>
-
+<?php
+// [Previous PHP code remains exactly the same]
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bulk Item Addition</title>
-    
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>Bulk Item Addition | Beautiful Interface</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap">
     <!-- Font Awesome for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <!-- Custom Styles -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+        
         body {
-            background-color: #f8f9fa;
+            background: linear-gradient(135deg,rgb(208, 212, 232) 0%,rgb(223, 245, 254) 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
-        .container {
-            margin-top: 30px;
+        
+        .main-container {
+            width: 100%;
+            max-width: 1200px;
+            padding: 20px;
         }
+        
+        .form-container {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            transform: translateY(0);
+            transition: all 0.3s ease;
+        }
+        
+        .form-container:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+        }
+        
         h2 {
-            color: #343a40;
+            color: #333;
+            margin-bottom: 25px;
+            font-weight: 600;
+            text-align: center;
+            position: relative;
+            padding-bottom: 10px;
         }
+        
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 3px;
+            background: #667eea;
+            border-radius: 3px;
+        }
+        
+        .supplier-info {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .supplier-info strong {
+            color: #333;
+        }
+        
         .item-row {
             margin-bottom: 15px;
-            padding: 15px;
-            border: 1px solid #ced4da;
-            border-radius: 5px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
             background-color: #fff;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
         }
+        
+        .item-row:hover {
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
         .form-label {
             font-weight: 500;
             color: #495057;
+            font-size: 14px;
+            margin-bottom: 5px;
         }
-        .supplier-info {
-            font-size: 0.85rem;
-            margin-top: 5px;
-            color: #6c757d;
+        
+        .form-control, .form-select {
+            padding: 10px 12px;
+            border: 1.5px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.2s;
+            height: auto;
         }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: #667eea;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
         .btn-primary {
-            background-color: #007bff;
-            border-color: #007bff;
+            background: linear-gradient(to right, #667eea, #764ba2);
+            border: none;
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
         }
+        
         .btn-primary:hover {
-            background-color: #0069d9;
-            border-color: #0062cc;
+            transform: translateY(-2px);
+            box-shadow: 0 7px 20px rgba(102, 126, 234, 0.4);
         }
-        .remove-item {
-            color: #fff;
+        
+        .btn-secondary {
+            background: linear-gradient(to right, #6c757d, #495057);
+            border: none;
+            color: white;
+            box-shadow: 0 4px 15px rgba(108, 117, 125, 0.3);
+        }
+        
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 20px rgba(108, 117, 125, 0.4);
+        }
+        
+        .btn-light {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            color: #495057;
+        }
+        
+        .btn-light:hover {
+            background: #e9ecef;
+        }
+        
+        .btn-danger {
+            background: linear-gradient(to right, #dc3545, #c82333);
+            border: none;
+            box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
+        }
+        
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 20px rgba(220, 53, 69, 0.4);
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 25px;
+            flex-wrap: wrap;
+        }
+        
+        .alert {
+            background-color: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .floating-alert {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            transform: translateX(150%);
+            transition: transform 0.4s ease;
+            z-index: 1000;
+            color: black;
+            font-weight: 500;
+        }
+        
+        .floating-alert.show {
+            transform: translateX(0);
+        }
+        
+        .alert-error {
+            background: #ff4757;
+        }
+        
+        .alert-success {
+            background: #2ed573;
+        }
+        
+        @media (max-width: 768px) {
+            .form-container {
+                padding: 20px;
+            }
+            
+            .item-row .col-md-3,
+            .item-row .col-md-2 {
+                margin-bottom: 15px;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .btn {
+                width: 100%;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container mt-5">
-        <h2>Bulk Item Addition</h2>
-        
-        <!-- Display message if there are any success or error messages -->
-        <?php if(isset($message)): ?>
-        <div class="alert alert-info">
-            <?php echo $message; ?>
-        </div>
-        <?php endif; ?>
-        
-        <!-- Form for adding items -->
-        <form method="post" action="">
-            <!-- Supplier information note -->
-            <div class="supplier-info mb-3">
-                <strong>Note:</strong> Items are linked to specific suppliers. You can now select different suppliers for each item.
-            </div>
+    <div class="main-container">
+        <div class="form-container">
+            <h2>Bulk Item Addition</h2>
             
-            <!-- Container for dynamically added item rows -->
-            <div id="items-container">
-                <!-- Initial item row -->
-                <div class="item-row">
-                    <div class="row">
-                        <!-- Item Name -->
-                        <div class="col-md-3">
-                            <div class="mb-2">
-                                <label class="form-label">Item Name</label>
-                                <input type="text" class="form-control item-name" name="items[0][item_name]" required>
+            <!-- Display message if there are any success or error messages -->
+            <?php if(isset($message)): ?>
+            <div class="alert alert-info">
+                <?php echo $message; ?>
+            </div>
+            <?php endif; ?>
+            
+            <!-- Form for adding items -->
+            <form method="post" action="">
+                <!-- Supplier information note -->
+                <div class="supplier-info">
+                    <strong>Note:</strong> Items are linked to specific suppliers. You can now select different suppliers for each item.
+                </div>
+                
+                <!-- Container for dynamically added item rows -->
+                <div id="items-container">
+                    <!-- Initial item row -->
+                    <div class="item-row">
+                        <div class="row">
+                            <!-- Item Name -->
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label class="form-label">Item Name</label>
+                                    <input type="text" class="form-control item-name" name="items[0][item_name]" required>
+                                </div>
                             </div>
-                        </div>
-                        <!-- Supplier Selection -->
-                        <div class="col-md-2">
-                            <div class="mb-2">
-                                <label class="form-label">Supplier</label>
-                                <select class="form-select supplier-select" name="items[0][supplier_id]" required>
-                                    <option value="">-- Select --</option>
-                                    <?php foreach($suppliers as $supplier): ?>
-                                    <option value="<?php echo $supplier['supplier_id']; ?>"><?php echo $supplier['supplier_name']; ?></option>
-                                    <?php endforeach; ?>
-                                </select>
+                            <br>
+                            <!-- Supplier Selection -->
+                            <div class="col-md-2">
+                                <div class="mb-3">
+                                    <label class="form-label">Supplier</label>
+                                    <select class="form-select supplier-select" name="items[0][supplier_id]" required>
+                                        <option value="">-- Select --</option>
+                                        <?php foreach($suppliers as $supplier): ?>
+                                        <option value="<?php echo $supplier['supplier_id']; ?>"><?php echo $supplier['supplier_name']; ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
                             </div>
-                        </div>
-                        <!-- Quantity -->
-                        <div class="col-md-1">
-                            <div class="mb-2">
-                                <label class="form-label">Quantity</label>
-                                <input type="number" class="form-control" name="items[0][quantity]" min="1" required>
+                            <br>
+                            <!-- Quantity -->
+                            <div class="col-md-1">
+                                <div class="mb-3">
+                                    <label class="form-label">Quantity</label>
+                                    <input type="number" class="form-control" name="items[0][quantity]" min="1" required>
+                                </div>
                             </div>
-                        </div>
-                        <!-- Price per Unit -->
-                        <div class="col-md-1">
-                            <div class="mb-2">
-                                <label class="form-label">Price/Unit</label>
-                                <input type="number" step="0.01" class="form-control price-per-unit" name="items[0][price_per_unit]" required>
+                            <br>
+                            <!-- Price per Unit -->
+                            <div class="col-md-1">
+                                <div class="mb-3">
+                                    <label class="form-label">Price/Unit</label>
+                                    <input type="number" step="0.01" class="form-control price-per-unit" name="items[0][price_per_unit]" required>
+                                </div>
                             </div>
-                        </div>
-                        <!-- Purchase Date -->
-                        <div class="col-md-2">
-                            <div class="mb-2">
-                                <label class="form-label">Purchase Date</label>
-                                <input type="date" class="form-control" name="items[0][purchase_date]" value="<?php echo date('Y-m-d'); ?>" required>
+                            <br>
+                            <!-- Purchase Date -->
+                            <div class="col-md-2">
+                                <div class="mb-3">
+                                    <label class="form-label">Purchase Date</label>
+                                    <input type="date" class="form-control" name="items[0][purchase_date]" value="<?php echo date('Y-m-d'); ?>" required>
+                                </div>
                             </div>
-                        </div>
-                        <!-- Expire Date -->
-                        <div class="col-md-2">
-                            <div class="mb-2">
-                                <label class="form-label">Expire Date</label>
-                                <input type="date" class="form-control" name="items[0][expire_date]">
+                            <br>
+                            <!-- Expire Date -->
+                            <div class="col-md-2">
+                                <div class="mb-3">
+                                    <label class="form-label">Expire Date</label>
+                                    <input type="date" class="form-control" name="items[0][expire_date]">
+                                </div>
                             </div>
-                        </div>
-                        <!-- Remove Item Button -->
-                        <div class="col-md-1">
-                            <div class="mb-2">
-                                <label class="form-label">&nbsp;</label>
-                                <button type="button" class="btn btn-danger form-control remove-item"><i class="fas fa-trash"></i></button>
+                            <br>
+                            <!-- Remove Item Button -->
+                            <div class="col-md-1">
+                                <div class="mb-3">
+                                    <label class="form-label">&nbsp;</label>
+                                    <button type="button" class="btn btn-danger form-control remove-item"><i class="fas fa-trash"></i></button>
+                                </div>
                             </div>
+                            <br>
                         </div>
                     </div>
                 </div>
-            </div>
-            
-            <!-- Add Item and Submit Buttons -->
-            <div class="mb-3">
-                <button type="button" class="btn btn-secondary" id="add-item"><i class="fas fa-plus"></i> Add Another Item</button>
-                <button type="submit" class="btn btn-primary" name="submit_items"><i class="fas fa-save"></i> Submit All Items</button>
-                 <!-- Back to Home Link -->
-                <a href="home.php" class="btn btn-light"><i class="fas fa-home"></i> Back to Home</a>
-                <!-- View Purchases Link -->
-                <a href="display_purchase_details.php" class="btn btn-light"><i class="fas fa-eye"></i> View Purchases</a>
-            </div>
-            
-        </form>
+                
+                <!-- Add Item and Submit Buttons -->
+                <div class="action-buttons">
+                    <button type="button" class="btn btn-secondary" id="add-item">
+                        <i class="fas fa-plus"></i> Add Another Item
+                    </button>
+                    <button type="submit" class="btn btn-primary" name="submit_items">
+                        <i class="fas fa-save"></i> Submit All Items
+                    </button>
+                    <a href="home.php" class="btn btn-light">
+                        <i class="fas fa-home"></i> Back to Home
+                    </a>
+                    <a href="display_purchase_details.php" class="btn btn-light">
+                        <i class="fas fa-eye"></i> View Purchases
+                    </a>
+                </div>
+            </form>
+        </div>
     </div>
+
+    <!-- Floating Alert -->
+    <div class="floating-alert" id="alert"></div>
 
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <!-- Bootstrap Bundle with Popper -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         $(document).ready(function() {
             let itemCount = 0;
@@ -425,13 +627,13 @@ $suppliers = getSuppliers($conn);
                     <div class="item-row">
                         <div class="row">
                             <div class="col-md-3">
-                                <div class="mb-2">
+                                <div class="mb-3">
                                     <label class="form-label">Item Name</label>
                                     <input type="text" class="form-control item-name" name="items[${itemCount}][item_name]" required>
                                 </div>
                             </div>
                             <div class="col-md-2">
-                                <div class="mb-2">
+                                <div class="mb-3">
                                     <label class="form-label">Supplier</label>
                                     <select class="form-select supplier-select" name="items[${itemCount}][supplier_id]" required>
                                         <option value="">-- Select --</option>
@@ -440,31 +642,31 @@ $suppliers = getSuppliers($conn);
                                 </div>
                             </div>
                             <div class="col-md-1">
-                                <div class="mb-2">
+                                <div class="mb-3">
                                     <label class="form-label">Quantity</label>
                                     <input type="number" class="form-control" name="items[${itemCount}][quantity]" min="1" required>
                                 </div>
                             </div>
                             <div class="col-md-1">
-                                <div class="mb-2">
+                                <div class="mb-3">
                                     <label class="form-label">Price/Unit</label>
                                     <input type="number" step="0.01" class="form-control price-per-unit" name="items[${itemCount}][price_per_unit]" required>
                                 </div>
                             </div>
                             <div class="col-md-2">
-                                <div class="mb-2">
+                                <div class="mb-3">
                                     <label class="form-label">Purchase Date</label>
                                     <input type="date" class="form-control" name="items[${itemCount}][purchase_date]" value="${new Date().toISOString().split('T')[0]}" required>
                                 </div>
                             </div>
                             <div class="col-md-2">
-                                <div class="mb-2">
+                                <div class="mb-3">
                                     <label class="form-label">Expire Date</label>
                                     <input type="date" class="form-control" name="items[${itemCount}][expire_date]">
                                 </div>
                             </div>
                             <div class="col-md-1">
-                                <div class="mb-2">
+                                <div class="mb-3">
                                     <label class="form-label">&nbsp;</label>
                                     <button type="button" class="btn btn-danger form-control remove-item"><i class="fas fa-trash"></i></button>
                                 </div>
@@ -480,7 +682,7 @@ $suppliers = getSuppliers($conn);
                 if ($('.item-row').length > 1) {
                     $(this).closest('.item-row').remove();
                 } else {
-                    alert('You need to have at least one item.');
+                    showAlert('You need to have at least one item.', 'error');
                 }
             });
             
@@ -526,11 +728,37 @@ $suppliers = getSuppliers($conn);
                     success: function(response) {
                         if (response.exists) {
                             currentRow.find('.price-per-unit').val(response.price_per_unit);
-                            alert(`Item already exists with current quantity: ${response.current_quantity} from this supplier.`);
+                            showAlert(`Item already exists with current quantity: ${response.current_quantity} from this supplier.`, 'info');
                         }
                     }
                 });
             }
+            
+            // Show alert function
+            function showAlert(message, type) {
+                const alertBox = $('#alert');
+                alertBox.text(message);
+                alertBox.removeClass('alert-error alert-success alert-info').addClass('show');
+                
+                // Set color based on type
+                if (type === 'error') {
+                    alertBox.addClass('alert-error');
+                } else if (type === 'success') {
+                    alertBox.addClass('alert-success');
+                } else {
+                    alertBox.addClass('alert-info');
+                }
+                
+                // Hide after 5 seconds
+                setTimeout(() => {
+                    alertBox.removeClass('show');
+                }, 5000);
+            }
+            
+            // Show any PHP messages as floating alerts
+            <?php if(isset($message)): ?>
+                showAlert('<?php echo $message; ?>', 'info');
+            <?php endif; ?>
         });
     </script>
 </body>

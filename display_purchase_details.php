@@ -162,208 +162,180 @@ $purchases = getPurchaseDetails($conn, $start_date, $end_date, $supplier_filter,
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.13.2/themes/base/jquery-ui.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --primary-color: #4e73df;
-            --secondary-color: #f8f9fc;
-            --success-color: #1cc88a;
-            --warning-color: #f6c23e;
-            --danger-color: #e74a3b;
-            --light-color: #f8f9fa;
-            --dark-color: #5a5c69;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
         }
         
         body {
-            background-color: #f8f9fc;
-            font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding: 20px;
         }
         
         .container {
             max-width: 1400px;
-            padding: 20px;
+            margin: 0 auto;
         }
         
         .page-header {
-            background: linear-gradient(135deg, var(--primary-color) 0%, #224abe 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 20px;
-            border-radius: 10px;
+            padding: 25px;
+            border-radius: 12px;
             margin-bottom: 30px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
             transition: all 0.3s ease;
         }
         
         .page-header:hover {
-            box-shadow: 0 6px 25px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+            transform: translateY(-3px);
+        }
+        
+        .page-header h2 {
+            font-weight: 600;
+            font-size: 28px;
+            margin-bottom: 0;
+        }
+        
+        .filter-section {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .filter-section:hover {
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+        
+        .form-label {
+            font-weight: 500;
+            color: #555;
+            margin-bottom: 8px;
+        }
+        
+        .form-control, .form-select {
+            padding: 10px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s;
+            border: none;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(to right, #667eea, #764ba2);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(to right, #5b6dc4, #67418f);
             transform: translateY(-2px);
+            box-shadow: 0 7px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-outline-secondary {
+            border: 2px solid #e0e0e0;
+        }
+        
+        .btn-outline-secondary:hover {
+            background-color: #f5f5f5;
         }
         
         .table-responsive {
-            margin-top: 20px;
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
             overflow: hidden;
             transition: all 0.3s ease;
         }
         
         .table-responsive:hover {
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
         }
         
         .table {
             margin-bottom: 0;
-            font-size: 0.95rem;
         }
         
         .table th {
-            background-color: var(--primary-color);
+            background: linear-gradient(to right, #667eea, #764ba2);
             color: white;
-            position: sticky;
-            top: 0;
-            font-weight: 600;
-            text-transform: uppercase;
-            font-size: 0.75rem;
-            letter-spacing: 0.5px;
-            border: none;
+            font-weight: 500;
             padding: 15px;
+            border: none;
+            text-transform: uppercase;
+            font-size: 13px;
+            letter-spacing: 0.5px;
         }
         
         .table td {
             padding: 12px 15px;
             vertical-align: middle;
-            border-top: 1px solid #e3e6f0;
+            border-top: 1px solid #f0f0f0;
         }
         
         .table-hover tbody tr:hover {
-            background-color: rgba(78, 115, 223, 0.05);
-            transform: scale(1.005);
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+            background-color: rgba(102, 126, 234, 0.05);
         }
         
         .total-row {
-            font-weight: bold;
-            background-color: var(--secondary-color);
-            color: var(--dark-color);
+            font-weight: 600;
+            background-color: rgba(102, 126, 234, 0.1);
         }
         
         .expired {
-            background-color: rgba(231, 74, 59, 0.1);
-            border-left: 4px solid var(--danger-color);
+            background-color: rgba(255, 71, 87, 0.1);
+            border-left: 4px solid #ff4757;
         }
         
         .expiring-soon {
-            background-color: rgba(246, 194, 62, 0.1);
-            border-left: 4px solid var(--warning-color);
-        }
-        
-        .filter-section {
-            background-color: white;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 30px;
-            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
-            transition: all 0.3s ease;
-        }
-        
-        .filter-section:hover {
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
-        }
-        
-        .ui-autocomplete {
-            max-height: 200px;
-            overflow-y: auto;
-            overflow-x: hidden;
-            border-radius: 0 0 5px 5px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-            border: none;
-            font-size: 0.9rem;
-        }
-        
-        .ui-menu-item {
-            padding: 8px 15px;
-            border-bottom: 1px solid #f0f0f0;
-            transition: all 0.2s;
-        }
-        
-        .ui-menu-item:hover {
-            background-color: var(--primary-color);
-            color: white;
-        }
-        
-        .search-container {
-            position: relative;
-        }
-        
-        .hidden-id-field {
-            display: none;
-        }
-        
-        .filter-row {
-            margin-bottom: 15px;
-        }
-        
-        .btn-primary {
-            background-color: var(--primary-color);
-            border-color: var(--primary-color);
-            transition: all 0.3s;
-        }
-        
-        .btn-primary:hover {
-            background-color: #2e59d9;
-            border-color: #2653d4;
-            transform: translateY(-1px);
-        }
-        
-        .btn-light {
-            transition: all 0.3s;
-        }
-        
-        .btn-light:hover {
-            background-color: #e2e6ea;
-            transform: translateY(-1px);
-        }
-        
-        .form-control, .form-select {
-            border-radius: 5px;
-            padding: 10px 15px;
-            border: 1px solid #d1d3e2;
-            transition: all 0.3s;
-        }
-        
-        .form-control:focus, .form-select:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 0.25rem rgba(78, 115, 223, 0.25);
-        }
-        
-        .alert {
-            border-radius: 5px;
-            padding: 15px;
-            margin: 20px 0;
+            background-color: rgba(255, 193, 7, 0.1);
+            border-left: 4px solid #ffc107;
         }
         
         .status-badge {
-            padding: 5px 10px;
+            padding: 5px 12px;
             border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            font-size: 12px;
+            font-weight: 500;
+            display: inline-block;
         }
         
         .status-active {
-            background-color: rgba(28, 200, 138, 0.1);
-            color: var(--success-color);
+            background-color: rgba(40, 167, 69, 0.1);
+            color: #28a745;
         }
         
         .status-expired {
-            background-color: rgba(231, 74, 59, 0.1);
-            color: var(--danger-color);
+            background-color: rgba(255, 71, 87, 0.1);
+            color: #ff4757;
         }
         
         .status-expiring {
-            background-color: rgba(246, 194, 62, 0.1);
-            color: #dda20a;
+            background-color: rgba(255, 193, 7, 0.1);
+            color: #ffc107;
         }
         
         .status-none {
@@ -371,42 +343,69 @@ $purchases = getPurchaseDetails($conn, $start_date, $end_date, $supplier_filter,
             color: #6c757d;
         }
         
-        .fade-in {
-            animation: fadeIn 0.5s ease-in;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .pulse {
-            animation: pulse 2s infinite;
-        }
-        
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(78, 115, 223, 0.4); }
-            70% { box-shadow: 0 0 0 10px rgba(78, 115, 223, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(78, 115, 223, 0); }
+        .alert {
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px;
         }
         
         .floating-btn {
             position: fixed;
             bottom: 30px;
             right: 30px;
-            z-index: 1000;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
             transition: all 0.3s;
+            z-index: 1000;
         }
         
         .floating-btn:hover {
-            transform: translateY(-3px) scale(1.05);
+            transform: translateY(-3px) scale(1.1);
             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+        
+        .ui-autocomplete {
+            max-height: 200px;
+            overflow-y: auto;
+            border-radius: 0 0 8px 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            border: none;
+        }
+        
+        .ui-menu-item {
+            padding: 10px 15px;
+            border-bottom: 1px solid #f0f0f0;
+            transition: all 0.2s;
+        }
+        
+        .ui-menu-item:hover {
+            background-color: #667eea;
+            color: white;
+        }
+        
+        @media (max-width: 768px) {
+            .page-header {
+                padding: 20px;
+            }
+            
+            .filter-section {
+                padding: 20px;
+            }
+            
+            .table th, .table td {
+                padding: 10px;
+                font-size: 14px;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container mt-4 animate__animated animate__fadeIn">
+    <div class="container animate__animated animate__fadeIn">
         <div class="page-header animate__animated animate__fadeInDown">
             <div class="row align-items-center">
                 <div class="col-md-8">
@@ -541,7 +540,7 @@ $purchases = getPurchaseDetails($conn, $start_date, $end_date, $supplier_filter,
         </div>
     </div>
 
-    <a href="home.php" class="btn btn-primary floating-btn pulse animate__animated animate__fadeInUp">
+    <a href="home.php" class="btn btn-primary floating-btn animate__animated animate__fadeInUp">
         <i class="fas fa-home"></i>
     </a>
 
