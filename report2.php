@@ -158,24 +158,32 @@ $purchases = getPurchaseDetails($conn, $start_date, $end_date, $supplier_filter,
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Purchased Items Details</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.13.2/themes/base/jquery-ui.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root {
-            --primary-color: #4e73df;
-            --secondary-color: #f8f9fc;
-            --success-color: #1cc88a;
-            --warning-color: #f6c23e;
-            --danger-color: #e74a3b;
-            --light-color: #f8f9fa;
-            --dark-color: #5a5c69;
+         :root {
+            --primary-color:rgb(202, 230, 249);
+            --secondary-color:rgb(144, 195, 228);
+            --accent-color: #e74c3c;
+            --light-color: #ecf0f1;
+            --dark-color: #2c3e50;
+            --success-color: #2ecc71;
+            --warning-color: #f39c12;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+           font-family: 'Poppins', sans-serif;
         }
         
         body {
-            background-color: #f8f9fc;
-            font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: var(--text);
         }
         
         .container {
@@ -403,6 +411,22 @@ $purchases = getPurchaseDetails($conn, $start_date, $end_date, $supplier_filter,
             transform: translateY(-3px) scale(1.05);
             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
         }
+        button {
+            background: linear-gradient(to right, #28a745, #218838);
+            box-shadow: 0 4px 10px rgba(40, 167, 69, 0.3);
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        button:hover {
+            background: linear-gradient(to right, #218838, #1e7e34);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(40, 167, 69, 0.4);
+        }
     </style>
 </head>
 <body>
@@ -410,7 +434,7 @@ $purchases = getPurchaseDetails($conn, $start_date, $end_date, $supplier_filter,
         <div class="page-header animate__animated animate__fadeInDown">
             <div class="row align-items-center">
                 <div class="col-md-8">
-                    <h2><i class="fas fa-shopping-cart me-2"></i> Purchased Items Details</h2>
+                    <h2 style="color:black;"><i class="fas fa-shopping-cart me-2"></i> Purchased Items Details</h2>
                 </div>
                 <div class="col-md-4 text-end">
                     
@@ -463,14 +487,14 @@ $purchases = getPurchaseDetails($conn, $start_date, $end_date, $supplier_filter,
             <table class="table table-hover">
                 <thead>
                     <tr>
-                        <th><i class="far fa-calendar me-1"></i> Purchase Date</th>
-                        <th><i class="fas fa-box me-1"></i> Item Name</th>
-                        <th><i class="fas fa-truck me-1"></i> Supplier</th>
-                        <th><i class="fas fa-cubes me-1"></i> Quantity</th>
-                        <th><i class="fas fa-tag me-1"></i> Price/Unit</th>
-                        <th><i class="fas fa-money-bill-wave me-1"></i> Total Price</th>
-                        <th><i class="fas fa-hourglass-end me-1"></i> Expire Date</th>
-                        <th><i class="fas fa-info-circle me-1"></i> Status</th>
+                    <th style="color:black; font-weight: bold; font-size: 12.5px;"><i class="far fa-calendar me-1"></i> Purchase Date</th>
+                        <th style="color:black; font-weight: bold; font-size: 12.5px;"><i class="fas fa-box me-1"></i> Item Name</th>
+                        <th style="color:black; font-weight: bold; font-size: 12.5px;"><i class="fas fa-truck me-1"></i> Supplier</th>
+                        <th style="color:black; font-weight: bold; font-size: 12.5px;"><i class="fas fa-cubes me-1"></i> Quantity</th>
+                        <th style="color:black; font-weight: bold; font-size: 12.5px;"><i class="fas fa-tag me-1"></i> Price/Unit</th>
+                        <th style="color:black; font-weight: bold; font-size: 12.5px;"><i class="fas fa-money-bill-wave me-1"></i> Total Price</th>
+                        <th style="color:black; font-weight: bold; font-size: 12.5px;"><i class="fas fa-hourglass-end me-1"></i> Expire Date</th>
+                        <th style="color:black; font-weight: bold; font-size: 12.5px;"><i class="fas fa-info-circle me-1"></i> Status</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -514,8 +538,8 @@ $purchases = getPurchaseDetails($conn, $start_date, $end_date, $supplier_filter,
                         <td><?php echo $purchase['item_name']; ?></td>
                         <td><?php echo $purchase['supplier_name']; ?></td>
                         <td><?php echo $purchase['quantity']; ?></td>
-                        <td>₹<?php echo number_format($purchase['price_per_unit'], 2); ?></td>
-                        <td>₹<?php echo number_format($purchase['total_price'], 2); ?></td>
+                        <td>Rs. <?php echo number_format($purchase['price_per_unit'], 2); ?></td>
+                        <td>Rs. <?php echo number_format($purchase['total_price'], 2); ?></td>
                         <td><?php echo !empty($purchase['expire_date']) ? date('d M Y', strtotime($purchase['expire_date'])) : 'N/A'; ?></td>
                         <td><span class="status-badge <?php echo $statusClass; ?>"><?php echo $status; ?></span></td>
                     </tr>
@@ -526,7 +550,7 @@ $purchases = getPurchaseDetails($conn, $start_date, $end_date, $supplier_filter,
                         <td colspan="3" class="text-end"><strong>Total:</strong></td>
                         <td><strong><?php echo $totalQuantity; ?></strong></td>
                         <td></td>
-                        <td><strong>₹<?php echo number_format($totalAmount, 2); ?></strong></td>
+                        <td><strong>Rs.<?php echo number_format($totalAmount, 2); ?></strong></td>
                         <td colspan="2"></td>
                     </tr>
                     <?php endif; ?>

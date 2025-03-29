@@ -198,87 +198,120 @@ try {
 
         $members = $memberManager->exportMembersToPdf($searchTerm, $filterColumn, $filterValue);
 
-        // Create PDF with improved styling
-        $pdf = new FPDF('L', 'mm', 'A4'); // Landscape orientation
-        $pdf->AddPage();
-        
-        // Set document properties
-        $pdf->SetTitle('Members List');
-        $pdf->SetAuthor('T&C co-op city Shop-Karawita');
-        $pdf->SetCreator('Member Management System');
-        
-        // Add logo and header
-        $pdf->SetFont('Arial', 'B', 16);
-        $pdf->Cell(0, 10, 'T&C co-op city Shop-Karawita', 0, 1, 'C');
-        $pdf->SetFont('Arial', '', 12);
-        $pdf->Cell(0, 10, 'Members List - ' . date('F j, Y'), 0, 1, 'C');
-        $pdf->Ln(10);
-        
-        // Set column widths (total width ~280mm for landscape A4)
-        $colWidths = [
-            'name' => 40,
-            'bank' => 15,
-            'coop' => 20,
-            'address' => 45,
-            'nic' => 25,
-            'age' => 10,
-            'phone' => 25,
-            'occupation' => 20,
-            'income' => 25,
-            'credit_limit' => 25,
-            'reg_date' => 30
-        ];
-        
-        // Table header
-        $pdf->SetFont('Arial', 'B', 10);
-        $pdf->SetFillColor(59, 130, 246); // Blue-500 color
-        $pdf->SetTextColor(255);
-        $pdf->Cell($colWidths['name'], 8, 'Full Name', 1, 0, 'C', true);
-        $pdf->Cell($colWidths['bank'], 8, 'Bank ID', 1, 0, 'C', true);
-        $pdf->Cell($colWidths['coop'], 8, 'Coop No.', 1, 0, 'C', true);
-        $pdf->Cell($colWidths['address'], 8, 'Address', 1, 0, 'C', true);
-        $pdf->Cell($colWidths['nic'], 8, 'NIC', 1, 0, 'C', true);
-        $pdf->Cell($colWidths['age'], 8, 'Age', 1, 0, 'C', true);
-        $pdf->Cell($colWidths['phone'], 8, 'Phone', 1, 0, 'C', true);
-        $pdf->Cell($colWidths['occupation'], 8, 'Occupation', 1, 0, 'C', true);
-        $pdf->Cell($colWidths['income'], 8, 'Income', 1, 0, 'C', true);
-        $pdf->Cell($colWidths['credit_limit'], 8, 'Credit Limit', 1, 0, 'C', true);
-        $pdf->Cell($colWidths['reg_date'], 8, 'Reg. Date', 1, 1, 'C', true);
-        
-        // Table data
-        $pdf->SetFont('Arial', '', 9);
-        $pdf->SetTextColor(0);
-        $fill = false;
-        
-        foreach ($members as $member) {
-            $pdf->SetFillColor($fill ? 240 : 255); // Alternate row colors
-            $pdf->Cell($colWidths['name'], 7, $member['full_name'], 1, 0, 'L', $fill);
-            $pdf->Cell($colWidths['bank'], 7, $member['bank_membership_number'], 1, 0, 'L', $fill);
-            $pdf->Cell($colWidths['coop'], 7, $member['coop_number'], 1, 0, 'C', $fill);
-            $pdf->Cell($colWidths['address'], 7, $memberManager->shortenText($member['address'], 30), 1, 0, 'L', $fill);
-            $pdf->Cell($colWidths['nic'], 7, $member['nic'], 1, 0, 'C', $fill);
-            $pdf->Cell($colWidths['age'], 7, $member['age'], 1, 0, 'C', $fill);
-            $pdf->Cell($colWidths['phone'], 7, $member['telephone_number'], 1, 0, 'C', $fill);
-            $pdf->Cell($colWidths['occupation'], 7, $member['occupation'] ?? 'N/A', 1, 0, 'L', $fill);
-            $pdf->Cell($colWidths['income'], 7, number_format($member['monthly_income'], 2), 1, 0, 'R', $fill);
-            $pdf->Cell($colWidths['credit_limit'], 7, number_format($member['credit_limit'], 2), 1, 0, 'R', $fill);
-            $pdf->Cell($colWidths['reg_date'], 7, date('Y-m-d', strtotime($member['registration_date'])), 1, 1, 'C', $fill);
-            $fill = !$fill;
-        }
-        
-        // Summary footer
-        $pdf->Ln(5);
-        $pdf->SetFont('Arial', 'I', 10);
-        $pdf->Cell(0, 8, 'Total Members: ' . count($members), 0, 1, 'L');
-        
-        // Footer
-        $pdf->SetY(-15);
-        $pdf->SetFont('Arial', 'I', 8);
-        $pdf->Cell(0, 10, 'Page ' . $pdf->PageNo(), 0, 0, 'C');
-        
-        // Output the PDF
-        $pdf->Output('Members_Export_' . date('Y-m-d') . '.pdf', 'D');
-        exit;
+        // Create PDF with professional design in landscape
+$pdf = new FPDF('L','mm','A4');
+$pdf->AddPage();
+
+// ========== COLOR SCHEME (Same as invoice) ========== //
+$primaryColor = array(102, 126, 234);   // #667eea
+$primaryDark = array(90, 103, 216);    // #5a67d8
+$secondaryColor = array(237, 242, 247); // #edf2f7
+$dangerColor = array(229, 62, 62);      // #e53e3e
+$successColor = array(72, 187, 120);    // #48bb78
+$warningColor = array(237, 137, 54);    // #ed8936
+$infoColor = array(66, 153, 225);       // #4299e1
+$lightColor = array(247, 250, 252);     // #f7fafc
+$darkColor = array(45, 55, 72);         // #2d3748
+$grayColor = array(113, 128, 150);      // #718096
+$grayLight = array(226, 232, 240);      // #e2e8f0
+
+// ========== HEADER SECTION ========== //
+// Header with primary color background
+$pdf->SetFillColor($primaryColor[0], $primaryColor[1], $primaryColor[2]);
+$pdf->Rect(10, 10, 277, 20, 'F');
+
+// Shop name
+$pdf->SetTextColor(255);
+$pdf->SetFont('Helvetica','B',16);
+$pdf->SetXY(15, 12);
+$pdf->Cell(0,8,'T&C CO-OP CITY SHOP - KARAWITA',0,1,'L');
+
+// Report info box
+$pdf->SetFillColor($primaryDark[0], $primaryDark[1], $primaryDark[2]);
+$pdf->Rect(200, 12, 80, 16, 'F');
+$pdf->SetFont('Helvetica','B',12);
+$pdf->SetXY(200, 12);
+$pdf->Cell(80,8,'MEMBERS LIST',0,1,'C');
+$pdf->SetFont('Helvetica','',10);
+$pdf->SetXY(200, 18);
+$pdf->Cell(80,6,date('F j, Y'),0,1,'C');
+
+// Shop contact info
+$pdf->SetTextColor(255);
+$pdf->SetFont('Helvetica','',9);
+$pdf->SetXY(15, 22);
+$pdf->Cell(0,5,'Karawita | Tel: +94 11 2345678 | Email: info@tccoop.lk',0,1,'L');
+
+// ========== TABLE SECTION ========== //
+$pdf->SetY(40);
+
+// Column widths (total width ~280mm for landscape A4)
+$colWidths = [
+    'name' => 40,
+    'bank' => 15,
+    'coop' => 20,
+    'address' => 45,
+    'nic' => 25,
+    'age' => 10,
+    'phone' => 25,
+    'occupation' => 20,
+    'income' => 25,
+    'credit_limit' => 25,
+    'reg_date' => 30
+];
+
+// Table header with primary color
+$pdf->SetFont('Helvetica','B',10);
+$pdf->SetFillColor($primaryColor[0], $primaryColor[1], $primaryColor[2]);
+$pdf->SetTextColor(255);
+$pdf->Cell($colWidths['name'], 8, 'Full Name', 1, 0, 'C', true);
+$pdf->Cell($colWidths['bank'], 8, 'Bank ID', 1, 0, 'C', true);
+$pdf->Cell($colWidths['coop'], 8, 'Coop No.', 1, 0, 'C', true);
+$pdf->Cell($colWidths['address'], 8, 'Address', 1, 0, 'C', true);
+$pdf->Cell($colWidths['nic'], 8, 'NIC', 1, 0, 'C', true);
+$pdf->Cell($colWidths['age'], 8, 'Age', 1, 0, 'C', true);
+$pdf->Cell($colWidths['phone'], 8, 'Phone', 1, 0, 'C', true);
+$pdf->Cell($colWidths['occupation'], 8, 'Occupation', 1, 0, 'C', true);
+$pdf->Cell($colWidths['income'], 8, 'Income', 1, 0, 'C', true);
+$pdf->Cell($colWidths['credit_limit'], 8, 'Credit Limit', 1, 0, 'C', true);
+$pdf->Cell($colWidths['reg_date'], 8, 'Reg. Date', 1, 1, 'C', true);
+
+// Table data with alternate row colors
+$pdf->SetTextColor($darkColor[0], $darkColor[1], $darkColor[2]);
+$pdf->SetFont('Helvetica','',9);
+
+$fill = false;
+foreach ($members as $member) {
+    $pdf->SetFillColor($fill ? $grayLight[0] : 255); // Alternate row colors
+    $pdf->Cell($colWidths['name'], 7, $member['full_name'], 1, 0, 'L', $fill);
+    $pdf->Cell($colWidths['bank'], 7, $member['bank_membership_number'], 1, 0, 'L', $fill);
+    $pdf->Cell($colWidths['coop'], 7, $member['coop_number'], 1, 0, 'C', $fill);
+    $pdf->Cell($colWidths['address'], 7, $memberManager->shortenText($member['address'], 30), 1, 0, 'L', $fill);
+    $pdf->Cell($colWidths['nic'], 7, $member['nic'], 1, 0, 'C', $fill);
+    $pdf->Cell($colWidths['age'], 7, $member['age'], 1, 0, 'C', $fill);
+    $pdf->Cell($colWidths['phone'], 7, $member['telephone_number'], 1, 0, 'C', $fill);
+    $pdf->Cell($colWidths['occupation'], 7, $member['occupation'] ?? 'N/A', 1, 0, 'L', $fill);
+    $pdf->Cell($colWidths['income'], 7, number_format($member['monthly_income'], 2), 1, 0, 'R', $fill);
+    $pdf->Cell($colWidths['credit_limit'], 7, number_format($member['credit_limit'], 2), 1, 0, 'R', $fill);
+    $pdf->Cell($colWidths['reg_date'], 7, date('Y-m-d', strtotime($member['registration_date'])), 1, 1, 'C', $fill);
+    $fill = !$fill;
+}
+
+// ========== FOOTER SECTION ========== //
+// Summary
+$pdf->Ln(5);
+$pdf->SetFont('Helvetica','I',10);
+$pdf->Cell(0, 8, 'Total Members: ' . count($members), 0, 1, 'L');
+
+// Footer
+$pdf->SetY(-15);
+$pdf->SetFont('Helvetica','I',8);
+$pdf->SetTextColor($grayColor[0], $grayColor[1], $grayColor[2]);
+$pdf->Cell(0,10,'Page ' . $pdf->PageNo(),0,0,'C');
+
+// Output the PDF
+$pdf->Output('Members_Export_' . date('Y-m-d') . '.pdf', 'D');
+exit;
     }
 
     // Handle Get Member by ID
@@ -357,139 +390,472 @@ ob_end_flush();
 
 <!DOCTYPE html>
 <html lang="en">
-<head>
+<ty>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registered Members</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <style>
+        :root {
+            --primary: #667eea;
+            --primary-dark: #5a67d8;
+            --secondary: #edf2f7;
+            --danger: #e53e3e;
+            --danger-dark: #c53030;
+            --success: #48bb78;
+            --success-dark: #38a169;
+            --warning: #ed8936;
+            --warning-dark: #dd6b20;
+            --info: #4299e1;
+            --info-dark: #3182ce;
+            --light: #f7fafc;
+            --dark: #2d3748;
+            --gray: #718096;
+            --gray-light: #e2e8f0;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e2e8f0 100%);
+            min-height: 100vh;
+            color: var(--dark);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1, h2, h3, h4 {
+            color: var(--dark);
+            font-weight: 600;
+        }
+        
+        h2 {
+            margin-bottom: 20px;
+            position: relative;
+            padding-bottom: 10px;
+        }
+        
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100px;
+            height: 3px;
+            background: linear-gradient(to right, var(--primary), var(--primary-dark));
+            border-radius: 3px;
+        }
+        
+        .header-section {
+            background-color: rgba(237, 242, 247, 0.7);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .btn {
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(to right, var(--primary), var(--primary-dark));
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(to right, var(--primary-dark), var(--primary));
+        }
+        
+        .btn-success {
+            background: linear-gradient(to right, var(--success), var(--success-dark));
+        }
+        
+        .btn-success:hover {
+            background: linear-gradient(to right, var(--success-dark), var(--success));
+        }
+        
+        .btn-danger {
+            background: linear-gradient(to right, var(--danger), var(--danger-dark));
+        }
+        
+        .btn-danger:hover {
+            background: linear-gradient(to right, var(--danger-dark), var(--danger));
+        }
+        
+        .btn-warning {
+            background: linear-gradient(to right, var(--warning), var(--warning-dark));
+        }
+        
+        .btn-warning:hover {
+            background: linear-gradient(to right, var(--warning-dark), var(--warning));
+        }
+        
+        .btn-info {
+            background: linear-gradient(to right, var(--info), var(--info-dark));
+        }
+        
+        .btn-info:hover {
+            background: linear-gradient(to right, var(--info-dark), var(--info));
+        }
+        
+        .search-section {
+            background-color: rgba(237, 242, 247, 0.7);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .search-form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: var(--dark);
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 10px 15px;
+            border: 1px solid var(--gray-light);
+            border-radius: 6px;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+        
+        .table-container {
+            overflow-x: auto;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        
+        .table th {
+            background: linear-gradient(to right, var(--primary), var(--primary-dark));
+            color: white;
+            font-weight: 500;
+            padding: 12px 15px;
+            text-align: left;
+        }
+        
+        .table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid var(--gray-light);
+        }
+        
+        .table tr:hover {
+            background-color: rgba(102, 126, 234, 0.05);
+        }
+        
+        .action-btn {
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .action-btn + .action-btn {
+            margin-left: 8px;
+        }
+        
+        .edit-btn {
+            background-color: var(--info);
+            color: white;
+        }
+        
+        .edit-btn:hover {
+            background-color: var(--info-dark);
+        }
+        
+        .delete-btn {
+            background-color: var(--danger);
+            color: white;
+        }
+        
+        .delete-btn:hover {
+            background-color: var(--danger-dark);
+        }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+            margin-top: 20px;
+        }
+        
+        .page-btn {
+            padding: 8px 12px;
+            border-radius: 4px;
+            background-color: var(--gray-light);
+            color: var(--dark);
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .page-btn:hover {
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        .page-btn.active {
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        /* Modal Styles */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+        
+        .modal.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .modal-content {
+            background-color: white;
+            padding: 25px;
+            border-radius: 8px;
+            max-height: 90vh;
+        overflow-y: auto;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            transform: translateY(-20px);
+            transition: all 0.3s;
+        }
+        
+        .modal.show .modal-content {
+            transform: translateY(0);
+        }
+        
+        .modal-header {
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--gray-light);
+        }
+        
+        .modal-footer {
+            margin-top: 20px;
+            padding-top: 10px;
+            border-top: 1px solid var(--gray-light);
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .header-section {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .search-form {
+                grid-template-columns: 1fr;
+            }
+            
+            .table th, .table td {
+                padding: 8px 10px;
+                font-size: 13px;
+            }
+            
+            .action-btn {
+                padding: 5px 8px;
+                font-size: 12px;
+            }
+        }
+    </style>
 </head>
-<body class="bg-gray-100">
-    <div class="container mx-auto px-4 py-8">
-        <div class="bg-white shadow-md rounded-lg overflow-hidden">
-            <div class="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
-                <h2 class="text-2xl font-bold text-gray-800">Registered Members</h2>
-                <div class="flex space-x-2">
-                    <a href="member.php" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
-                        + Add New Member
-                    </a>
-                    <button id="exportPdfBtn" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-                        Export PDF
-                    </button>
-                </div>
+<body>
+    <div class="container">
+        <div class="header-section">
+            <h2>Registered Members</h2>
+            <div class="btn-group">
+                <a href="member.php" class="btn btn-success">
+                    <i class="fas fa-plus"></i> Add New Member
+                </a>
+                <button id="exportPdfBtn" class="btn btn-info">
+                    <i class="fas fa-file-pdf"></i> Export PDF
+                </button>
             </div>
+        </div>
 
-            <div class="p-4">
-                <form id="searchForm" class="mb-4 grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <input type="text" name="search" placeholder="Search Members"
-                        class="border rounded px-3 py-2 col-span-2 md:col-span-1">
-
-                    <select name="filter_column"
-                        class="border rounded px-3 py-2 col-span-2 md:col-span-1">
+        <div class="search-section">
+            <form id="searchForm" class="search-form">
+                <div class="form-group">
+                    <input type="text" name="search" placeholder="Search Members" class="form-control">
+                </div>
+                <div class="form-group">
+                    <select name="filter_column" class="form-control">
                         <option value="">Select Filter</option>
-                        <option value="nic">Nic</option>
+                        <option value="nic">NIC</option>
                         <option value="telephone_number">Telephone Number</option>
                     </select>
-
-                    <input type="text" name="filter_value" placeholder=""
-                        class="border rounded px-3 py-2 col-span-2 md:col-span-1">
-
-                    <button type="submit" class="bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-600">
-                        Search
+                </div>
+                <div class="form-group">
+                    <input type="text" name="filter_value" placeholder="Filter value" class="form-control">
+                </div>
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i> Search
                     </button>
-                </form>
-
-                <div class="overflow-x-auto">
-                    <table class="w-full bg-white">
-                        <thead>
-                            <tr class="bg-gray-200 text-gray-600 uppercase text-sm leading-normal">
-                                <th class="py-3 px-6 text-left">Coop Number</th>
-                                <th class="py-3 px-6 text-left">Full Name</th>
-                                <th class="py-3 px-6 text-left">NIC</th>
-                                <th class="py-3 px-6 text-left">Age</th>
-                                <th class="py-3 px-6 text-left">Occupation</th>
-                                <th class="py-3 px-6 text-left">Monthly Income</th>
-                                <th class="py-3 px-6 text-left">Credit Limit</th>
-                                <th class="py-3 px-6 text-center">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="membersTableBody">
-                            <!-- Members will be dynamically loaded here -->
-                        </tbody>
-                    </table>
                 </div>
+            </form>
+        </div>
 
-                <div id="pagination" class="mt-4 flex justify-center">
-                    <!-- Pagination links will be dynamically loaded here -->
-                </div>
-            </div>
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Coop Number</th>
+                        <th>Full Name</th>
+                        <th>NIC</th>
+                        <th>Age</th>
+                        <th>Occupation</th>
+                        <th>Monthly Income</th>
+                        <th>Credit Limit</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="membersTableBody">
+                    <!-- Members will be dynamically loaded here -->
+                </tbody>
+            </table>
+        </div>
+
+        <div id="pagination" class="pagination">
+            <!-- Pagination links will be dynamically loaded here -->
         </div>
     </div>
 
     <!-- Edit Member Modal -->
-    <div id="editModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden">
-        <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-lg">
-            <h2 class="text-2xl font-bold mb-4">Edit Member</h2>
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit Member</h3>
+            </div>
             <form id="editMemberForm">
                 <input type="hidden" name="id" id="editMemberId">
-                <div class="mb-4">
-                    <label for="editFullName" class="block text-sm font-medium text-gray-700">Full Name</label>
-                    <input type="text" id="editFullName" name="full_name" required
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                <div class="form-group">
+                    <label for="editFullName" class="form-label">Full Name</label>
+                    <input type="text" id="editFullName" name="full_name" required class="form-control">
                 </div>
-                <div class="mb-4">
-                    <label for="editBankMembershipNumber" class="block text-sm font-medium text-gray-700">Bank Membership Number</label>
-                    <input type="text" id="editBankMembershipNumber" name="bank_membership_number" required
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                <div class="form-group">
+                    <label for="editBankMembershipNumber" class="form-label">Bank Membership Number</label>
+                    <input type="text" id="editBankMembershipNumber" name="bank_membership_number" required class="form-control">
                 </div>
-                <div class="mb-4">
-                    <label for="editAddress" class="block text-sm font-medium text-gray-700">Address</label>
-                    <textarea id="editAddress" name="address" required
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"></textarea>
+                <div class="form-group">
+                    <label for="editAddress" class="form-label">Address</label>
+                    <textarea id="editAddress" name="address" required class="form-control" rows="3"></textarea>
                 </div>
-                <div class="mb-4">
-                    <label for="editNic" class="block text-sm font-medium text-gray-700">NIC</label>
-                    <input type="text" id="editNic" name="nic" required
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                <div class="form-group">
+                    <label for="editNic" class="form-label">NIC</label>
+                    <input type="text" id="editNic" name="nic" required class="form-control">
                 </div>
-                <div class="mb-4">
-                    <label for="editDateOfBirth" class="block text-sm font-medium text-gray-700">Date of Birth</label>
-                    <input type="date" id="editDateOfBirth" name="date_of_birth" required
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                <div class="form-group">
+                    <label for="editDateOfBirth" class="form-label">Date of Birth</label>
+                    <input type="date" id="editDateOfBirth" name="date_of_birth" required class="form-control">
                 </div>
-                <div class="mb-4">
-                    <label for="editTelephoneNumber" class="block text-sm font-medium text-gray-700">Telephone Number</label>
-                    <input type="tel" id="editTelephoneNumber" name="telephone_number" required
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                <div class="form-group">
+                    <label for="editTelephoneNumber" class="form-label">Telephone Number</label>
+                    <input type="tel" id="editTelephoneNumber" name="telephone_number" required class="form-control">
                 </div>
-                <div class="mb-4">
-                    <label for="editOccupation" class="block text-sm font-medium text-gray-700">Occupation</label>
-                    <input type="text" id="editOccupation" name="occupation"
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                <div class="form-group">
+                    <label for="editOccupation" class="form-label">Occupation</label>
+                    <input type="text" id="editOccupation" name="occupation" class="form-control">
                 </div>
-                <div class="mb-4">
-                    <label for="editMonthlyIncome" class="block text-sm font-medium text-gray-700">Monthly Income</label>
-                    <input type="number" id="editMonthlyIncome" name="monthly_income" required step="0.01"
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                <div class="form-group">
+                    <label for="editMonthlyIncome" class="form-label">Monthly Income</label>
+                    <input type="number" id="editMonthlyIncome" name="monthly_income" required step="0.01" class="form-control">
                 </div>
-                <div class="mb-4">
-                    <label for="editCreditLimit" class="block text-sm font-medium text-gray-700">Credit Limit</label>
-                    <input type="number" id="editCreditLimit" name="credit_limit" required step="0.01"
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                <div class="form-group">
+                    <label for="editCreditLimit" class="form-label">Credit Limit</label>
+                    <input type="number" id="editCreditLimit" name="credit_limit" required step="0.01" class="form-control">
                 </div>
-                <div class="text-center">
-                    <button type="submit" class="bg-indigo-600 text-white px-6 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
-                        Save Changes
-                    </button>
-                    <button type="button" id="closeEditModal" class="bg-gray-300 text-gray-700 px-6 py-2 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
-                        Cancel
-                    </button>
+                <div class="modal-footer">
+                    <button type="button" id="closeEditModal" class="btn btn-danger">Cancel</button>
+                    <button type="submit" class="btn btn-success">Save Changes</button>
                 </div>
             </form>
         </div>
     </div>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
     <script>
     $(document).ready(function() {
         let currentPage = 1;
@@ -514,20 +880,20 @@ ob_end_flush();
 
                     response.members.forEach(member => {
                         tableBody.append(`
-                            <tr class="border-b border-gray-200 hover:bg-gray-100">
-                                <td class="py-3 px-6 text-left">${member.coop_number}</td>
-                                <td class="py-3 px-6 text-left">${member.full_name}</td>
-                                <td class="py-3 px-6 text-left">${member.nic}</td>
-                                <td class="py-3 px-6 text-left">${member.age}</td>
-                                <td class="py-3 px-6 text-left">${member.occupation || 'N/A'}</td>
-                                <td class="py-3 px-6 text-left">${member.monthly_income}</td>
-                                <td class="py-3 px-6 text-left">${member.credit_limit || '0.00'}</td>
-                                <td class="py-3 px-6 text-center">
-                                    <button class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 edit-btn" data-id="${member.id}">
-                                        Edit
+                            <tr>
+                                <td>${member.coop_number}</td>
+                                <td>${member.full_name}</td>
+                                <td>${member.nic}</td>
+                                <td>${member.age}</td>
+                                <td>${member.occupation || 'N/A'}</td>
+                                <td>${member.monthly_income}</td>
+                                <td>${member.credit_limit || '0.00'}</td>
+                                <td>
+                                    <button class="action-btn edit-btn" data-id="${member.id}">
+                                        <i class="fas fa-edit"></i> Edit
                                     </button>
-                                    <button class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 delete-btn" data-id="${member.id}">
-                                        Delete
+                                    <button class="action-btn delete-btn" data-id="${member.id}">
+                                        <i class="fas fa-trash"></i> Delete
                                     </button>
                                 </td>
                             </tr>
@@ -541,7 +907,7 @@ ob_end_flush();
                     const totalPages = Math.ceil(response.total / perPage);
                     for (let i = 1; i <= totalPages; i++) {
                         pagination.append(`
-                            <button class="page-btn mx-1 px-3 py-1 ${i === page ? 'bg-indigo-500 text-white' : 'bg-gray-200'} rounded">${i}</button>
+                            <button class="page-btn ${i === page ? 'active' : ''}">${i}</button>
                         `);
                     }
 
@@ -606,7 +972,7 @@ ob_end_flush();
                     $('#editOccupation').val(member.occupation);
                     $('#editMonthlyIncome').val(member.monthly_income);
                     $('#editCreditLimit').val(member.credit_limit || '0.00');
-                    $('#editModal').removeClass('hidden');
+                    $('#editModal').addClass('show');
                 },
                 error: function(xhr, status, error) {
                     alert('Error loading member data: ' + error);
@@ -626,7 +992,7 @@ ob_end_flush();
                 dataType: 'json',
                 success: function(response) {
                     if (response.success) {
-                        $('#editModal').addClass('hidden');
+                        $('#editModal').removeClass('show');
                         loadMembers(currentPage, $('#searchForm [name="search"]').val(),
                             $('#searchForm [name="filter_column"]').val(),
                             $('#searchForm [name="filter_value"]').val());
@@ -667,7 +1033,7 @@ ob_end_flush();
 
         // Close Edit Modal
         $('#closeEditModal').click(function() {
-            $('#editModal').addClass('hidden');
+            $('#editModal').removeClass('show');
         });
     });
     </script>

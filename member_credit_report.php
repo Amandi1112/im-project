@@ -1,9 +1,12 @@
 <?php
-// Database configuration
+// Include FPDF library
+require('fpdf/fpdf.php');
+
+// Database connection
 $servername = "localhost";
 $username = "root";
 $password = "";
-$dbname = "mywebsite";
+$dbname = "mywebsite"; // Replace with your actual database name
 
 // Create connection
 $conn = new mysqli($servername, $username, $password, $dbname);
@@ -13,429 +16,543 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// Set charset to utf8mb4 for proper encoding
-$conn->set_charset("utf8mb4");
+// Function to sanitize input
+function sanitize_input($data) {
+    $data = trim($data);
+    $data = stripslashes($data);
+    $data = htmlspecialchars($data);
+    return $data;
+}
 
-// Include FPDF library
-require('fpdf/fpdf.php');
+// Initialize variables
+$member_id = $start_date = $end_date = "";
+$error_message = "";
+$report_generated = false;
 
-class PDF extends FPDF {
-    private $title;
-    private $organization;
+// Process form submission
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $member_id = sanitize_input($_POST["member_id"]);
+    $start_date = sanitize_input($_POST["start_date"]);
+    $end_date = sanitize_input($_POST["end_date"]);
     
-    function __construct($orientation='P', $unit='mm', $size='A4') {
-        parent::__construct($orientation, $unit, $size);
-        $this->title = "Member Credit Balance Report";
-        $this->organization = "Your Cooperative Name";
-    }
-    
-    // Page header
-    function Header() {
-        // Logo
-        $this->Image('logo.png', 10, 6, 30); // Replace with your logo path
-        
-        // Organization Name
-        $this->SetFont('Arial','B',16);
-        $this->Cell(0, 10, $this->organization, 0, 1, 'C');
-        
-        // Report Title
-        $this->SetFont('Arial','B',14);
-        $this->Cell(0, 10, $this->title, 0, 1, 'C');
-        
-        // Report Date
-        $this->SetFont('Arial','',10);
-        $this->Cell(0, 5, 'Generated on: ' . date('F j, Y, g:i a'), 0, 1, 'C');
-        
-        // Line break
-        $this->Ln(10);
-        
-        // Table header - Updated with consistent column widths
-        $this->SetFont('Arial','B',10);
-        $this->SetFillColor(58, 83, 155); // Dark blue header
-        $this->SetTextColor(255);
-        $this->Cell(15, 8, 'ID', 1, 0, 'C', true);
-        $this->Cell(55, 8, 'Member Name', 1, 0, 'L', true);
-        $this->Cell(30, 8, 'Coop Number', 1, 0, 'C', true);
-        $this->Cell(30, 8, 'Credit Limit', 1, 0, 'R', true);
-        $this->Cell(30, 8, 'Balance', 1, 0, 'R', true);
-        $this->Cell(30, 8, 'Available', 1, 1, 'R', true);
-        
-        // Reset text color
-        $this->SetTextColor(0);
-    }
-    
-    // Page footer
-    function Footer() {
-        $this->SetY(-15);
-        $this->SetFont('Arial','I',8);
-        $this->SetTextColor(100);
-        $this->Cell(0, 10, 'Page '.$this->PageNo().'/{nb}', 0, 0, 'C');
-        $this->Cell(0, 10, 'Confidential - For internal use only', 0, 0, 'R');
-    }
-    
-    // Colored table row - Updated to match header widths exactly
-    function fillRow($data) {
-        $this->SetFont('Arial','',9);
-        
-        // Set fill color based on balance
-        if ($data['current_credit_balance'] < 0) {
-            $this->SetFillColor(255, 220, 220); // Light red for negative
-        } elseif ($data['current_credit_balance'] == 0) {
-            $this->SetFillColor(240, 240, 240); // Light gray for zero
-        } else {
-            $this->SetFillColor(220, 255, 220); // Light green for positive
-        }
-        
-        // Set text color based on balance
-        if ($data['current_credit_balance'] < 0) {
-            $this->SetTextColor(200, 0, 0); // Dark red for negative
-        } elseif ($data['current_credit_balance'] == 0) {
-            $this->SetTextColor(100); // Gray for zero
-        }
-        
-        $available = $data['credit_limit'] - $data['current_credit_balance'];
-        
-        // Column widths exactly match the header
-        $this->Cell(15, 7, $data['id'], 'LR', 0, 'C', true);
-        $this->Cell(55, 7, $data['full_name'], 'LR', 0, 'L', true);
-        $this->Cell(30, 7, $data['coop_number'], 'LR', 0, 'C', true);
-        $this->Cell(30, 7, number_format($data['credit_limit'], 2), 'LR', 0, 'R', true);
-        $this->Cell(30, 7, number_format($data['current_credit_balance'], 2), 'LR', 0, 'R', true);
-        $this->Cell(30, 7, number_format($available, 2), 'LR', 1, 'R', true);
-        
-        // Reset colors
-        $this->SetFillColor(255);
-        $this->SetTextColor(0);
+    if (empty($member_id) || empty($start_date) || empty($end_date)) {
+        $error_message = "All fields are required";
+    } else {
+        // Generate report
+        generateReport($conn, $member_id, $start_date, $end_date);
+        $report_generated = true;
     }
 }
 
-// Check if PDF generation is requested
-if (isset($_GET['export']) && $_GET['export'] == 'pdf') {
-    // Create PDF instance
-    $pdf = new PDF();
-    $pdf->AliasNbPages();
+function generateReport($conn, $member_id, $start_date, $end_date) {
+    // Define color scheme
+    $primaryColor = array(102, 126, 234);   // #667eea
+    $primaryDark = array(90, 103, 216);     // #5a67d8
+    $successColor = array(72, 187, 120);    // #48bb78
+    $darkColor = array(45, 55, 72);         // #2d3748
+    $grayColor = array(113, 128, 150);      // #718096
+    $grayLight = array(226, 232, 240);      // #e2e8f0
+
+    // Fetch member details
+    $member_sql = "SELECT * FROM members WHERE id = ?";
+    $stmt = $conn->prepare($member_sql);
+    $stmt->bind_param("i", $member_id);
+    $stmt->execute();
+    $member_result = $stmt->get_result();
+    
+    if ($member_result->num_rows === 0) {
+        echo "No member found with the provided ID";
+        return;
+    }
+    
+    $member = $member_result->fetch_assoc();
+    
+    // Fetch purchases within date range
+    $purchases_sql = "SELECT p.*, i.item_name, i.item_code 
+                     FROM purchases p 
+                     JOIN items i ON p.item_id = i.item_id 
+                     WHERE p.member_id = ? AND p.purchase_date BETWEEN ? AND ?
+                     ORDER BY p.purchase_date DESC";
+    
+    $stmt = $conn->prepare($purchases_sql);
+    $stmt->bind_param("iss", $member_id, $start_date, $end_date);
+    $stmt->execute();
+    $purchases_result = $stmt->get_result();
+    
+    // Calculate total purchases amount
+    $total_sql = "SELECT SUM(total_price) as total_spent
+                 FROM purchases 
+                 WHERE member_id = ? AND purchase_date BETWEEN ? AND ?";
+    
+    $stmt = $conn->prepare($total_sql);
+    $stmt->bind_param("iss", $member_id, $start_date, $end_date);
+    $stmt->execute();
+    $total_result = $stmt->get_result();
+    $total_row = $total_result->fetch_assoc();
+    $total_spent = $total_row['total_spent'] ?? 0;
+    
+    // Calculate available credit
+    $available_credit = $member['credit_limit'] - $total_spent;
+    
+    // Create PDF in portrait
+    $pdf = new FPDF('P', 'mm', 'A4');
     $pdf->AddPage();
     
-    // Fetch member data
-    $sql = "SELECT id, full_name, coop_number, credit_limit, current_credit_balance 
-            FROM members 
-            ORDER BY full_name";
-    $result = $conn->query($sql);
+    // ========== HEADER SECTION ========== //
+    // Header with primary color background
+    $pdf->SetFillColor($primaryColor[0], $primaryColor[1], $primaryColor[2]);
+    $pdf->Rect(10, 10, 190, 20, 'F');
     
-    if ($result->num_rows > 0) {
-        while($row = $result->fetch_assoc()) {
-            $pdf->fillRow($row);
+    // Shop name
+    $pdf->SetTextColor(255);
+    $pdf->SetFont('Helvetica', 'B', 16);
+    $pdf->SetXY(15, 12);
+    $pdf->Cell(0, 8, 'T&C CO-OP CITY SHOP - KARAWITA', 0, 1, 'L');
+    
+    // Report info box
+    $pdf->SetFillColor($primaryDark[0], $primaryDark[1], $primaryDark[2]);
+    $pdf->Rect(140, 12, 60, 16, 'F');
+    $pdf->SetFont('Helvetica', 'B', 12);
+    $pdf->SetXY(140, 12);
+    $pdf->Cell(60, 8, 'CREDIT REPORT', 0, 1, 'C');
+    $pdf->SetFont('Helvetica', '', 10);
+    $pdf->SetXY(140, 18);
+    $pdf->Cell(60, 6, date('F j, Y'), 0, 1, 'C');
+    
+    // Shop contact info
+    $pdf->SetTextColor(255);
+    $pdf->SetFont('Helvetica', '', 9);
+    $pdf->SetXY(15, 22);
+    $pdf->Cell(0, 5, 'Karawita | Tel: +94 11 2345678 | Email: accounts@coopshop.lk', 0, 1, 'L');
+    
+    // ========== MEMBER DETAILS SECTION ========== //
+    $pdf->SetY(40);
+    $pdf->SetTextColor($darkColor[0], $darkColor[1], $darkColor[2]);
+    
+    $pdf->SetFont('Helvetica', 'B', 12);
+    $pdf->Cell(0, 8, 'MEMBER DETAILS', 0, 1, 'L');
+    $pdf->SetFont('Helvetica', '', 10);
+    
+    $pdf->Cell(50, 7, 'Coop Number:', 0, 0);
+    $pdf->Cell(0, 7, $member['coop_number'], 0, 1);
+    
+    $pdf->Cell(50, 7, 'Full Name:', 0, 0);
+    $pdf->Cell(0, 7, $member['full_name'], 0, 1);
+    
+    $pdf->Cell(50, 7, 'Bank ID:', 0, 0);
+    $pdf->Cell(0, 7, $member['bank_membership_number'], 0, 1);
+    
+    $pdf->Cell(50, 7, 'NIC:', 0, 0);
+    $pdf->Cell(0, 7, $member['nic'], 0, 1);
+    
+    $pdf->Cell(50, 7, 'Phone:', 0, 0);
+    $pdf->Cell(0, 7, $member['telephone_number'], 0, 1);
+    
+    $pdf->Ln(10);
+    
+    // ========== CREDIT SUMMARY SECTION (RIGHT ALIGNED) ========== //
+    $pdf->SetFont('Helvetica', 'B', 12);
+    $pdf->Cell(0, 8, 'CREDIT SUMMARY', 0, 1, 'L');
+    
+    // Right-align the credit summary details by adjusting X position
+    $labelWidth = 70;
+    $valueX = 100; // Starting X position for values (moved right)
+    
+    $pdf->SetFont('Helvetica', '', 10);
+    $pdf->Cell($labelWidth, 7, 'Credit Limit:', 0, 0);
+    $pdf->SetX($valueX);
+    $pdf->Cell(0, 7, 'Rs. ' . number_format($member['credit_limit'], 2), 0, 1);
+    
+    $pdf->Cell($labelWidth, 7, 'Total Purchases (' . date('M j, Y', strtotime($start_date)) . ' to ' . date('M j, Y', strtotime($end_date)) . '):', 0, 0);
+    $pdf->SetX($valueX);
+    $pdf->Cell(0, 7, 'Rs. ' . number_format($total_spent, 2), 0, 1);
+    
+    $pdf->SetFont('Helvetica', 'B', 10);
+    $pdf->SetFillColor($successColor[0], $successColor[1], $successColor[2]);
+    $pdf->Cell($labelWidth, 7, 'Available Credit:', 0, 0);
+    $pdf->SetX($valueX);
+    $pdf->Cell(0, 7, 'Rs. ' . number_format($available_credit, 2), 1, 1, 'L', true);
+    
+    $pdf->Ln(10);
+    
+    // ========== PURCHASE HISTORY SECTION ========== //
+    $pdf->SetFont('Helvetica', 'B', 12);
+    $pdf->Cell(0, 8, 'PURCHASE HISTORY', 0, 1, 'L');
+    
+    if ($purchases_result->num_rows > 0) {
+        // Table header
+        $pdf->SetFillColor($primaryColor[0], $primaryColor[1], $primaryColor[2]);
+        $pdf->SetTextColor(255);
+        $pdf->SetFont('Helvetica', 'B', 10);
+        
+        $pdf->Cell(25, 8, 'Date', 1, 0, 'C', true);
+        $pdf->Cell(30, 8, 'Item Code', 1, 0, 'C', true);
+        $pdf->Cell(60, 8, 'Item Name', 1, 0, 'C', true);
+        $pdf->Cell(20, 8, 'Qty', 1, 0, 'C', true);
+        $pdf->Cell(30, 8, 'Unit Price', 1, 0, 'C', true);
+        $pdf->Cell(30, 8, 'Total', 1, 1, 'C', true);
+        
+        // Table content
+        $pdf->SetTextColor($darkColor[0], $darkColor[1], $darkColor[2]);
+        $pdf->SetFont('Helvetica', '', 9);
+        
+        $fill = false;
+        while ($row = $purchases_result->fetch_assoc()) {
+            $pdf->SetFillColor($fill ? $grayLight[0] : 255);
+            $pdf->Cell(25, 7, $row['purchase_date'], 1, 0, 'C', $fill);
+            $pdf->Cell(30, 7, $row['item_code'], 1, 0, 'C', $fill);
+            $pdf->Cell(60, 7, $row['item_name'], 1, 0, 'L', $fill);
+            $pdf->Cell(20, 7, $row['quantity'], 1, 0, 'C', $fill);
+            $pdf->Cell(30, 7, 'Rs. ' . number_format($row['price_per_unit'], 2), 1, 0, 'R', $fill);
+            $pdf->Cell(30, 7, 'Rs. ' . number_format($row['total_price'], 2), 1, 1, 'R', $fill);
+            $fill = !$fill;
         }
         
-        // Add totals row - Updated to match column widths
-        $pdf->SetFont('Arial','B',10);
-        $pdf->SetFillColor(220, 220, 220); // Light gray for totals
-        $pdf->Cell(100, 7, 'TOTALS', 'LTB', 0, 'R', true); // 15+55+30=100
-        
-        $total_limit = $conn->query("SELECT SUM(credit_limit) as total FROM members")->fetch_assoc()['total'];
-        $total_balance = $conn->query("SELECT SUM(current_credit_balance) as total FROM members")->fetch_assoc()['total'];
-        $total_available = $total_limit - $total_balance;
-        
-        $pdf->Cell(30, 7, number_format($total_limit, 2), 'TB', 0, 'R', true);
-        $pdf->Cell(30, 7, number_format($total_balance, 2), 'TB', 0, 'R', true);
-        $pdf->Cell(30, 7, number_format($total_available, 2), 'TRB', 1, 'R', true);
+        // Total row
+        $pdf->SetFont('Helvetica', 'B', 10);
+        $pdf->Cell(135, 8, 'Total', 1, 0, 'R');
+        $pdf->Cell(60, 8, 'Rs. ' . number_format($total_spent, 2), 1, 1, 'R');
     } else {
-        $pdf->Cell(0, 10, 'No member data found', 1, 1, 'C');
+        $pdf->SetFont('Helvetica', 'I', 10);
+        $pdf->Cell(0, 8, 'No purchases found within the selected date range.', 0, 1, 'L');
     }
     
+    // ========== SIGNATURE SECTION ========== //
+$pdf->SetY($pdf->GetY() + 15); // Add space before signatures
+
+// Define variables for better alignment
+$pageWidth = $pdf->GetPageWidth();
+$leftColX = 20;
+$rightColX = $pageWidth / 2 + 10;
+$lineWidth = 80; // Width of signature line
+$grayColor = array(128, 128, 128); // Gray color for lines
+
+// Co-op City Staff Signature (left aligned)
+$pdf->SetFont('Helvetica', 'B', 10);
+$pdf->SetX($leftColX);
+$pdf->Cell($lineWidth, 8, 'Co-op City Staff Signature:', 0, 0, 'L');
+
+// Bank Manager Signature (right aligned)
+$pdf->SetX($rightColX);
+$pdf->Cell($lineWidth, 8, 'Bank Manager Signature:', 0, 1, 'L');
+
+// Space for signatures
+$pdf->SetFont('Helvetica', '', 10);
+$pdf->Cell(0, 20, '', 0, 1); // Space for signatures
+
+// Signature lines
+$pdf->SetDrawColor($grayColor[0], $grayColor[1], $grayColor[2]);
+$pdf->Line($leftColX, $pdf->GetY() - 10, $leftColX + $lineWidth, $pdf->GetY() - 10); // Co-op line
+$pdf->Line($rightColX, $pdf->GetY() - 10, $rightColX + $lineWidth, $pdf->GetY() - 10); // Bank line
+
+// Add name/date fields under signature lines
+$pdf->SetFont('Helvetica', '', 8);
+$pdf->SetX($leftColX);
+$pdf->Cell($lineWidth/2, 5, 'Name:', 0, 0, 'L');
+$pdf->SetX($rightColX);
+$pdf->Cell($lineWidth/2, 5, 'Name:', 0, 1, 'L');
+
+$pdf->SetX($leftColX);
+$pdf->Cell($lineWidth/2, 5, 'Date:', 0, 0, 'L');
+$pdf->SetX($rightColX);
+$pdf->Cell($lineWidth/2, 5, 'Date:', 0, 1, 'L');
+
+// Add space after signatures
+$pdf->Ln(10);
+    // ========== FOOTER SECTION ========== //
+    $pdf->SetY(-20);
+    $pdf->SetFont('Helvetica', 'I', 8);
+    $pdf->SetTextColor($grayColor[0], $grayColor[1], $grayColor[2]);
+    $pdf->Cell(0, 5, 'This is a computer generated report. Thank you for your business!', 0, 1, 'C');
+    $pdf->Cell(0, 5, 'Generated on ' . date('Y-m-d H:i:s'), 0, 1, 'C');
+    $pdf->Cell(0, 5, 'Page ' . $pdf->PageNo(), 0, 0, 'C');
+    
     // Output PDF
-    $pdf->Output('D', 'Member_Credit_Report_'.date('Ymd_His').'.pdf');
-    exit();
+    $pdf->Output('Member_Credit_Report_' . $member['coop_number'] . '.pdf', 'D');
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Member Credit Balance Report</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>Member Credit Summary Report</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary-color: #3a539b;
-            --secondary-color: #1f3a93;
-            --accent-color: #f89406;
-            --light-gray: #f8f9fa;
-            --dark-gray: #343a40;
-            --negative-color: #d9534f;
-            --positive-color: #5cb85c;
-            --neutral-color: #5bc0de;
+            --primary: #667eea;
+            --primary-dark: #5a67d8;
+            --secondary: #edf2f7;
+            --danger: #e53e3e;
+            --danger-dark: #c53030;
+            --success: #48bb78;
+            --success-dark: #38a169;
+            --warning: #ed8936;
+            --warning-dark: #dd6b20;
+            --info: #4299e1;
+            --info-dark: #3182ce;
+            --light: #f7fafc;
+            --dark: #2d3748;
+            --gray: #718096;
+            --gray-light: #e2e8f0;
         }
         
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f5f7fa;
-            color: #333;
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            color: var(--dark);
+            line-height: 1.6;
         }
         
-        .report-container {
-            max-width: 1200px;
+        .container {
+            max-width: 800px;
             margin: 30px auto;
-            background: white;
-            box-shadow: 0 0 20px rgba(0,0,0,0.1);
-            border-radius: 8px;
-            overflow: hidden;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
         }
         
-        .report-header {
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            color: white;
-            padding: 25px;
+        h1 {
+            color: var(--dark);
             text-align: center;
+            margin-bottom: 25px;
+            font-weight: 600;
+            position: relative;
+            padding-bottom: 10px;
+        }
+        
+        h1::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 3px;
+            background: linear-gradient(to right, var(--primary), var(--primary-dark));
+            border-radius: 3px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        button {
+            background: linear-gradient(to right, #28a745, #218838);
+            box-shadow: 0 4px 10px rgba(40, 167, 69, 0.3);
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        button:hover {
+            background: linear-gradient(to right, #218838, #1e7e34);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(40, 167, 69, 0.4);
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--dark);
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid var(--gray-light);
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+            transition: all 0.3s;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+        
+        .btn {
+            background: linear-gradient(to right, #28a745, #218838);
+            box-shadow: 0 4px 10px rgba(40, 167, 69, 0.3);
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .btn:hover {
+            background: linear-gradient(to right, #218838, #1e7e34);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(40, 167, 69, 0.4);
+        }
+        
+        .error {
+            color: var(--danger);
+            margin-bottom: 20px;
+            padding: 12px;
+            background-color: rgba(229, 62, 62, 0.1);
+            border-radius: 6px;
+            border-left: 4px solid var(--danger);
+        }
+        
+        .member-select-container {
             position: relative;
         }
         
-        .report-header h2 {
-            font-weight: 600;
-            margin-bottom: 5px;
-        }
-        
-        .report-header p {
-            opacity: 0.9;
-            margin-bottom: 0;
-        }
-        
-        .report-logo {
+        #memberResults {
             position: absolute;
-            left: 25px;
-            top: 50%;
-            transform: translateY(-50%);
-            max-height: 50px;
-        }
-        
-        .report-body {
-            padding: 25px;
-        }
-        
-        .action-buttons {
-            margin-bottom: 25px;
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-        }
-
-        .btn-pdf {
-            background-color: var(--negative-color);
-            border-color: var(--negative-color);
-        }
-        
-        .btn-print {
-            background-color: var(--primary-color);
-            border-color: var(--primary-color);
-        }
-        
-        .table-report {
             width: 100%;
-            border-collapse: collapse;
-            background-color: white;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            background: white;
+            border: 1px solid var(--gray-light);
+            border-top: none;
+            border-radius: 0 0 6px 6px;
+            display: none;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
         }
         
-        .table-report thead th {
-            background-color: var(--primary-color);
-            color: white;
-            padding: 12px 15px;
-            font-weight: 600;
+        .member-item {
+            padding: 12px;
+            cursor: pointer;
+            transition: background-color 0.2s;
         }
         
-        /* Updated column width styles to match PDF */
-        .table-report th:nth-child(1),
-        .table-report td:nth-child(1) {
-            width: 5%;
+        .member-item:hover {
+            background-color: var(--secondary);
         }
         
-        .table-report th:nth-child(2),
-        .table-report td:nth-child(2) {
-            width: 35%;
-        }
-        
-        .table-report th:nth-child(3),
-        .table-report td:nth-child(3) {
-            width: 15%;
-        }
-        
-        .table-report th:nth-child(4),
-        .table-report td:nth-child(4),
-        .table-report th:nth-child(5),
-        .table-report td:nth-child(5),
-        .table-report th:nth-child(6),
-        .table-report td:nth-child(6) {
-            width: 15%;
-        }
-        
-        .table-report tbody tr {
-            border-bottom: 1px solid #e0e0e0;
-        }
-        
-        .table-report tbody tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-        
-        .table-report tbody tr:hover {
-            background-color: #f1f1f1;
-        }
-        
-        .table-report td {
-            padding: 12px 15px;
-        }
-        
-        .negative-balance {
-            color: var(--negative-color);
-            font-weight: 600;
-        }
-        
-        .positive-balance {
-            color: var(--positive-color);
-        }
-        
-        .zero-balance {
-            color: var(--neutral-color);
-        }
-        
-        .text-right {
-            text-align: right;
-        }
-        
-        .text-center {
-            text-align: center;
-        }
-        
-        .report-footer {
-            padding: 15px 25px;
-            background-color: var(--light-gray);
-            border-top: 1px solid #e0e0e0;
-            text-align: center;
-            font-size: 0.9em;
-            color: #666;
-        }
-        
-        @media print {
-            body {
-                background: none;
-                padding: 0;
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
             }
             
-            .report-container {
-                box-shadow: none;
-                border-radius: 0;
+            h1 {
+                font-size: 24px;
             }
             
-            .no-print, .action-buttons {
-                display: none !important;
-            }
-            
-            .table-report thead th {
-                background-color: #3a539b !important;
-                color: white !important;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
+            .btn {
+                width: 100%;
             }
         }
     </style>
 </head>
 <body>
-    <div class="report-container">
-        <div class="report-header">
-            <img src="images/logo.jpeg" alt="Logo" class="report-logo no-print">
-            <h2>Member Credit Balance Report</h2>
-            <p>Generated on <?php echo date('F j, Y, g:i a'); ?></p>
-        </div>
+    <div class="container">
+        <h1>Member Credit Summary Report</h1>
         
-        <div class="report-body" style="background-color:rgb(200, 240, 253);">
-            <div class="action-buttons no-print">
-                <a href="?export=pdf" class="btn btn-pdf text-black">
-                    <i class="fas fa-file-pdf"></i> Export as PDF
-                </a>
-                <button onclick="window.print()" class="btn btn-print text-white">
-                    <i class="fas fa-print"></i> Print Report
-                </button>
+        <?php if (!empty($error_message)): ?>
+            <div class="error"><?php echo $error_message; ?></div>
+        <?php endif; ?>
+        
+        <form method="post" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>">
+            <div class="form-group member-select-container">
+                <label for="member_id">Select Member:</label>
+                <input type="text" id="member_search" placeholder="Search by name, ID or coop number" autocomplete="off">
+                <input type="hidden" id="member_id" name="member_id" value="<?php echo $member_id; ?>" required>
+                <div id="memberResults"></div>
             </div>
             
-            <div class="table-responsive">
-                <table class="table-report">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Member Name</th>
-                            <th class="text-center">Coop Number</th>
-                            <th class="text-right">Credit Limit</th>
-                            <th class="text-right">Balance</th>
-                            <th class="text-right">Available Credit</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php
-                        $sql = "SELECT id, full_name, coop_number, credit_limit, current_credit_balance 
-                                FROM members 
-                                ORDER BY full_name";
-                        $result = $conn->query($sql);
-                        
-                        if ($result->num_rows > 0) {
-                            while($row = $result->fetch_assoc()) {
-                                $available = $row['credit_limit'] - $row['current_credit_balance'];
-                                $balance_class = '';
-                                
-                                if ($row['current_credit_balance'] < 0) {
-                                    $balance_class = 'negative-balance';
-                                } elseif ($row['current_credit_balance'] == 0) {
-                                    $balance_class = 'zero-balance';
-                                } else {
-                                    $balance_class = 'positive-balance';
-                                }
-                                ?>
-                                <tr>
-                                    <td><?php echo htmlspecialchars($row['id']); ?></td>
-                                    <td><?php echo htmlspecialchars($row['full_name']); ?></td>
-                                    <td class="text-center"><?php echo htmlspecialchars($row['coop_number']); ?></td>
-                                    <td class="text-right"><?php echo number_format($row['credit_limit'], 2); ?></td>
-                                    <td class="text-right <?php echo $balance_class; ?>">
-                                        <?php echo number_format($row['current_credit_balance'], 2); ?>
-                                    </td>
-                                    <td class="text-right"><?php echo number_format($available, 2); ?></td>
-                                </tr>
-                                <?php
-                            }
-                        } else {
-                            echo '<tr><td colspan="6" class="text-center">No member data found</td></tr>';
-                        }
-                        ?>
-                    </tbody>
-                    <tfoot>
-                        <tr>
-                            <th colspan="3" class="text-right">TOTALS</th>
-                            <th class="text-right"><?php 
-                                $total_limit = $conn->query("SELECT SUM(credit_limit) as total FROM members")->fetch_assoc()['total'];
-                                echo number_format($total_limit, 2); 
-                            ?></th>
-                            <th class="text-right"><?php 
-                                $total_balance = $conn->query("SELECT SUM(current_credit_balance) as total FROM members")->fetch_assoc()['total'];
-                                echo number_format($total_balance, 2); 
-                            ?></th>
-                            <th class="text-right"><?php 
-                                echo number_format($total_limit - $total_balance, 2); 
-                            ?></th>
-                        </tr>
-                    </tfoot>
-                </table>
+            <div class="form-group">
+                <label for="start_date">Start Date:</label>
+                <input type="date" id="start_date" name="start_date" value="<?php echo $start_date; ?>" required>
             </div>
-        </div>
-        
-        <div class="report-footer no-print">
-            <p>Confidential - For internal use only &bull; Generated by <?php echo $conn->host_info; ?></p>
-        </div>
+            
+            <div class="form-group">
+                <label for="end_date">End Date:</label>
+                <input type="date" id="end_date" name="end_date" value="<?php echo $end_date; ?>" required>
+            </div>
+            
+            <button type="submit" class="btn">Generate Report</button>
+            
+        </form>
     </div>
-
-    <!-- Font Awesome for icons -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
-    <!-- Bootstrap JS Bundle with Popper -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const memberSearch = document.getElementById('member_search');
+            const memberIdInput = document.getElementById('member_id');
+            const memberResults = document.getElementById('memberResults');
+            const startDateInput = document.getElementById('start_date');
+            const endDateInput = document.getElementById('end_date');
+            
+            // Set default dates (current month)
+            if (!startDateInput.value) {
+                const today = new Date();
+                const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+                const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+                
+                startDateInput.value = formatDate(firstDay);
+                endDateInput.value = formatDate(lastDay);
+            }
+            
+            // Member search functionality
+            memberSearch.addEventListener('input', function() {
+                const query = this.value.trim();
+                
+                if (query.length < 2) {
+                    memberResults.style.display = 'none';
+                    return;
+                }
+                
+                fetch('get_members.php?q=' + encodeURIComponent(query))
+                    .then(response => response.json())
+                    .then(data => {
+                        memberResults.innerHTML = '';
+                        
+                        if (data.length > 0) {
+                            data.forEach(member => {
+                                const div = document.createElement('div');
+                                div.className = 'member-item';
+                                div.textContent = `${member.id} - ${member.full_name} (${member.coop_number})`;
+                                div.dataset.id = member.id;
+                                div.dataset.name = member.full_name;
+                                
+                                div.addEventListener('click', function() {
+                                    memberIdInput.value = this.dataset.id;
+                                    memberSearch.value = this.dataset.name;
+                                    memberResults.style.display = 'none';
+                                });
+                                
+                                memberResults.appendChild(div);
+                            });
+                            
+                            memberResults.style.display = 'block';
+                        } else {
+                            memberResults.style.display = 'none';
+                        }
+                    })
+                    .catch(error => console.error('Error:', error));
+            });
+            
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+                if (e.target !== memberSearch && e.target !== memberResults) {
+                    memberResults.style.display = 'none';
+                }
+            });
+            
+            // Helper function to format date as YYYY-MM-DD
+            function formatDate(date) {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            }
+        });
+    </script>
 </body>
 </html>
-<?php
-// Close database connection
-$conn->close();
-?>

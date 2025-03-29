@@ -819,8 +819,10 @@ $recentActivities = [
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="reportsDropdown">
                                 <li><a class="dropdown-item" href="member_credit_report.php"><i class="fas fa-credit-card"></i> Credit Balance Reports</a></li>
+                                <li><a class="dropdown-item" href="member_purchase_history.php"><i class="fas fa-star"></i>Purchase history of members</a></li>
                                 <li><a class="dropdown-item" href="report2.php"><i class="fas fa-file-alt"></i> Purchase Details Report</a></li>
                                 <li><a class="dropdown-item" href="supplier_performance_report.php"><i class="fas fa-star"></i> Supplier Performance Report</a></li>
+                                <li><a class="dropdown-item" href="profit.php"><i class="fas fa-star"></i> Sales vs Purchases</a></li>
                             </ul>
                         </li>
                     </ul>

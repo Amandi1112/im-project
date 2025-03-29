@@ -121,165 +121,171 @@ function generateInvoicePDF($purchaseId, $pdo) {
     }
 
     // Create PDF with professional design
-    $pdf = new FPDF('P','mm','A4');
-    $pdf->AddPage();
-    
-    // ========== COLOR SCHEME ========== //
-    $primaryColor = array(13, 71, 161);   // Navy Blue
-    $secondaryColor = array(229, 57, 53); // Red
-    $accentColor = array(251, 192, 45);   // Gold
-    $lightColor = array(245, 245, 245);   // Light Gray
-    $darkColor = array(33, 33, 33);       // Dark Text
-    $borderColor = array(224, 224, 224);  // Border Gray
+    // Create PDF with professional design in landscape
+$pdf = new FPDF('L','mm','A4'); // Changed to landscape orientation
+$pdf->AddPage();
 
-    // ========== PAGE 1: HEADER & DETAILS ========== //
-    
-    // Header with logo placeholder
-    $pdf->SetFillColor($primaryColor[0], $primaryColor[1], $primaryColor[2]);
-    $pdf->Rect(0, 0, 210, 40, 'F');
-    
-    $pdf->SetTextColor(255);
-    $pdf->SetFont('Helvetica','B',24);
-    $pdf->SetXY(10, 10);
-    $pdf->Cell(0,10,'COOPERATIVE SHOP',0,1,'L');
-    
-    $pdf->SetFont('Helvetica','',10);
-    $pdf->SetXY(10, 18);
-    $pdf->Cell(0,5,'123 Business Avenue, Colombo 01',0,1,'L');
-    $pdf->SetXY(10, 23);
-    $pdf->Cell(0,5,'Tel: +94 11 2345678 | Email: accounts@coopshop.lk',0,1,'L');
-    
-    // Invoice title box
-    $pdf->SetFillColor($secondaryColor[0], $secondaryColor[1], $secondaryColor[2]);
-    $pdf->Rect(140, 15, 60, 20, 'F');
-    $pdf->SetTextColor(255);
-    $pdf->SetFont('Helvetica','B',16);
-    $pdf->SetXY(140, 18);
-    $pdf->Cell(60,8,'INVOICE',0,1,'C');
-    $pdf->SetFont('Helvetica','',10);
-    $pdf->SetXY(140, 25);
-    $pdf->Cell(60,6,'#INV-'.str_pad($purchaseId, 5, '0', STR_PAD_LEFT),0,1,'C');
-    
-    // Date and payment info
-    $pdf->SetTextColor($darkColor[0], $darkColor[1], $darkColor[2]);
-    $pdf->SetFont('Helvetica','',10);
-    $pdf->SetXY(10, 45);
-    $pdf->Cell(50,5,'Invoice Date:',0,0);
+// ========== COLOR SCHEME ========== //
+$primaryColor = array(102, 126, 234);   // #667eea
+$primaryDark = array(90, 103, 216);    // #5a67d8
+$secondaryColor = array(237, 242, 247); // #edf2f7
+$dangerColor = array(229, 62, 62);      // #e53e3e
+$successColor = array(72, 187, 120);    // #48bb78
+$warningColor = array(237, 137, 54);    // #ed8936
+$infoColor = array(66, 153, 225);       // #4299e1
+$lightColor = array(247, 250, 252);     // #f7fafc
+$darkColor = array(45, 55, 72);         // #2d3748
+$grayColor = array(113, 128, 150);      // #718096
+$grayLight = array(226, 232, 240);      // #e2e8f0
+
+// ========== HEADER SECTION ========== //
+// Header with primary color background (wider for landscape)
+$pdf->SetFillColor($primaryColor[0], $primaryColor[1], $primaryColor[2]);
+$pdf->Rect(10, 10, 277, 20, 'F');
+
+// Shop name
+$pdf->SetTextColor(255);
+$pdf->SetFont('Helvetica','B',16);
+$pdf->SetXY(15, 12);
+$pdf->Cell(0,8,'COOPERATIVE SHOP',0,1,'L');
+
+// Invoice info box (position adjusted for landscape)
+$pdf->SetFillColor($primaryDark[0], $primaryDark[1], $primaryDark[2]);
+$pdf->Rect(200, 12, 80, 16, 'F'); // Moved further right
+$pdf->SetFont('Helvetica','B',12);
+$pdf->SetXY(200, 12);
+$pdf->Cell(80,8,'INVOICE',0,1,'C');
+$pdf->SetFont('Helvetica','',10);
+$pdf->SetXY(200, 18);
+$pdf->Cell(80,6,'#INV-'.str_pad($purchaseId, 5, '0', STR_PAD_LEFT),0,1,'C');
+
+// Shop contact info (adjusted for landscape width)
+$pdf->SetTextColor(255);
+$pdf->SetFont('Helvetica','',9);
+$pdf->SetXY(15, 22);
+$pdf->Cell(0,5,'123 Business Avenue, Colombo 01 | Tel: +94 11 2345678 | Email: accounts@coopshop.lk',0,1,'L');
+
+// Invoice date and payment terms
+$pdf->SetTextColor($darkColor[0], $darkColor[1], $darkColor[2]);
+$pdf->SetFont('Helvetica','',10);
+$pdf->SetXY(15, 40);
+$pdf->Cell(50,5,'Invoice Date:',0,0);
+$pdf->SetFont('Helvetica','B',10);
+$pdf->Cell(0,5,$firstPurchase['purchase_date'],0,1);
+
+$pdf->SetFont('Helvetica','',10);
+$pdf->SetXY(15, 45);
+$pdf->Cell(50,5,'Payment Terms:',0,0);
+$pdf->SetFont('Helvetica','B',10);
+$pdf->Cell(0,5,'Credit Account',0,1);
+
+// ========== BILL TO SECTION ========== //
+$pdf->SetFillColor($secondaryColor[0], $secondaryColor[1], $secondaryColor[2]);
+$pdf->Rect(15, 55, 130, 30, 'F'); // Wider for landscape
+$pdf->SetTextColor($darkColor[0], $darkColor[1], $darkColor[2]);
+$pdf->SetFont('Helvetica','B',12);
+$pdf->SetXY(15, 55);
+$pdf->Cell(130,8,'BILL TO',0,1,'L');
+$pdf->SetFont('Helvetica','',10);
+
+$pdf->SetXY(17, 63);
+$pdf->Cell(126,5,$firstPurchase['full_name'],0,1);
+$pdf->SetXY(17, 68);
+$pdf->Cell(126,5,$firstPurchase['address'],0,1);
+$pdf->SetXY(17, 73);
+$pdf->Cell(126,5,'Tel: '.$firstPurchase['telephone_number'],0,1);
+$pdf->SetXY(17, 78);
+$pdf->Cell(126,5,'Coop: '.$firstPurchase['coop_number'],0,1);
+
+// ========== ITEM TABLE ========== //
+$pdf->SetY(90);
+
+// Table Header (wider columns for landscape)
+$pdf->SetFillColor($primaryColor[0], $primaryColor[1], $primaryColor[2]);
+$pdf->SetTextColor(255);
+$pdf->SetFont('Helvetica','B',10);
+
+$pdf->Cell(15,10,'#',1,0,'C',true);
+$pdf->Cell(100,10,'ITEM DESCRIPTION',1,0,'L',true); // Wider
+$pdf->Cell(40,10,'ITEM CODE',1,0,'C',true); // Wider
+$pdf->Cell(35,10,'UNIT PRICE',1,0,'R',true);
+$pdf->Cell(25,10,'QTY',1,0,'C',true);
+$pdf->Cell(35,10,'TOTAL',1,1,'R',true); // Wider
+
+// Table Rows
+$pdf->SetTextColor($darkColor[0], $darkColor[1], $darkColor[2]);
+$pdf->SetFont('Helvetica','',10);
+
+$rowNum = 1;
+foreach ($purchases as $purchase) {
+    $pdf->Cell(15,8,$rowNum,1,0,'C');
+    $pdf->Cell(100,8,$purchase['item_name'],1,0,'L');
+    $pdf->Cell(40,8,$purchase['item_code'],1,0,'C');
+    $pdf->Cell(35,8,'Rs. '.number_format($purchase['price_per_unit'],2),1,0,'R');
+    $pdf->Cell(25,8,$purchase['quantity'],1,0,'C');
+    $pdf->Cell(35,8,'Rs. '.number_format($purchase['total_price'],2),1,1,'R');
+    $rowNum++;
+}
+
+// Subtotal row
+$pdf->SetFont('Helvetica','B',10);
+$pdf->Cell(215,8,'SUBTOTAL',1,0,'R'); // Adjusted width
+$pdf->Cell(35,8,'Rs. '.number_format($subtotal,2),1,1,'R');
+
+// ========== NEW CREDIT LIMIT ========== //
+// Check if credit_limit exists before using it
+$creditLimit = isset($firstPurchase['credit_limit']) ? $firstPurchase['credit_limit'] : 0;
+$newCreditLimit = $creditLimit - $subtotal;
+
+if ($creditLimit > 0) {
+    $pdf->SetY($pdf->GetY() + 10);
     $pdf->SetFont('Helvetica','B',10);
-    $pdf->Cell(0,5,$firstPurchase['purchase_date'],0,1);
-    
-    $pdf->SetFont('Helvetica','',10);
-    $pdf->SetXY(10, 50);
-    $pdf->Cell(50,5,'Payment Terms:',0,0);
-    $pdf->SetFont('Helvetica','B',10);
-    $pdf->Cell(0,5,'Credit Account',0,1);
-    
-    // Bill To section
-    $pdf->SetFillColor($lightColor[0], $lightColor[1], $lightColor[2]);
-    $pdf->Rect(10, 60, 90, 40, 'F');
-    $pdf->SetTextColor($darkColor[0], $darkColor[1], $darkColor[2]);
-    $pdf->SetFont('Helvetica','B',12);
-    $pdf->SetXY(10, 60);
-    $pdf->Cell(90,8,'BILL TO',0,1,'L');
-    $pdf->SetFont('Helvetica','',10);
-    
-    $pdf->SetXY(12, 68);
-    $pdf->Cell(86,5,$firstPurchase['full_name'],0,1);
-    $pdf->SetXY(12, 73);
-    $pdf->Cell(86,5,$firstPurchase['address'],0,1);
-    $pdf->SetXY(12, 78);
-    $pdf->Cell(86,5,'Tel: '.$firstPurchase['telephone_number'],0,1);
-    $pdf->SetXY(12, 83);
-    $pdf->Cell(86,5,'Coop: '.$firstPurchase['coop_number'],0,1);
-    $pdf->SetXY(12, 88);
-    $pdf->Cell(86,5,'Bank: '.$firstPurchase['bank_membership_number'],0,1);
-    
-    // Supplier Info (if available)
-    if (!empty($firstPurchase['supplier_name'])) {
-        $pdf->Rect(110, 60, 90, 20, 'F');
-        $pdf->SetFont('Helvetica','B',12);
-        $pdf->SetXY(110, 60);
-        $pdf->Cell(90,8,'SUPPLIER',0,1,'L');
-        $pdf->SetFont('Helvetica','',10);
-        $pdf->SetXY(112, 68);
-        $pdf->Cell(86,5,$firstPurchase['supplier_name'],0,1);
-    }
-    
-    // ========== ITEM TABLE ========== //
-    $pdf->SetY(110);
-    
-    // Table Header
-    $pdf->SetFillColor($primaryColor[0], $primaryColor[1], $primaryColor[2]);
-    $pdf->SetTextColor(255);
-    $pdf->SetFont('Helvetica','B',10);
-    
-    $pdf->Cell(15,10,'#',1,0,'C',true);
-    $pdf->Cell(60,10,'ITEM DESCRIPTION',1,0,'L',true);
-    $pdf->Cell(35,10,'ITEM CODE',1,0,'C',true);
-    $pdf->Cell(25,10,'UNIT PRICE',1,0,'R',true);
-    $pdf->Cell(20,10,'QTY',1,0,'C',true);
-    $pdf->Cell(30,10,'TOTAL',1,1,'R',true);
-    
-    // Table Rows
-    $pdf->SetTextColor($darkColor[0], $darkColor[1], $darkColor[2]);
-    $pdf->SetFont('Helvetica','',10);
-    
-    $rowNum = 1;
-    foreach ($purchases as $purchase) {
-        $pdf->Cell(15,10,$rowNum,1,0,'C');
-        $pdf->Cell(60,10,$purchase['item_name'],1,0,'L');
-        $pdf->Cell(35,10,$purchase['item_code'],1,0,'C');
-        $pdf->Cell(25,10,'Rs. '.number_format($purchase['price_per_unit'],2),1,0,'R');
-        $pdf->Cell(20,10,$purchase['quantity'],1,0,'C');
-        $pdf->Cell(30,10,'Rs. '.number_format($purchase['total_price'],2),1,1,'R');
-        $rowNum++;
-    }
-    
-    // Subtotal row
-    $pdf->SetFont('Helvetica','B',10);
-    $pdf->Cell(155,10,'SUBTOTAL',1,0,'R');
-    $pdf->Cell(30,10,'Rs. '.number_format($subtotal,2),1,1,'R');
-    
-    // ========== PAGE 2: SUMMARY & FOOTER ========== //
-    $pdf->AddPage();
-    
-    // Summary Section
-    $pdf->SetY(30);
-    $pdf->SetFont('Helvetica','B',12);
-    $pdf->Cell(0,8,'CREDIT ACCOUNT SUMMARY',0,1,'L');
-    $pdf->Ln(5);
-    
-    $pdf->SetFont('Helvetica','',10);
-    $pdf->Cell(140,8,'Previous Credit Balance:',0,0,'R');
-    $pdf->Cell(30,8,'Rs. '.number_format($firstPurchase['current_credit_balance'] - $subtotal,2),0,1,'R');
-    
-    $pdf->Cell(140,8,'Purchase Amount:',0,0,'R');
-    $pdf->Cell(30,8,'Rs. '.number_format($subtotal,2),0,1,'R');
-    
-    $pdf->SetFont('Helvetica','B',10);
-    $pdf->Cell(140,8,'New Credit Balance:',0,0,'R');
-    $pdf->SetFillColor($accentColor[0], $accentColor[1], $accentColor[2]);
-    $pdf->Cell(30,8,'Rs. '.number_format($firstPurchase['current_credit_balance'],2),1,1,'R',true);
-    
-    // Terms and Conditions
-    $pdf->SetY(80);
-    $pdf->SetFont('Helvetica','B',12);
-    $pdf->Cell(0,8,'TERMS & CONDITIONS',0,1,'L');
-    $pdf->Ln(2);
-    
-    $pdf->SetFont('Helvetica','',10);
-    $pdf->MultiCell(0,6,"1. Payment is due within 30 days of invoice date.\n2. Late payments will incur a 2% monthly interest charge.\n3. Goods remain property of Cooperative Shop until paid in full.\n4. Please quote invoice number when making payments.",0,'L');
-    
-    // Footer
-    $pdf->SetY(-30);
-    $pdf->SetFont('Helvetica','I',8);
-    $pdf->SetTextColor(100, 100, 100);
-    $pdf->Cell(0,5,'This is a computer generated invoice. No signature required.',0,1,'C');
-    $pdf->Cell(0,5,'Thank you for your business!',0,1,'C');
-    $pdf->Cell(0,5,'Generated on '.date('Y-m-d H:i:s'),0,1,'C');
-    
-    // Output the PDF
-    $pdf->Output('I', 'Invoice_'.$purchaseId.'.pdf');
+    $pdf->Cell(180,8,'New Credit Limit:',0,0,'R');
+    $pdf->SetFillColor($successColor[0], $successColor[1], $successColor[2]);
+    $pdf->Cell(35,8,'Rs. '.number_format($newCreditLimit,2),1,1,'R',true);
+}
+
+// ========== SIGNATURE SECTION ========== //
+// Increased the initial Y position by 15mm (from +10 to +15)
+// ========== SIGNATURE SECTION ========== //
+// ========== SIGNATURE SECTION ========== //
+$pdf->SetY($pdf->GetY() + 15); // Start signature section 15mm below previous content
+
+// Signature Labels with comfortable spacing
+$pdf->SetFont('Helvetica','B',10);
+$pdf->Cell(115, 8, 'Customer Signature', 0, 0, 'C'); // Restored to original height
+$pdf->Cell(140, 8, 'Authorized Signature', 0, 1, 'C');
+
+// Space between labels and signature lines (added 5mm gap)
+$pdf->Cell(0, 5, '', 0, 1); // This creates a 5mm vertical gap
+
+// Space for signatures (original height)
+$pdf->Cell(115, 15, '', 0, 0, 'C');
+$pdf->Cell(140, 15, '', 0, 1, 'C');
+
+// Signature lines positioned with better spacing
+$yPosition = $pdf->GetY() - 10; // Lines will be 10mm above current position
+$pdf->SetDrawColor($grayColor[0], $grayColor[1], $grayColor[2]);
+$pdf->Line(45, $yPosition, 125, $yPosition); // Customer line
+$pdf->Line(160, $yPosition, 240, $yPosition); // Authorized line
+
+// Additional space after signature lines
+$pdf->SetY($yPosition + 5); // Move 5mm below signature lines
+
+// Footer note
+$pdf->SetFont('Helvetica','I',8);
+$pdf->SetTextColor($grayColor[0], $grayColor[1], $grayColor[2]);
+$pdf->Cell(0,5,'This is a computer generated invoice. Thank you for your business!',0,1,'C');
+$pdf->Cell(0,5,'Generated on '.date('Y-m-d H:i:s'),0,1,'C');
+
+// Clear any output buffers before sending PDF
+while (ob_get_level()) {
+    ob_end_clean();
+}
+
+// Output the PDF
+$pdf->Output('I', 'Invoice_'.$purchaseId.'.pdf');
+exit;
 }
 
 // Handle form submission
@@ -449,9 +455,11 @@ $transactions = $pdo->query("
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cooperative Shop - Credit Purchase System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Poppins', sans-serif;
             line-height: 1.6;
             color: #333;
             background-color: #f5f5f5;
@@ -492,7 +500,8 @@ $transactions = $pdo->query("
         }
         
         button {
-            background-color: #3498db;
+            background: linear-gradient(to right, #28a745, #218838);
+            box-shadow: 0 4px 10px rgba(40, 167, 69, 0.3);
             color: white;
             padding: 10px 15px;
             border: none;
@@ -502,7 +511,9 @@ $transactions = $pdo->query("
         }
         
         button:hover {
-            background-color: #2980b9;
+            background: linear-gradient(to right, #218838, #1e7e34);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(40, 167, 69, 0.4);
         }
         
         .btn-secondary {
@@ -552,7 +563,8 @@ $transactions = $pdo->query("
         }
         
         th {
-            background-color: #f2f2f2;
+            background: linear-gradient(to right, #667eea, #764ba2);
+            color: white;
         }
         
         tr:hover {

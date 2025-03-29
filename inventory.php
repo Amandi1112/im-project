@@ -48,6 +48,7 @@ function formatCurrency($amount) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Inventory Management Dashboard | MyWebsite</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -60,21 +61,31 @@ function formatCurrency($amount) {
     <!-- Custom CSS -->
     <style>
         :root {
-            --primary-color: #3498db;
-            --secondary-color: #2c3e50;
-            --accent-color: #e74c3c;
-            --light-gray: #f8f9fa;
-            --dark-gray: #343a40;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f5f7fa;
-            color: #333;
-        }
+            --primary: #667eea;
+            --primary-dark: #5a67d8;
+            --secondary: #edf2f7;
+            --danger: #e53e3e;
+            --danger-dark: #c53030;
+            --success: #48bb78;
+            --success-dark: #38a169;
+            --warning: #ed8936;
+            --warning-dark: #dd6b20;
+            --info: #4299e1;
+            --info-dark: #3182ce;
+            --light: #f7fafc;
+            --dark: #2d3748;
+            --gray: #718096;
+            --gray-light: #e2e8f0;
+    }
+    
+    body {
+        font-family: 'Poppins', sans-serif;
+        background-color: #f5f7fa;
+        color: #333;
+    }
         
         .dashboard-header {
-            background-color: var(--secondary-color);
+            background: linear-gradient(to right, var(--primary), var(--primary-dark));
             color: white;
             padding: 1.5rem 0;
             margin-bottom: 2rem;
@@ -95,10 +106,10 @@ function formatCurrency($amount) {
         }
         
         .card-header {
-            background-color: var(--primary-color);
-            color: white;
-            border-radius: 8px 8px 0 0 !important;
-            font-weight: 600;
+            background: linear-gradient(to right, var(--gradient-primary), var(--gradient-secondary)); /* New gradient */
+    color: white;
+    border-radius: 8px 8px 0 0 !important;
+    font-weight: 600;
         }
         
         .table-responsive {
@@ -241,6 +252,29 @@ function formatCurrency($amount) {
         .dark-mode .dashboard-header {
             background-color: #0f3460;
         }
+        .btn-primary {
+    background: linear-gradient(to right, #667eea, #764ba2);
+    box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+    border: none;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(to right, #5a6fd1, #6a4299);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(102, 126, 234, 0.4);
+}
+
+.btn-success {
+    background: linear-gradient(to right, #28a745, #218838);
+    box-shadow: 0 4px 10px rgba(40, 167, 69, 0.3);
+    border: none;
+}
+
+.btn-info {
+    background: linear-gradient(to right, #17a2b8, #138496);
+    box-shadow: 0 4px 10px rgba(23, 162, 184, 0.3);
+    border: none;
+}
         
     </style>
 </head>

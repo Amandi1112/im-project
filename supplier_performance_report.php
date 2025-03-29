@@ -16,6 +16,18 @@ try {
 if (isset($_GET['generate_pdf']) && $_GET['generate_pdf'] == '1') {
     require('fpdf/fpdf.php');
     
+    // Color scheme from previous examples
+    $primaryColor = array(102, 126, 234);   // #667eea
+    $primaryDark = array(90, 103, 216);     // #5a67d8
+    $secondaryColor = array(237, 242, 247); // #edf2f7
+    $successColor = array(72, 187, 120);    // #48bb78
+    $warningColor = array(237, 137, 54);    // #ed8936
+    $infoColor = array(66, 153, 225);       // #4299e1
+    $lightColor = array(247, 250, 252);     // #f7fafc
+    $darkColor = array(45, 55, 72);         // #2d3748
+    $grayColor = array(113, 128, 150);      // #718096
+    $grayLight = array(226, 232, 240);      // #e2e8f0
+
     // Get parameters
     $supplierId = $_GET['supplier_id'] ?? '';
     $startDate = $_GET['start_date'] ?? '';
@@ -63,125 +75,186 @@ if (isset($_GET['generate_pdf']) && $_GET['generate_pdf'] == '1') {
             $totalPayments = array_sum(array_column($payments, 'amount'));
             $outstandingBalance = $totalPurchases - $totalPayments;
             
-            // Create PDF
-            $pdf = new FPDF();
+            // Create PDF in landscape
+            $pdf = new FPDF('P', 'mm', 'A4');
             $pdf->AddPage();
             
-            // Set font
-            $pdf->SetFont('Arial', 'B', 16);
+            // ========== HEADER SECTION ========== //
+            // Header with primary color background
+            $pdf->SetFillColor($primaryColor[0], $primaryColor[1], $primaryColor[2]);
+            $pdf->Rect(10, 10, 190, 20, 'F');
             
-            // Title
-            $pdf->Cell(0, 10, 'Supplier Performance Report', 0, 1, 'C');
-            $pdf->SetFont('Arial', '', 12);
-            $pdf->Cell(0, 10, 'Period: ' . $startDate . ' to ' . $endDate, 0, 1, 'C');
-            $pdf->Ln(10);
+            // Shop name
+            $pdf->SetTextColor(255);
+            $pdf->SetFont('Helvetica', 'B', 16);
+            $pdf->SetXY(15, 12);
+            $pdf->Cell(0, 8, 'COOPERATIVE SHOP SUPPLIER REPORT', 0, 1, 'L');
             
-            // Supplier Information
-            $pdf->SetFont('Arial', 'B', 14);
-            $pdf->Cell(0, 10, 'Supplier Information', 0, 1);
-            $pdf->SetFont('Arial', '', 12);
+            // Report info box
+            $pdf->SetFillColor($primaryDark[0], $primaryDark[1], $primaryDark[2]);
+        
+            $pdf->SetFont('Helvetica', 'B', 12);
+            $pdf->SetXY(200, 12);
+            $pdf->Cell(80, 8, 'DATE', 0, 1, 'C');
+            $pdf->SetFont('Helvetica', '', 10);
+            $pdf->SetXY(200, 18);
+            $pdf->Cell(80, 6, date('F j, Y'), 0, 1, 'C');
             
-            $pdf->Cell(50, 10, 'Name:', 0, 0);
-            $pdf->Cell(0, 10, $supplier['supplier_name'], 0, 1);
+            // Shop contact info
+            $pdf->SetTextColor(255);
+            $pdf->SetFont('Helvetica', '', 9);
+            $pdf->SetXY(15, 22);
+            $pdf->Cell(0, 5, '123 Business Avenue, Colombo 01 | Tel: +94 11 2345678 | Email: accounts@coopshop.lk', 0, 1, 'L');
             
-            $pdf->Cell(50, 10, 'Supplier ID:', 0, 0);
-            $pdf->Cell(0, 10, $supplier['supplier_id'], 0, 1);
+            // ========== SUPPLIER INFORMATION SECTION ========== //
+            $pdf->SetY(40);
+            $pdf->SetTextColor($darkColor[0], $darkColor[1], $darkColor[2]);
             
-            $pdf->Cell(50, 10, 'Contact:', 0, 0);
-            $pdf->Cell(0, 10, $supplier['contact_number'], 0, 1);
+            $pdf->SetFont('Helvetica', 'B', 12);
+            $pdf->Cell(0, 10, 'SUPPLIER INFORMATION', 0, 1, 'L');
+            $pdf->SetFont('Helvetica', '', 10);
             
-            $pdf->Cell(50, 10, 'Address:', 0, 0);
-            $pdf->MultiCell(0, 10, $supplier['address'], 0, 1);
+            $pdf->Cell(40, 7, 'Supplier Name:', 0, 0);
+            $pdf->Cell(0, 7, $supplier['supplier_name'], 0, 1);
+            
+            $pdf->Cell(40, 7, 'Supplier ID:', 0, 0);
+            $pdf->Cell(0, 7, $supplier['supplier_id'], 0, 1);
+            
+            $pdf->Cell(40, 7, 'Contact:', 0, 0);
+            $pdf->Cell(0, 7, $supplier['contact_number'], 0, 1);
+            
+            $pdf->Cell(40, 7, 'Address:', 0, 0);
+            $pdf->MultiCell(0, 7, $supplier['address'], 0, 1);
+            
             $pdf->Ln(5);
             
-            // Financial Summary
-            $pdf->SetFont('Arial', 'B', 14);
-            $pdf->Cell(0, 10, 'Financial Summary', 0, 1);
-            $pdf->SetFont('Arial', '', 12);
+            // ========== FINANCIAL SUMMARY SECTION ========== //
+            $pdf->SetFont('Helvetica', 'B', 12);
+            $pdf->Cell(0, 10, 'FINANCIAL SUMMARY', 0, 1, 'L');
+            $pdf->SetFont('Helvetica', '', 10);
             
-            $pdf->Cell(70, 10, 'Total Purchases:', 0, 0);
-            $pdf->Cell(0, 10, 'LKR ' . number_format($totalPurchases, 2), 0, 1);
+            $pdf->Cell(70, 7, 'Total Purchases:', 0, 0);
+            $pdf->Cell(0, 7, 'Rs. ' . number_format($totalPurchases, 2), 0, 1);
             
-            $pdf->Cell(70, 10, 'Total Payments:', 0, 0);
-            $pdf->Cell(0, 10, 'LKR ' . number_format($totalPayments, 2), 0, 1);
+            $pdf->Cell(70, 7, 'Total Payments:', 0, 0);
+            $pdf->Cell(0, 7, 'Rs. ' . number_format($totalPayments, 2), 0, 1);
             
-            $pdf->Cell(70, 10, 'Outstanding Balance:', 0, 0);
-            $pdf->Cell(0, 10, 'LKR ' . number_format($outstandingBalance, 2), 0, 1);
+            $pdf->SetFont('Helvetica', 'B', 10);
+            $pdf->SetFillColor($outstandingBalance > 0 ? $warningColor[0] : $successColor[0], 
+                             $outstandingBalance > 0 ? $warningColor[1] : $successColor[1], 
+                             $outstandingBalance > 0 ? $warningColor[2] : $successColor[2]);
+            $pdf->Cell(70, 7, 'Outstanding Balance:', 0, 0);
+            $pdf->Cell(50, 7, 'Rs. ' . number_format($outstandingBalance, 2), 1, 1, 'L', true);
+            
             $pdf->Ln(10);
             
-            // Items Supplied
-            $pdf->SetFont('Arial', 'B', 14);
-            $pdf->Cell(0, 10, 'Items Supplied', 0, 1);
-            $pdf->SetFont('Arial', 'B', 12);
+            // ========== ITEMS SUPPLIED SECTION ========== //
+            $pdf->SetFont('Helvetica', 'B', 12);
+            $pdf->Cell(0, 11, 'ITEMS SUPPLIED', 0, 1, 'L');
             
-            // Table header
-            $pdf->Cell(40, 10, 'Item Code', 1, 0, 'C');
-            $pdf->Cell(60, 10, 'Item Name', 1, 0, 'C');
-            $pdf->Cell(40, 10, 'Price per Unit', 1, 0, 'C');
-            $pdf->Cell(40, 10, 'Current Quantity', 1, 1, 'C');
+            // Table Header
+            $pdf->SetFillColor($primaryColor[0], $primaryColor[1], $primaryColor[2]);
+            $pdf->SetTextColor(255);
+            $pdf->SetFont('Helvetica', 'B', 10);
             
-            // Table data
-            $pdf->SetFont('Arial', '', 12);
+            $pdf->Cell(40, 10, 'ITEM CODE', 1, 0, 'C', true);
+            $pdf->Cell(60, 10, 'ITEM NAME', 1, 0, 'C', true);
+            $pdf->Cell(40, 10, 'UNIT PRICE', 1, 0, 'C', true);
+            $pdf->Cell(20, 10, 'QUANTITY', 1, 1, 'C', true);
+            
+            // Table Data
+            $pdf->SetTextColor($darkColor[0], $darkColor[1], $darkColor[2]);
+            $pdf->SetFont('Helvetica', '', 10);
+            
+            $fill = false;
             foreach ($items as $item) {
-                $pdf->Cell(40, 10, $item['item_code'], 1, 0);
-                $pdf->Cell(60, 10, $item['item_name'], 1, 0);
-                $pdf->Cell(40, 10, 'LKR ' . number_format($item['price_per_unit'], 2), 1, 0, 'R');
-                $pdf->Cell(40, 10, $item['current_quantity'], 1, 1, 'R');
+                $pdf->SetFillColor($fill ? $grayLight[0] : 255);
+                $pdf->Cell(40, 8, $item['item_code'], 1, 0, 'L', $fill);
+                $pdf->Cell(60, 8, $item['item_name'], 1, 0, 'L', $fill);
+                $pdf->Cell(40, 8, 'Rs. ' . number_format($item['price_per_unit'], 2), 1, 0, 'R', $fill);
+                $pdf->Cell(20, 8, $item['current_quantity'], 1, 1, 'R', $fill);
+                $fill = !$fill;
             }
+            
             $pdf->Ln(10);
             
-            // Purchase History
-            $pdf->SetFont('Arial', 'B', 14);
-            $pdf->Cell(0, 10, 'Purchase History', 0, 1);
+            // ========== PURCHASE HISTORY SECTION ========== //
+            $pdf->SetFont('Helvetica', 'B', 12);
+            $pdf->Cell(0, 8, 'PURCHASE HISTORY', 0, 1, 'L');
             
             if (!empty($purchases)) {
-                $pdf->SetFont('Arial', 'B', 12);
+                // Table Header
+                $pdf->SetFillColor($primaryColor[0], $primaryColor[1], $primaryColor[2]);
+                $pdf->SetTextColor(255);
+                $pdf->SetFont('Helvetica', 'B', 10);
                 
-                // Table header
-                $pdf->Cell(30, 10, 'Date', 1, 0, 'C');
-                $pdf->Cell(50, 10, 'Item', 1, 0, 'C');
-                $pdf->Cell(20, 10, 'Quantity', 1, 0, 'C');
-                $pdf->Cell(30, 10, 'Unit Price', 1, 0, 'C');
-                $pdf->Cell(30, 10, 'Total Price', 1, 0, 'C');
-                $pdf->Cell(30, 10, 'Expiry Date', 1, 1, 'C');
+                $pdf->Cell(30, 9, 'DATE', 1, 0, 'C', true);
+                $pdf->Cell(40, 9, 'ITEM', 1, 0, 'C', true);
+                $pdf->Cell(20, 9, 'QTY', 1, 0, 'C', true);
+                $pdf->Cell(35, 9, 'UNIT PRICE', 1, 0, 'C', true);
+                $pdf->Cell(35, 9, 'TOTAL', 1, 0, 'C', true);
+                $pdf->Cell(30, 9, 'EXPIRY', 1, 1, 'C', true);
                 
-                // Table data
-                $pdf->SetFont('Arial', '', 12);
+                // Table Data
+                $pdf->SetTextColor($darkColor[0], $darkColor[1], $darkColor[2]);
+                $pdf->SetFont('Helvetica', '', 10);
+                
+                $fill = false;
                 foreach ($purchases as $purchase) {
-                    $pdf->Cell(30, 10, $purchase['purchase_date'], 1, 0);
-                    $pdf->Cell(50, 10, $purchase['item_name'], 1, 0);
-                    $pdf->Cell(20, 10, $purchase['quantity'], 1, 0, 'R');
-                    $pdf->Cell(30, 10, 'LKR ' . number_format($purchase['price_per_unit'], 2), 1, 0, 'R');
-                    $pdf->Cell(30, 10, 'LKR ' . number_format($purchase['total_price'], 2), 1, 0, 'R');
-                    $pdf->Cell(30, 10, $purchase['expire_date'] ?? 'N/A', 1, 1);
+                    $pdf->SetFillColor($fill ? $grayLight[0] : 255);
+                    $pdf->Cell(30, 7, $purchase['purchase_date'], 1, 0, 'C', $fill);
+                    $pdf->Cell(40, 7, $purchase['item_name'], 1, 0, 'L', $fill);
+                    $pdf->Cell(20, 7, $purchase['quantity'], 1, 0, 'R', $fill);
+                    $pdf->Cell(35, 7, 'Rs. ' . number_format($purchase['price_per_unit'], 2), 1, 0, 'R', $fill);
+                    $pdf->Cell(35, 7, 'Rs. ' . number_format($purchase['total_price'], 2), 1, 0, 'R', $fill);
+                    $pdf->Cell(30, 7, $purchase['expire_date'] ?? 'N/A', 1, 1, 'C', $fill);
+                    $fill = !$fill;
                 }
             } else {
-                $pdf->Cell(0, 10, 'No purchases found for this period.', 0, 1);
+                $pdf->SetFont('Helvetica', 'I', 10);
+                $pdf->Cell(0, 8, 'No purchases found for this period.', 0, 1, 'L');
             }
+            
             $pdf->Ln(10);
             
-            // Payment History
-            $pdf->SetFont('Arial', 'B', 14);
-            $pdf->Cell(0, 10, 'Payment History', 0, 1);
+            // ========== PAYMENT HISTORY SECTION ========== //
+            $pdf->SetFont('Helvetica', 'B', 12);
+            $pdf->Cell(0, 8, 'PAYMENT HISTORY', 0, 1, 'L');
             
             if (!empty($payments)) {
-                $pdf->SetFont('Arial', 'B', 12);
+                // Table Header
+                $pdf->SetFillColor($primaryColor[0], $primaryColor[1], $primaryColor[2]);
+                $pdf->SetTextColor(255);
+                $pdf->SetFont('Helvetica', 'B', 10);
                 
-                // Table header
-                $pdf->Cell(40, 10, 'Payment ID', 1, 0, 'C');
-                $pdf->Cell(40, 10, 'Date', 1, 0, 'C');
-                $pdf->Cell(40, 10, 'Amount', 1, 1, 'C');
+                $pdf->Cell(40, 8, 'PAYMENT ID', 1, 0, 'C', true);
+                $pdf->Cell(40, 8, 'DATE', 1, 0, 'C', true);
+                $pdf->Cell(40, 8, 'AMOUNT', 1, 1, 'C', true);
                 
-                // Table data
-                $pdf->SetFont('Arial', '', 12);
+                // Table Data
+                $pdf->SetTextColor($darkColor[0], $darkColor[1], $darkColor[2]);
+                $pdf->SetFont('Helvetica', '', 10);
+                
+                $fill = false;
                 foreach ($payments as $payment) {
-                    $pdf->Cell(40, 10, $payment['id'], 1, 0);
-                    $pdf->Cell(40, 10, $payment['payment_date'], 1, 0);
-                    $pdf->Cell(40, 10, 'LKR ' . number_format($payment['amount'], 2), 1, 1, 'R');
+                    $pdf->SetFillColor($fill ? $grayLight[0] : 255);
+                    $pdf->Cell(40, 7, $payment['id'], 1, 0, 'C', $fill);
+                    $pdf->Cell(40, 7, $payment['payment_date'], 1, 0, 'C', $fill);
+                    $pdf->Cell(40, 7, 'Rs. ' . number_format($payment['amount'], 2), 1, 1, 'R', $fill);
+                    $fill = !$fill;
                 }
             } else {
-                $pdf->Cell(0, 10, 'No payments found for this period.', 0, 1);
+                $pdf->SetFont('Helvetica', 'I', 10);
+                $pdf->Cell(0, 8, 'No payments found for this period.', 0, 1, 'L');
             }
+            
+            // ========== FOOTER SECTION ========== //
+            $pdf->SetY(-20);
+            $pdf->SetFont('Helvetica', 'I', 8);
+            $pdf->SetTextColor($grayColor[0], $grayColor[1], $grayColor[2]);
+            $pdf->Cell(0, 5, 'This is a computer generated report. Thank you for your business!', 0, 1, 'C');
+            $pdf->Cell(0, 5, 'Generated on ' . date('Y-m-d H:i:s'), 0, 1, 'C');
+            $pdf->Cell(0, 5, 'Page ' . $pdf->PageNo(), 0, 0, 'C');
             
             // Output PDF
             $pdf->Output('D', 'Supplier_Report_' . $supplier['supplier_name'] . '_' . $startDate . '_' . $endDate . '.pdf');
@@ -281,6 +354,7 @@ $suppliers = $pdo->query($suppliersQuery)->fetchAll(PDO::FETCH_ASSOC);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Supplier Performance Report</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.13.2/themes/base/jquery-ui.min.css">
@@ -295,9 +369,13 @@ $suppliers = $pdo->query($suppliersQuery)->fetchAll(PDO::FETCH_ASSOC);
             --warning-color: #f39c12;
         }
         
+        *{
+            font-family: 'Poppins', sans-serif;
+        }
+        
         body {
             
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            
             line-height: 1.6;
             color: #333;
             max-width: 1200px;
