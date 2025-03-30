@@ -413,7 +413,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $updateMemberStmt->execute([$totalPurchaseAmount, $memberId]);
                     
                     $pdo->commit();
-                    $success = "Purchase completed successfully! Total amount: Rs. " . number_format($totalPurchaseAmount, 2);
+                    header("Location: ".$_SERVER['PHP_SELF']."?success=1&purchase_id=".$purchaseIds[0]);
+                exit();
                     
                     // Generate invoice for the first item (you might want to modify this for multiple items)
                     if (!empty($purchaseIds)) {
@@ -438,7 +439,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
-
+$_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 // Get recent transactions
 $transactions = $pdo->query("
     SELECT p.*, m.full_name, m.bank_membership_number, i.item_name 
@@ -756,7 +757,7 @@ $transactions = $pdo->query("
                     <div id="items-container">
                         <!-- Items will be added here dynamically -->
                     </div>
-                    <button type="button" id="add-item-btn" class="btn-secondary">+ Add Item</button>
+                    <button type="button" id="add-item-btn" class="btn-secondary" style="font-family: 'Poppins', sans-serif;">+ Add Item</button>
                 </div>
                 
                 <div class="total-section">
@@ -764,7 +765,7 @@ $transactions = $pdo->query("
                 </div>
                 
                 <div class="form-group">
-                    <button type="submit">Process Purchase</button>
+                    <button type="submit" style="font-family: 'Poppins', sans-serif;">Process Purchase</button>
                 </div>
             </form>
         </div>

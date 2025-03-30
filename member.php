@@ -83,19 +83,21 @@ class MemberRegistration {
         if (empty($data['address']) || strlen($data['address']) < 10) {
             $errors[] = "Invalid or too short address";
         }
-
+/*
         // Validate credit limit
         if (!is_numeric($data['credit_limit']) ||
             $data['credit_limit'] < 0 ||
             $data['credit_limit'] > 1000000) {
             $errors[] = "Invalid credit limit";
         }
+            */
 
         return $errors;
     }
 
     public function addMember($memberData) {
         // Validate member data
+        $memberData['credit_limit'] = $memberData['monthly_income'] * 0.3;
         $validationErrors = $this->validateMemberData($memberData);
         if (!empty($validationErrors)) {
             return [
@@ -457,12 +459,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
             </div>
 
-            <div class="grid grid-cols-2">
-                <div class="form-group">
-                    <label for="credit_limit">Credit Limit</label>
-                    <input type="number" id="credit_limit" name="credit_limit" required>
-                </div>
-            </div>
+            <div class="form-group">
+    <label for="credit_limit">Credit Limit</label>
+    <input type="number" id="credit_limit" name="credit_limit" readonly required>
+</div>
 
             <div class="btn-group">
                 <button type="submit">Register Member</button>
@@ -497,6 +497,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $('#age').val(age);
             }
         });
+
+        // Calculate credit limit as 30% of monthly income
+$('#monthly_income').on('input', function() {
+    const monthlyIncome = parseFloat($(this).val()) || 0;
+    const creditLimit = monthlyIncome * 0.3;
+    $('#credit_limit').val(creditLimit.toFixed(2));
+});
 
         // Form submission handler
         $('#memberRegistrationForm').on('submit', function(e) {

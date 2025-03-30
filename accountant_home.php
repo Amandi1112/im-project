@@ -1,6 +1,6 @@
 <?php
 session_start();
-if (!isset($_SESSION['user_id']) || $_SESSION['position'] != 'admin') {
+if (!isset($_SESSION['user_id']) || $_SESSION['position'] != 'accountant') {
     header("Location: login.php");
     exit();
 }
@@ -740,7 +740,7 @@ $recentActivities = [
                     </div>
                     <div>
                         <div>Welcome, <?php echo $_SESSION['user_name']; ?></div>
-                        <small>Administrator</small>
+                        <small>Accountant</small>
                     </div>
                 </div>
                 <a href="logout.php" class="logout-btn">
@@ -751,7 +751,7 @@ $recentActivities = [
 
         <div class="welcome-banner animate__animated animate__fadeIn">
             <div class="welcome-content">
-                <h2 class="welcome-title">Welcome to the Admin Dashboard</h2>
+                <h2 class="welcome-title">Welcome to the Accountant Dashboard</h2>
                 <p class="welcome-text" style="font-size: 20px;">Manage your co-op shop operations efficiently. Monitor real-time statistics, track inventory, and streamline member services with our comprehensive tools.</p>
                 <div class="mt-3">
                     <span class="time-badge">
@@ -774,21 +774,12 @@ $recentActivities = [
                 </button>
                 <div class="collapse navbar-collapse" id="navbarNavDropdown">
                     <ul class="navbar-nav">
-                        
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="employeeDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="fas fa-user-tie"></i> Employee
-                            </a>
-                            <ul class="dropdown-menu" aria-labelledby="employeeDropdown">
-                                <li><a class="dropdown-item" href="current_employee.php"><i class="fas fa-id-card"></i> User Details Update</a></li>
-                            </ul>
-                        </li>
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="suppliersDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="fas fa-truck"></i> Suppliers
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="suppliersDropdown">
-                                <li><a class="dropdown-item" href="supplier.php"><i class="fas fa-user-plus"></i> Registration</a></li>
+                                
                                 <li><a class="dropdown-item" href="supplier_purchases.php"><i class="fas fa-shopping-basket"></i> Item Purchases</a></li>
                                 <li><a class="dropdown-item" href="supplier_payments.php"><i class="fas fa-file-invoice-dollar"></i> Purchase Amount Details</a></li>
                                 <li><a class="dropdown-item" href="actual_payment_supplier.php"><i class="fas fa-money-bill-wave"></i> Payment Handling</a></li>
@@ -800,7 +791,7 @@ $recentActivities = [
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="inventoryDropdown">
                                 <li><a class="dropdown-item" href="display_purchase_details.php"><i class="fas fa-boxes"></i> Current Stock</a></li>
-                                <li><a class="dropdown-item" href="inventory.php"><i class="fas fa-exchange-alt"></i> Safety Stock</a></li>
+                                <li><a class="dropdown-item" href="inventory.php"><i class="fas fa-exchange-alt"></i> Transaction Summary</a></li>
                             </ul>
                         </li>
                         <li class="nav-item dropdown">
@@ -875,12 +866,6 @@ $recentActivities = [
                     </a>
                     <a href="report2.php" class="action-btn" style="font-weight: bold; font-size: 20px; background-color:rgb(170, 209, 237);">
                         <i class="fas fa-warehouse"></i> Check Inventory
-                    </a>
-                    <a href="member_registration.php" class="action-btn" style="font-weight: bold; font-size: 20px; background-color:rgb(170, 209, 237);">
-                        <i class="fas fa-user-plus"></i> Register Member
-                    </a>
-                    <a href="supplier.php" class="action-btn" style="font-weight: bold; font-size: 20px; background-color:rgb(170, 209, 237);">
-                        <i class="fas fa-truck-loading"></i> Add Supplier
                     </a>
                 </div>
             </div>

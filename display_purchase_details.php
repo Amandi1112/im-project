@@ -411,7 +411,7 @@ $purchases = getPurchaseDetails($conn, $start_date, $end_date, $supplier_filter,
                 <div class="col-md-8">
                     <h2><i class="fas fa-shopping-cart me-2"></i> Purchased Items Details</h2>
                 </div>
-                <div class="col-md-4 text-end">
+                <div class="col-md-4 text-end" style="font-size: 20px;">
                     <a href="supplier_purchases.php" class="btn btn-light me-2"><i class="fas fa-plus me-1"></i> New Purchase</a>
                     <a href="member_purchases_report.php" class="btn btn-light"><i class="fas fa-file-pdf me-1"></i> Generate Report</a>
                 </div>
@@ -423,28 +423,28 @@ $purchases = getPurchaseDetails($conn, $start_date, $end_date, $supplier_filter,
             <form method="GET" action="">
                 <div class="row filter-row">
                     <div class="col-md-3">
-                        <label for="start_date" class="form-label"><i class="far fa-calendar-alt me-1"></i> From Date</label>
-                        <input type="date" class="form-control" id="start_date" name="start_date" value="<?php echo $start_date; ?>">
+                        <label for="start_date" class="form-label" style="font-size: 20px;"><i class="far fa-calendar-alt me-1"></i> From Date</label>
+                        <input type="date" class="form-control" id="start_date" name="start_date" value="<?php echo $start_date; ?>" style="font-size: 20px;">
                     </div>
                     <div class="col-md-3">
-                        <label for="end_date" class="form-label"><i class="far fa-calendar-alt me-1"></i> To Date</label>
-                        <input type="date" class="form-control" id="end_date" name="end_date" value="<?php echo $end_date; ?>">
+                        <label for="end_date" class="form-label" style="font-size: 20px;"><i class="far fa-calendar-alt me-1"></i> To Date</label>
+                        <input type="date" class="form-control" id="end_date" name="end_date" value="<?php echo $end_date; ?>" style="font-size: 20px;">
                     </div>
                     <div class="col-md-3">
-                        <label for="supplier_name" class="form-label"><i class="fas fa-truck me-1"></i> Supplier</label>
+                        <label for="supplier_name" class="form-label" style="font-size: 20px;"><i class="fas fa-truck me-1"></i> Supplier</label>
                         <div class="search-container">
                             <input type="text" class="form-control" id="supplier_name" name="supplier_name" 
                                    value="<?php echo htmlspecialchars($supplier_name); ?>" 
-                                   placeholder="Type supplier name...">
+                                   placeholder="Type supplier name..." style="font-size: 20px;">
                             <input type="hidden" id="supplier_id" name="supplier_id" value="<?php echo $supplier_filter; ?>">
                         </div>
                     </div>
                     <div class="col-md-3">
-                        <label for="item_name" class="form-label"><i class="fas fa-box-open me-1"></i> Item</label>
+                        <label for="item_name" class="form-label" style="font-size: 20px;"><i class="fas fa-box-open me-1"></i> Item</label>
                         <div class="search-container">
                             <input type="text" class="form-control" id="item_name" name="item_name" 
                                    value="<?php echo htmlspecialchars($item_name); ?>" 
-                                   placeholder="Type item name...">
+                                   placeholder="Type item name..." style="font-size: 20px;">
                             <input type="hidden" id="item_id" name="item_id" value="<?php echo $item_filter; ?>">
                         </div>
                     </div>
@@ -462,14 +462,14 @@ $purchases = getPurchaseDetails($conn, $start_date, $end_date, $supplier_filter,
             <table class="table table-hover">
                 <thead>
                     <tr>
-                        <th><i class="far fa-calendar me-1"></i> Purchase Date</th>
-                        <th><i class="fas fa-box me-1"></i> Item Name</th>
-                        <th><i class="fas fa-truck me-1"></i> Supplier</th>
-                        <th><i class="fas fa-cubes me-1"></i> Quantity</th>
-                        <th><i class="fas fa-tag me-1"></i> Price/Unit</th>
-                        <th><i class="fas fa-money-bill-wave me-1"></i> Total Price</th>
-                        <th><i class="fas fa-hourglass-end me-1"></i> Expire Date</th>
-                        <th><i class="fas fa-info-circle me-1"></i> Status</th>
+                        <th style="font-size: 12px; font-weight: bold;"><i class="far fa-calendar me-1"></i> Purchase Date</th>
+                        <th style="font-size: 13.5px; font-weight: bold;"><i class="fas fa-box me-1"></i> Item Name</th>
+                        <th style="font-size: 13.5px; font-weight: bold;"><i class="fas fa-truck me-1"></i> Supplier</th>
+                        <th style="font-size: 12px; font-weight: bold;"><i class="fas fa-cubes me-1"></i> Quantity</th>
+                        <th style="font-size: 12px; font-weight: bold;"><i class="fas fa-tag me-1"></i> Price/Unit</th>
+                        <th style="font-size: 12px; font-weight: bold;"><i class="fas fa-money-bill-wave me-1"></i> Total Price</th>
+                        <th style="font-size: 12px; font-weight: bold;"><i class="fas fa-hourglass-end me-1"></i> Expire Date</th>
+                        <th style="font-size: 12px; font-weight: bold;"><i class="fas fa-info-circle me-1"></i> Status</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -509,14 +509,14 @@ $purchases = getPurchaseDetails($conn, $start_date, $end_date, $supplier_filter,
                         $totalAmount += $purchase['total_price'];
                     ?>
                     <tr class="<?php echo $rowClass; ?> animate__animated animate__fadeIn">
-                        <td><?php echo date('d M Y', strtotime($purchase['purchase_date'])); ?></td>
-                        <td><?php echo $purchase['item_name']; ?></td>
-                        <td><?php echo $purchase['supplier_name']; ?></td>
-                        <td><?php echo $purchase['quantity']; ?></td>
-                        <td>₹<?php echo number_format($purchase['price_per_unit'], 2); ?></td>
-                        <td>₹<?php echo number_format($purchase['total_price'], 2); ?></td>
-                        <td><?php echo !empty($purchase['expire_date']) ? date('d M Y', strtotime($purchase['expire_date'])) : 'N/A'; ?></td>
-                        <td><span class="status-badge <?php echo $statusClass; ?>"><?php echo $status; ?></span></td>
+                        <td style="font-size: 17px;"><?php echo date('d M Y', strtotime($purchase['purchase_date'])); ?></td>
+                        <td style="font-size: 17px;"><?php echo $purchase['item_name']; ?></td>
+                        <td style="font-size: 17px;"><?php echo $purchase['supplier_name']; ?></td>
+                        <td style="font-size: 17px;"><?php echo $purchase['quantity']; ?></td>
+                        <td style="font-size: 17px;">Rs.<?php echo number_format($purchase['price_per_unit'], 2); ?></td>
+                        <td style="font-size: 17px;">Rs.<?php echo number_format($purchase['total_price'], 2); ?></td>
+                        <td style="font-size: 17px;"><?php echo !empty($purchase['expire_date']) ? date('d M Y', strtotime($purchase['expire_date'])) : 'N/A'; ?></td>
+                        <td style="font-size: 17px;"><span class="status-badge <?php echo $statusClass; ?>"><?php echo $status; ?></span></td>
                     </tr>
                     <?php endforeach; ?>
                     
@@ -525,7 +525,7 @@ $purchases = getPurchaseDetails($conn, $start_date, $end_date, $supplier_filter,
                         <td colspan="3" class="text-end"><strong>Total:</strong></td>
                         <td><strong><?php echo $totalQuantity; ?></strong></td>
                         <td></td>
-                        <td><strong>₹<?php echo number_format($totalAmount, 2); ?></strong></td>
+                        <td><strong>Rs.<?php echo number_format($totalAmount, 2); ?></strong></td>
                         <td colspan="2"></td>
                     </tr>
                     <?php endif; ?>

@@ -5,16 +5,16 @@ class PDF extends FPDF {
     // Company header with logo
     function Header() {
         // Add logo (replace with your actual logo path)
-        if (file_exists('logo.png')) {
+        if (file_exists('image.png')) {
             $this->Image('logo.png', 10, 8, 30);
         }
         
         // Company information
         $this->SetFont('Arial','B',14);
-        $this->Cell(0,10,'YOUR COMPANY NAME',0,1,'C');
+        $this->Cell(0,10,'T&C co-op City shop',0,1,'C');
         $this->SetFont('Arial','',10);
-        $this->Cell(0,5,'123 Business Street, City, Country',0,1,'C');
-        $this->Cell(0,5,'Phone: (123) 456-7890 | Email: info@company.com',0,1,'C');
+        $this->Cell(0,5,'Karawita',0,1,'C');
+        $this->Cell(0,5,'Phone: +94 11 2345678 | Email: accounts@coopshop.lk',0,1,'C');
         
         // Report title
         $this->SetFont('Arial','B',16);
@@ -55,7 +55,7 @@ class PDF extends FPDF {
             'Status'
         );
         
-        $w = array(30, 25, 70, 15, 25, 25, 25, 25);
+        $w = array(30, 50, 50, 15, 25, 25, 25, 25);
         
         for($i=0; $i<count($header); $i++) {
             $this->Cell($w[$i],7,$header[$i],1,0,'C',true);
@@ -70,7 +70,7 @@ class PDF extends FPDF {
         $this->SetFillColor(224, 235, 255); // Light blue alternate row
         $fill = false;
         
-        $w = array(30, 25, 70, 15, 25, 25, 25, 25);
+        $w = array(30, 50, 50, 15, 25, 25, 25, 25);
         
         foreach($purchases as $purchase) {
             // Determine status and row color
@@ -144,6 +144,26 @@ class PDF extends FPDF {
         $this->Ln(5);
         $this->SetFont('Arial','I',8);
         $this->Cell(0, 6, 'Report generated on: ' . date('F j, Y'), 0, 1, 'L');
+    }
+    // Signature section
+    function SignatureSection() {
+        $this->Ln(15);
+        
+        // Co-op City Staff signature
+        $this->SetFont('Arial','B',10);
+        $this->Cell(90, 5, 'Co-op City Staff:', 0, 0, 'L');
+        $this->Cell(90, 5, 'Bank Manager:', 0, 1, 'L');
+        
+        $this->SetFont('Arial','',10);
+        $this->Cell(90, 20, '', 'B', 0, 'L'); // Signature line for staff
+        $this->Cell(90, 20, '', 'B', 1, 'L'); // Signature line for bank manager
+        
+        $this->SetFont('Arial','I',9);
+        $this->Cell(90, 5, 'Name: _________________________', 0, 0, 'L');
+        $this->Cell(90, 5, 'Name: _________________________', 0, 1, 'L');
+        
+        $this->Cell(90, 5, 'Date: ' . date('Y-m-d'), 0, 0, 'L');
+        $this->Cell(90, 5, 'Date: _________________________', 0, 1, 'L');
     }
 }
 

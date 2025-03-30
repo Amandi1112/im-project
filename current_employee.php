@@ -41,117 +41,251 @@ $result = $conn->query($sql);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Customer Details</title>
-    
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
-        h1 {
-            text-align: center;
-            font-size: 3em;
-            color:rgb(77, 27, 2);
-            text-shadow: 2px 2px 5px rgba(236, 110, 110, 0.5);
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
         }
+        
+        .container {
+            max-width: 1200px;
+            margin-top: 50px;
+            margin: auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+            font-weight: 600;
+            font-size: 2.5rem;
+            position: relative;
+            padding-bottom: 15px;
+        }
+
+        h1::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 4px;
+            background: linear-gradient(to right, #667eea, #764ba2);
+            border-radius: 3px;
+        }
+        
         .home-btn {
-            background-color:rgb(135, 74, 0);
+            background: linear-gradient(to right, #28a745, #218838);
             color: white;
-            padding: 10px 15px;
+            padding: 10px 20px;
             border: none;
-            border-radius: 4px;
+            border-radius: 5px;
             cursor: pointer;
             text-decoration: none;
-            position: absolute;
-            top: 0;
-            right: 0;
-            margin: 10px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
         }
+        
         .home-btn:hover {
-            background-color: #f28252;
+            background: linear-gradient(to right, #218838, #1e7e34);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
         }
+        
         .header-container {
-            position: relative;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             margin-bottom: 30px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-top: 20px;
+            overflow: hidden;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        }
+        
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        th {
+            background: linear-gradient(to right, #667eea, #764ba2);
+            color: white;
+            font-weight: 500;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+            letter-spacing: 0.5px;
+        }
+        
+        tr:not(:first-child):hover {
+            background-color: #f8f9fa;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            transition: all 0.2s ease;
+        }
+        
+        td {
+            color: #555;
+            font-size: 0.95rem;
+        }
+        
+        .button {
+            background: linear-gradient(to right, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+            font-size: 0.85rem;
+        }
+        
+        .button:hover {
+            background: linear-gradient(to right, #5a6fd1, #6a42a0);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        input[type="email"], select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+        
+        input[type="email"]:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+        
+        .no-data {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-style: italic;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            th, td {
+                padding: 10px;
+            }
         }
     </style>
 </head>
-<body style="background-image: url('images/background60.jpg'); background-size: cover; background-repeat: no-repeat; background-attachment: fixed;"></body>
-    <h1>Customer Details</h1>
-    <div style="display: flex; justify-content: flex-end; margin-right: 20px;">
-        <button class = 'home-btn' style="background-color:rgb(246, 157, 122);">
-            <a href="home.php" style="text-decoration: none; color: black;">Home</a>
-        </button>
-    </div>
-    <div style="display: flex; justify-content: center; align-items: center; margin-top: 20px;">
-        <table border="1" style="width: 90%; font-size: 1.2em; height: auto; margin: 20px auto; table-layout: fixed; background-color:rgb(66, 31, 2);">
+<body>
+    <div class="container">
+        <div class="header-container">
+            <h1>User Details</h1>
+            <a href="home.php" class="home-btn">Home</a>
+        </div>
+        
+        <table>
             <thead>
-            <tr>
-            
-            <th style="background-color: lightgray;">Name</th>
-            <th style="background-color: lightgray;">Email</th>
-            <th style="background-color: lightgray;">Position</th>
-            <th style="background-color: lightgray;">Actions</th>
-            </tr>
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Position</th>
+                    <th>Actions</th>
+                </tr>
             </thead>
-            <tbody style="color: black; background-color:white;
-    /* Changed color */
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);">
-            <?php if ($result->num_rows > 0): ?>
-            <?php while ($row = $result->fetch_assoc()): ?>
-            <tr>
-                <form method="POST">
-                
-                <td style="color: black; font-size: 0.7em;"><?php echo $row['name']; ?></td>
-                <td>
-                <input type="email" name="email" value="<?php echo $row['email']; ?>" required style="border: none; outline: none; background: transparent; width: 100%; font-size: 0.7em; color: black;">
-                </td>
-                <td>
-                <select name="position" required style="width: 100%; color: black; background-color: transparent;">
-                <option value="clerk" <?php echo $row['position'] === 'clerk' ? 'selected' : ''; ?>>Clerk</option>
-                <option value="accountant" <?php echo $row['position'] === 'accountant' ? 'selected' : ''; ?>>Accountant</option>
-                <option value="admin" <?php echo $row['position'] === 'admin' ? 'selected' : ''; ?>>Admin</option>
-                </select>
-                </td>
-                <td>
-                <input type="hidden" name="id" value="<?php echo $row['id']; ?>">
-                <button type="submit" name="update" style="width: 100%; color: black; background-color:rgb(246, 157, 122);">Update</button>
-                </td>
-                </form>
-            </tr>
-            <?php endwhile; ?>
-            <?php else: ?>
-            <tr>
-            <td colspan="5" style="color: white;">No customers found.</td>
-            </tr>
-            <?php endif; ?>
-            </tbody></tbody>
-            <?php if ($result->num_rows > 0): ?>
-            <?php while ($row = $result->fetch_assoc()): ?>
-            <tr>
-                <form method="POST">
-                <td><?php echo $row['id']; ?></td>
-                <td style="font-size: 0.7em;"><?php echo $row['name']; ?></td>
-                <td>
-                <input type="email" name="email" value="<?php echo $row['email']; ?>" required style="border: none; outline: none; background: transparent; width: 100%; font-size: 0.7em;">
-                </td>
-                <td>
-                <select name="position" required style="width: 100%;">
-                <option value="clerk" <?php echo $row['position'] === 'clerk' ? 'selected' : ''; ?>>Clerk</option>
-                <option value="accountant" <?php echo $row['position'] === 'accountant' ? 'selected' : ''; ?>>Accountant</option>
-                </select>
-                </td>
-                <td>
-                <input type="hidden" name="id" value="<?php echo $row['id']; ?>">
-                <button type="submit" name="update" style="background-color: black; color: white;">Update</button>
-                </td>
-                </form>
-            </tr>
-            <?php endwhile; ?>
-            <?php else: ?>
-            <tr>
-            <td colspan="5">No customers found.</td>
-            </tr>
-            <?php endif; ?>
+            <tbody>
+                <?php if ($result->num_rows > 0): ?>
+                    <?php while ($row = $result->fetch_assoc()): ?>
+                    <tr>
+                        <form method="POST">
+                            <td><?php echo htmlspecialchars($row['name']); ?></td>
+                            <td>
+                                <input type="email" name="email" value="<?php echo htmlspecialchars($row['email']); ?>" required>
+                            </td>
+                            <td>
+                                <select name="position" required>
+                                    <option value="clerk" <?php echo $row['position'] === 'clerk' ? 'selected' : ''; ?>>Clerk</option>
+                                    <option value="accountant" <?php echo $row['position'] === 'accountant' ? 'selected' : ''; ?>>Accountant</option>
+                                    <option value="admin" <?php echo $row['position'] === 'admin' ? 'selected' : ''; ?>>Admin</option>
+                                </select>
+                            </td>
+                            <td>
+                                <input type="hidden" name="id" value="<?php echo $row['id']; ?>">
+                                <button type="submit" name="update" class="button">Update</button>
+                            </td>
+                        </form>
+                    </tr>
+                    <?php endwhile; ?>
+                <?php else: ?>
+                    <tr>
+                        <td colspan="4" class="no-data">No customers found.</td>
+                    </tr>
+                <?php endif; ?>
             </tbody>
         </table>
     </div>
+
+    <script>
+        // Add some interactive effects with JavaScript
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add animation to table rows
+            const rows = document.querySelectorAll('tbody tr');
+            rows.forEach((row, index) => {
+                row.style.opacity = '0';
+                row.style.transform = 'translateY(20px)';
+                row.style.transition = `all 0.3s ease ${index * 0.1}s`;
+                
+                setTimeout(() => {
+                    row.style.opacity = '1';
+                    row.style.transform = 'translateY(0)';
+                }, 100);
+            });
+            
+            // Add hover effect to buttons
+            const buttons = document.querySelectorAll('.button, .home-btn');
+            buttons.forEach(button => {
+                button.addEventListener('mouseenter', () => {
+                    button.style.transform = 'translateY(-2px)';
+                });
+                button.addEventListener('mouseleave', () => {
+                    button.style.transform = 'translateY(0)';
+                });
+            });
+            
+            // Add focus effects to form inputs
+            const inputs = document.querySelectorAll('input, select');
+            inputs.forEach(input => {
+                input.addEventListener('focus', () => {
+                    input.parentElement.style.transform = 'scale(1.02)';
+                });
+                input.addEventListener('blur', () => {
+                    input.parentElement.style.transform = 'scale(1)';
+                });
+            });
+        });
+    </script>
 </body>
 </html>
 

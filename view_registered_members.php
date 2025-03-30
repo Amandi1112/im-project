@@ -396,6 +396,7 @@ ob_end_flush();
     <title>Registered Members</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary: #667eea;
@@ -423,13 +424,14 @@ ob_end_flush();
         }
         
         body {
+            font-family: 'Poppins', sans-serif;
             background: linear-gradient(135deg, #f5f7fa 0%, #e2e8f0 100%);
             min-height: 100vh;
             color: var(--dark);
         }
         
         .container {
-            max-width: 1200px;
+            max-width: 1800px;
             margin: 20px auto;
             padding: 20px;
             background-color: rgba(255, 255, 255, 0.95);
@@ -742,12 +744,12 @@ ob_end_flush();
 <body>
     <div class="container">
         <div class="header-section">
-            <h2>Registered Members</h2>
+            <h2 style="font-family: 'Poppins', sans-serif; font-size: 35px;">Registered Members</h2>
             <div class="btn-group">
-                <a href="member.php" class="btn btn-success">
+                <a href="member.php" class="btn btn-success" style="font-size: 15px;">
                     <i class="fas fa-plus"></i> Add New Member
                 </a>
-                <button id="exportPdfBtn" class="btn btn-info">
+                <button id="exportPdfBtn" class="btn btn-info" style="font-size: 15px;">
                     <i class="fas fa-file-pdf"></i> Export PDF
                 </button>
             </div>
@@ -755,7 +757,7 @@ ob_end_flush();
 
         <div class="search-section">
             <form id="searchForm" class="search-form">
-                <div class="form-group">
+                <div class="form-group" style="font-size: 17px; font-weight: bold;">
                     <input type="text" name="search" placeholder="Search Members" class="form-control">
                 </div>
                 <div class="form-group">
@@ -769,7 +771,7 @@ ob_end_flush();
                     <input type="text" name="filter_value" placeholder="Filter value" class="form-control">
                 </div>
                 <div class="form-group">
-                    <button type="submit" class="btn btn-primary">
+                    <button type="submit" class="btn btn-primary" style="font-size: 15px;">
                         <i class="fas fa-search"></i> Search
                     </button>
                 </div>
@@ -777,7 +779,7 @@ ob_end_flush();
         </div>
 
         <div class="table-container">
-            <table class="table">
+            <table class="table" style="font-size:20px;">
                 <thead>
                     <tr>
                         <th>Coop Number</th>
@@ -790,7 +792,7 @@ ob_end_flush();
                         <th>Actions</th>
                     </tr>
                 </thead>
-                <tbody id="membersTableBody">
+                <tbody id="membersTableBody" style="font-weight: bold;">
                     <!-- Members will be dynamically loaded here -->
                 </tbody>
             </table>

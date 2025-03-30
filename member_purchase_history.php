@@ -365,7 +365,7 @@ $conn->close();
 <body>
     <div class="container">
         <div class="dashboard-header">
-            <h1 class="dashboard-title">Cooperative Store Dashboard</h1>
+            <h1 class="dashboard-title">Member Purchase summary</h1>
             <div class="date"><?php echo date('F d, Y'); ?></div>
         </div>
         

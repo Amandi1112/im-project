@@ -278,6 +278,7 @@ $pdf->Ln(10);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Member Credit Summary Report</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -452,7 +453,7 @@ $pdf->Ln(10);
 </head>
 <body>
     <div class="container">
-        <h1>Member Credit Summary Report</h1>
+        <h1 style="font-family: 'Poppins', sans-serif;">Member Credit Summary Report</h1>
         
         <?php if (!empty($error_message)): ?>
             <div class="error"><?php echo $error_message; ?></div>
@@ -476,7 +477,7 @@ $pdf->Ln(10);
                 <input type="date" id="end_date" name="end_date" value="<?php echo $end_date; ?>" required>
             </div>
             
-            <button type="submit" class="btn">Generate Report</button>
+            <button type="submit" class="btn" style="font-family: 'Poppins', sans-serif;">Generate Report</button>
             
         </form>
     </div>

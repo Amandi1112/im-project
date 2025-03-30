@@ -34,9 +34,9 @@ if(isset($_POST['login'])) {
             if($_SESSION['position'] == 'admin') {
                 header("Location: home.php?success=You have successfully logged in");
             } else if($_SESSION['position'] == 'clerk') {
-                header("Location: clerk_dashboard.php?success=You have successfully logged in");
+                header("Location: clerk_home.php?success=You have successfully logged in");
             } else if($_SESSION['position'] == 'accountant') {
-                header("Location: accountant_dashboard.php?success=You have successfully logged in");
+                header("Location: accountant_home.php?success=You have successfully logged in");
             } else {
                 // Fallback for unexpected position values
                 header("Location: home.php?success=You have successfully logged in");

@@ -290,9 +290,7 @@ function formatCurrency($amount) {
                     <h1><i class="fas fa-boxes me-2"></i>Inventory Management</h1>
                 </div>
                 <div class="col-md-6 text-end">
-                    <span class="dark-mode-toggle badge bg-light text-dark me-2" id="darkModeToggle" title="Toggle Dark Mode">
-                        <i class="fas fa-moon me-1"></i> Dark Mode
-                    </span>
+                    
                     <span class="badge bg-light text-dark me-2">
                         <i class="fas fa-user me-1"></i> 
                         <?php echo isset($_SESSION['username']) ? htmlspecialchars($_SESSION['username']) : 'Guest'; ?>
@@ -389,7 +387,7 @@ function formatCurrency($amount) {
         <div class="row mb-4">
             <div class="col-md-6">
                 <div class="card">
-                    <div class="card-header">
+                    <div class="card-header" style="color: black;">
                         <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Inventory Distribution</h5>
                     </div>
                     <div class="card-body">
@@ -400,26 +398,9 @@ function formatCurrency($amount) {
                 </div>
             </div>
             <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Monthly Purchases</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="chart-container">
-                            <canvas id="purchasesChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Inventory Sections -->
-        <div class="row">
-            <!-- Current Inventory -->
-            <div class="col-lg-6">
-                <div class="card">
+            <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0"><i class="fas fa-box-open me-2"></i>Current Inventory</h5>
+                        <h5 class="mb-0" style="color: black;"><i class="fas fa-box-open me-2"></i>Current Inventory</h5>
                         <div>
                             <button class="btn btn-sm btn-outline-secondary me-2" id="exportInventory">
                                 <i class="fas fa-download me-1"></i> Export
@@ -442,7 +423,7 @@ function formatCurrency($amount) {
                                         <th>Price</th>
                                         <th>Qty</th>
                                         <th>Status</th>
-                                        <th>Actions</th>
+                                       
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -480,12 +461,8 @@ function formatCurrency($amount) {
                                             echo "<td>" . $quantity . "</td>";
                                             echo "<td><span class='badge " . $statusClass . "'>" . $status . "</span></td>";
                                             echo "<td>
-                                                    <button class='btn btn-sm btn-outline-primary edit-item' data-id='" . htmlspecialchars($row["item_id"]) . "'>
-                                                        <i class='fas fa-edit'></i>
-                                                    </button>
-                                                    <button class='btn btn-sm btn-outline-info view-item' data-id='" . htmlspecialchars($row["item_id"]) . "'>
-                                                        <i class='fas fa-eye'></i>
-                                                    </button>
+                                                    
+                                                    
                                                   </td>";
                                             echo "</tr>";
                                         }
@@ -499,98 +476,10 @@ function formatCurrency($amount) {
                     </div>
                 </div>
             </div>
-            
-            <!-- Recent Purchases -->
-            <div class="col-lg-6">
-                <div class="card">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0"><i class="fas fa-receipt me-2"></i>Recent Purchases</h5>
-                        <div>
-                            <button class="btn btn-sm btn-outline-secondary me-2" id="exportPurchases">
-                                <i class="fas fa-download me-1"></i> Export
-                            </button>
-                            <a href="supplier_purchases.php" class="btn btn-sm btn-light">View All</a>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <div class="search-box mb-3">
-                            <i class="fas fa-search"></i>
-                            <input type="text" id="searchPurchases" class="form-control" placeholder="Search purchases...">
-                        </div>
-                        
-                        <div class="table-responsive">
-                            <table class="table table-hover" id="purchasesTable">
-                                <thead>
-                                    <tr>
-                                        <th>Item</th>
-                                        <th>Qty</th>
-                                        <th>Unit Price</th>
-                                        <th>Total</th>
-                                        <th>Date</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php
-                                    // [Keep your existing PHP code for purchases table]
-                                    ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
         
-        <!-- Additional Sections -->
-        <div class="row mt-4">
-            <!-- Recent Activity Log -->
-            <div class="col-lg-6">
-                <div class="card">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0"><i class="fas fa-history me-2"></i>Recent Activity</h5>
-                        <button class="btn btn-sm btn-outline-secondary" id="refreshActivity">
-                            <i class="fas fa-sync-alt"></i> Refresh
-                        </button>
-                    </div>
-                    <div class="card-body" id="activityLogContainer">
-                        <ul class="list-group list-group-flush" id="activityLog">
-                            <?php
-                            // [Keep your existing PHP code for activity log]
-                            ?>
-                        </ul>
-                    </div>
-                </div>
-            </div>
             
-            <!-- Top Suppliers -->
-            <div class="col-lg-6">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0"><i class="fas fa-star me-2"></i>Top Suppliers</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table table-hover" id="suppliersTable">
-                                <thead>
-                                    <tr>
-                                        <th>Supplier</th>
-                                        <th>Items</th>
-                                        <th>Contact</th>
-                                        <th>Rating</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php
-                                    // [Keep your existing PHP code for top suppliers]
-                                    ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+            
     
     <!-- Footer -->
     <footer class="footer">

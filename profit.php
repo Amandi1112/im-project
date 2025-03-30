@@ -282,7 +282,7 @@ foreach ($period as $date) {
 </head>
 <body>
     <div class="container">
-        <h1 style="color:black">Purchase and Sales Report</h1>
+        <h1 style="color:black">Purchase and Sales Summary</h1>
         
         <div class="date-filter">
             <form method="GET">

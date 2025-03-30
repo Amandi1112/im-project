@@ -480,9 +480,9 @@ $data = array_column($supplierTotals, 'supplier_total');
     </style>
 
 </head>
-<body>
+<body style="font-weight: bold; color:black;">
     <div class="container">
-        <h1>Purchased amount Details</h1>
+        <h1 style="font-weight: bold; color:black;">Purchased amount Details</h1>
 
         <!-- Filter Section -->
         <div class="filter-section">
@@ -521,14 +521,14 @@ $data = array_column($supplierTotals, 'supplier_total');
 
         <!-- Supplier Totals Section -->
         <div class="supplier-totals">
-            <h4>Supplier Totals</h4>
-            <div class="row">
+            <h4 style="font-weight: bold; color:black;">Supplier Totals</h4>
+            <div class="row" style="font-weight: bold; color:black;">
                 <?php foreach ($supplierTotals as $supplier): ?>
                 <div class="col-md-4">
                     <div class="card">
-                        <div class="card-body">
+                        <div class="card-body" style="font-weight: bold; color:black;">
                             <h5 class="card-title"><?php echo htmlspecialchars($supplier['supplier_name']); ?></h5>
-                            <p class="card-text">Total Amount: Rs. <?php echo number_format($supplier['supplier_total'], 2); ?></p>
+                            <p class="card-text" style="font-weight: bold; color:black;">Total Amount: Rs. <?php echo number_format($supplier['supplier_total'], 2); ?></p>
                         </div>
                     </div>
                 </div>
@@ -537,12 +537,12 @@ $data = array_column($supplierTotals, 'supplier_total');
         </div>
 
         <!-- Chart Visualization -->
-        <div class="chart-container">
-            <canvas id="supplierChart"></canvas>
+        <div class="chart-container" style="font-weight: bold; color:black;">
+            <canvas id="supplierChart" style="font-weight: bold; color:black;"></canvas>
         </div>
         
         <div class="table-responsive">
-            <table class="table table-bordered table-hover">
+            <table class="table table-bordered table-hover" style="font-weight: bold; color:black;">
                 <thead class="thead-light">
                     <tr>
                         <th>Purchase Date</th>

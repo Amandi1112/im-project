@@ -495,10 +495,10 @@ $suppliers = getSuppliers($conn);
         }
     </style>
 </head>
-<body>
+<body style="font-size: 20px; font-weight:bold;">
     <div class="main-container">
         <div class="form-container">
-            <h2>Bulk Item Addition</h2>
+            <h2>Item Purchase</h2>
             
             <!-- Display message if there are any success or error messages -->
             <?php if(isset($message)): ?>
@@ -508,21 +508,21 @@ $suppliers = getSuppliers($conn);
             <?php endif; ?>
             
             <!-- Form for adding items -->
-            <form method="post" action="">
+            <form method="post" action="" style="color:black;">
                 <!-- Supplier information note -->
-                <div class="supplier-info">
-                    <strong>Note:</strong> Items are linked to specific suppliers. You can now select different suppliers for each item.
+                <div class="supplier-info" style="font-size: 15px; font-weight: bold;">
+                    <strong style="font-size: 15px;">Note:</strong> Items are linked to specific suppliers. You can now select different suppliers for each item.
                 </div>
                 
                 <!-- Container for dynamically added item rows -->
-                <div id="items-container">
+                <div id="items-container" style="font-size: 20px;">
                     <!-- Initial item row -->
                     <div class="item-row">
                         <div class="row">
                             <!-- Item Name -->
                             <div class="col-md-3">
                                 <div class="mb-3">
-                                    <label class="form-label">Item Name</label>
+                                    <label class="form-label" style="font-size: 17px; font-weight:bold; color:black;">Item Name</label>
                                     <input type="text" class="form-control item-name" name="items[0][item_name]" required>
                                 </div>
                             </div>
@@ -530,9 +530,9 @@ $suppliers = getSuppliers($conn);
                             <!-- Supplier Selection -->
                             <div class="col-md-2">
                                 <div class="mb-3">
-                                    <label class="form-label">Supplier</label>
+                                    <label class="form-label" style="font-size: 18px;font-weight:bold; color:black;">Supplier</label>
                                     <select class="form-select supplier-select" name="items[0][supplier_id]" required>
-                                        <option value="">-- Select --</option>
+                                        <option value="" style="font-size: 17px;">-- Select --</option>
                                         <?php foreach($suppliers as $supplier): ?>
                                         <option value="<?php echo $supplier['supplier_id']; ?>"><?php echo $supplier['supplier_name']; ?></option>
                                         <?php endforeach; ?>
@@ -543,7 +543,7 @@ $suppliers = getSuppliers($conn);
                             <!-- Quantity -->
                             <div class="col-md-1">
                                 <div class="mb-3">
-                                    <label class="form-label">Quantity</label>
+                                    <label class="form-label" style="font-size: 18px; font-weight:bold; color:black;">Quantity</label>
                                     <input type="number" class="form-control" name="items[0][quantity]" min="1" required>
                                 </div>
                             </div>
@@ -551,7 +551,7 @@ $suppliers = getSuppliers($conn);
                             <!-- Price per Unit -->
                             <div class="col-md-1">
                                 <div class="mb-3">
-                                    <label class="form-label">Price/Unit</label>
+                                    <label class="form-label" style="font-size: 18px; font-weight:bold; color:black;">Price/Unit</label>
                                     <input type="number" step="0.01" class="form-control price-per-unit" name="items[0][price_per_unit]" required>
                                 </div>
                             </div>
@@ -559,7 +559,7 @@ $suppliers = getSuppliers($conn);
                             <!-- Purchase Date -->
                             <div class="col-md-2">
                                 <div class="mb-3">
-                                    <label class="form-label">Purchase Date</label>
+                                    <label class="form-label" style="font-size: 18px; font-weight:bold; color:black;">Purchase Date</label>
                                     <input type="date" class="form-control" name="items[0][purchase_date]" value="<?php echo date('Y-m-d'); ?>" required>
                                 </div>
                             </div>
@@ -567,7 +567,7 @@ $suppliers = getSuppliers($conn);
                             <!-- Expire Date -->
                             <div class="col-md-2">
                                 <div class="mb-3">
-                                    <label class="form-label">Expire Date</label>
+                                    <label class="form-label" style="font-size: 18px; font-weight:bold; color:black;">Expire Date</label>
                                     <input type="date" class="form-control" name="items[0][expire_date]">
                                 </div>
                             </div>
@@ -586,16 +586,16 @@ $suppliers = getSuppliers($conn);
                 
                 <!-- Add Item and Submit Buttons -->
                 <div class="action-buttons">
-                    <button type="button" class="btn btn-secondary" id="add-item">
+                    <button type="button" class="btn btn-secondary" id="add-item" style="font-size: 17px;">
                         <i class="fas fa-plus"></i> Add Another Item
                     </button>
-                    <button type="submit" class="btn btn-primary" name="submit_items">
+                    <button type="submit" class="btn btn-primary" name="submit_items" style="font-size: 17px;">
                         <i class="fas fa-save"></i> Submit All Items
                     </button>
-                    <a href="home.php" class="btn btn-light">
+                    <a href="home.php" class="btn btn-light" style="font-size: 17px;">
                         <i class="fas fa-home"></i> Back to Home
                     </a>
-                    <a href="display_purchase_details.php" class="btn btn-light">
+                    <a href="display_purchase_details.php" class="btn btn-light" style="font-size: 17px;">
                         <i class="fas fa-eye"></i> View Purchases
                     </a>
                 </div>

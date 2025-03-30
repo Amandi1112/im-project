@@ -61,7 +61,7 @@ if (isset($_SESSION['success'])) {
         }
         
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg,rgb(208, 212, 232) 0%,rgb(223, 245, 254) 100%);
             min-height: 100vh;
             padding: 20px;
             display: flex;
@@ -291,7 +291,7 @@ if (isset($_SESSION['success'])) {
         }
     </style>
 </head>
-<body>
+<body style="font-weight: bold;">
     <div class="container">
         <h2>Registered Suppliers</h2>
         

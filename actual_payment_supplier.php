@@ -691,21 +691,21 @@ $items = $conn->query("SELECT * FROM items ORDER BY item_name");
                 <div class="form-section">
                     <h4>Supplier Balances</h4>
                     <div class="mb-3">
-                        <label for="supplierSearch" class="form-label">Search Supplier</label>
+                        <label for="supplierSearch" class="form-label" style="font-size: 15px;">Search Supplier</label>
                         <input type="text" class="form-control" id="supplierSearch" placeholder="Type supplier name...">
                     </div>
                     <div class="table-responsive">
                         <table class="table table-bordered">
                             <thead>
                                 <tr>
-                                    <th>Supplier</th>
-                                    <th>Total Purchases</th>
-                                    <th>Total Payments</th>
-                                    <th>Balance</th>
-                                    <th>Action</th>
+                                    <th style="font-size: 20px;">Supplier</th>
+                                    <th style="font-size: 20px;">Total Purchases</th>
+                                    <th style="font-size: 20px;">Total Payments</th>
+                                    <th style="font-size: 20px;">Balance</th>
+                                    <th style="font-size: 20px;">Action</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody style="font-size: 15px;">
                                 <?php
                                 $balance_query = $conn->query("
                                 SELECT
@@ -746,11 +746,11 @@ $items = $conn->query("SELECT * FROM items ORDER BY item_name");
                                     $balance_class = $row['balance'] > 0 ? 'balance-positive' : 'balance-negative';
                                 ?>
                                 <tr data-supplier-id="<?php echo $row['supplier_id']; ?>">
-                                    <td><?php echo $row['supplier_name']; ?></td>
-                                    <td>Rs. <?php echo number_format($row['total_purchases'], 2); ?></td>
-                                    <td>Rs. <?php echo number_format($row['total_payments'], 2); ?></td>
+                                    <td style="font-size: 18px; font-weight: bold;"><?php echo $row['supplier_name']; ?></td>
+                                    <td style="font-size: 18px; font-weight: bold;">Rs. <?php echo number_format($row['total_purchases'], 2); ?></td>
+                                    <td style="font-size: 18px; font-weight: bold;">Rs. <?php echo number_format($row['total_payments'], 2); ?></td>
                                     <td class="<?php echo $balance_class; ?>">Rs. <?php echo number_format($row['balance'], 2); ?></td>
-                                    <td>
+                                    <td style="font-size: 18px; font-weight: bold;">
                                         <a href="?generate_invoice=1&supplier_id=<?php echo $row['supplier_id']; ?>&start_date=<?php echo date('Y-m-01'); ?>&end_date=<?php echo date('Y-m-d'); ?>"
                                            class="btn btn-sm btn-info" target="_blank">Invoice</a>
                                            
@@ -772,8 +772,8 @@ $items = $conn->query("SELECT * FROM items ORDER BY item_name");
             <h3>Supplier Purchases</h3>
             <button class="close-btn">&times;</button>
         </div>
-        <div class="modal-body">
-            <table class="table">
+        <div class="modal-body"> 
+            <table class="table" style="font-size: 20px;">
                 <thead>
                     <tr>
                         <th>Date</th>

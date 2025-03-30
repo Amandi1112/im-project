@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login | Beautiful Interface</title>
+    <title>Login</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap">
     <style>
         * {
@@ -14,7 +14,7 @@
         }
         
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg,rgb(214, 217, 231) 0%,rgb(215, 177, 254) 100%);
             height: 100vh;
             display: flex;
             justify-content: center;
@@ -176,15 +176,11 @@
     </div>
     
     <div class="floating-alert" id="alert"></div>
-    
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const form = document.getElementById('loginForm');
-            const alertBox = document.getElementById('alert');
-            const logo = document.getElementById('logo');
-            
-            // Add animation to logo on hover
-            logo.addEventListener('mouseenter', function() {
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+
+        // Add animation to logo on hover
+        logo.addEventListener('mouseenter', function() {
                 this.style.transform = 'rotate(10deg) scale(1.1)';
                 this.style.transition = 'all 0.3s ease';
             });
@@ -192,70 +188,77 @@
             logo.addEventListener('mouseleave', function() {
                 this.style.transform = 'rotate(0) scale(1)';
             });
-            
-            // Form submission handler
-            form.addEventListener('submit', function(e) {
-                e.preventDefault();
+        // Function to show notifications
+        function showNotification(message, type) {
+            // Check if alert element exists, if not create one
+            let alertBox = document.getElementById('alert');
+            if (!alertBox) {
+                alertBox = document.createElement('div');
+                alertBox.id = 'alert';
+                alertBox.className = 'floating-alert';
+                document.body.appendChild(alertBox);
                 
-                // Simple validation
-                const email = document.getElementById('email').value;
-                const password = document.getElementById('password').value;
-                
-                if (!email || !password) {
-                    showAlert('Please fill in all fields', 'error');
-                    return;
+                // Add CSS if not already present
+                if (!document.querySelector('style#alert-style')) {
+                    const style = document.createElement('style');
+                    style.id = 'alert-style';
+                    style.textContent = `
+                        .floating-alert {
+                            position: fixed;
+                            top: 20px;
+                            right: 20px;
+                            background: #ff4757;
+                            color: white;
+                            padding: 15px 25px;
+                            border-radius: 8px;
+                            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+                            transform: translateX(150%);
+                            transition: transform 0.4s ease;
+                            z-index: 1000;
+                        }
+                        
+                        .floating-alert.show {
+                            transform: translateX(0);
+                        }
+                    `;
+                    document.head.appendChild(style);
                 }
-                
-                // Simulate form submission
-                showAlert('Logging in...', 'info');
-                
-                // In a real application, you would send this to your server
-                setTimeout(() => {
-                    showAlert('Login successful! Redirecting...', 'success');
-                    
-                    // Redirect after 1.5 seconds
-                    setTimeout(() => {
-                        window.location.href = 'dashboard.php'; // Change to your actual dashboard page
-                    }, 1500);
-                }, 1500);
-            });
-            
-            // Show alert function
-            function showAlert(message, type) {
-                alertBox.textContent = message;
-                alertBox.classList.add('show');
-                
-                // Set color based on type
-                switch(type) {
-                    case 'error':
-                        alertBox.style.background = '#ff4757';
-                        break;
-                    case 'success':
-                        alertBox.style.background = '#2ed573';
-                        break;
-                    case 'info':
-                        alertBox.style.background = '#1e90ff';
-                        break;
-                }
-                
-                // Hide after 3 seconds
-                setTimeout(() => {
-                    alertBox.classList.remove('show');
-                }, 3000);
             }
             
-            // Add input focus effects
-            const inputs = document.querySelectorAll('input');
-            inputs.forEach(input => {
-                input.addEventListener('focus', function() {
-                    this.parentNode.querySelector('label').style.color = '#667eea';
-                });
-                
-                input.addEventListener('blur', function() {
-                    this.parentNode.querySelector('label').style.color = '#555';
-                });
-            });
-        });
-    </script>
+            alertBox.textContent = message;
+            
+            // Set color based on type
+            switch(type) {
+                case 'error':
+                    alertBox.style.background = '#ff4757';
+                    break;
+                case 'success':
+                    alertBox.style.background = '#2ed573';
+                    break;
+                case 'info':
+                    alertBox.style.background = '#1e90ff';
+                    break;
+            }
+            
+            alertBox.classList.add('show');
+            
+            // Hide after 3 seconds
+            setTimeout(() => {
+                alertBox.classList.remove('show');
+            }, 3000);
+        }
+        
+        // Check URL parameters for notifications
+        const params = new URLSearchParams(window.location.search);
+        
+        if (params.has('error')) {
+            showNotification(params.get('error'), 'error');
+        }
+        
+        if (params.has('success')) {
+            showNotification(params.get('success'), 'success');
+        }
+    });
+</script>
 </body>
 </html>

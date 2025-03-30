@@ -300,19 +300,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $items = $itemsStmt->fetchAll(PDO::FETCH_ASSOC);
             
             // Get purchases of these items within date range
-            $itemIds = array_column($items, 'item_id');
-            $placeholders = str_repeat('?,', count($itemIds) - 1) . '?';
-            
-            $purchasesQuery = "SELECT p.*, i.item_name 
-                              FROM item_purchases p
-                              JOIN items i ON p.item_id = i.item_id
-                              WHERE p.item_id IN ($placeholders)
-                              AND p.purchase_date BETWEEN ? AND ?";
-            
-            $params = array_merge($itemIds, [$startDate, $endDate]);
-            $purchasesStmt = $pdo->prepare($purchasesQuery);
-            $purchasesStmt->execute($params);
-            $purchases = $purchasesStmt->fetchAll(PDO::FETCH_ASSOC);
+            // Get purchases of these items within date range
+$itemIds = array_column($items, 'item_id');
+
+// Check if there are any items before creating placeholders
+if (count($itemIds) > 0) {
+    $placeholders = str_repeat('?,', count($itemIds) - 1) . '?';
+    
+    $purchasesQuery = "SELECT p.*, i.item_name 
+                      FROM item_purchases p
+                      JOIN items i ON p.item_id = i.item_id
+                      WHERE p.item_id IN ($placeholders)
+                      AND p.purchase_date BETWEEN ? AND ?";
+    
+    $params = array_merge($itemIds, [$startDate, $endDate]);
+    $purchasesStmt = $pdo->prepare($purchasesQuery);
+    $purchasesStmt->execute($params);
+    $purchases = $purchasesStmt->fetchAll(PDO::FETCH_ASSOC);
+} else {
+    // No items found for this supplier
+    $purchases = [];
+}
             
             // Get payments to this supplier within date range
             $paymentsQuery = "SELECT * FROM supplier_payments 
