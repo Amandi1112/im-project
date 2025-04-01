@@ -25,26 +25,27 @@ function sanitize_input($data) {
 }
 
 // Initialize variables
-$member_id = $start_date = $end_date = "";
+$id = $start_date = $end_date = "";
 $error_message = "";
 $report_generated = false;
 
 // Process form submission
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $member_id = sanitize_input($_POST["member_id"]);
+    $id = sanitize_input($_POST["id"]);
     $start_date = sanitize_input($_POST["start_date"]);
     $end_date = sanitize_input($_POST["end_date"]);
     
-    if (empty($member_id) || empty($start_date) || empty($end_date)) {
+    // Fix this condition (was checking $error_messageid which doesn't exist)
+    if (empty($id) || empty($start_date) || empty($end_date)) {
         $error_message = "All fields are required";
     } else {
         // Generate report
-        generateReport($conn, $member_id, $start_date, $end_date);
+        generateReport($conn, $id, $start_date, $end_date);
         $report_generated = true;
     }
 }
 
-function generateReport($conn, $member_id, $start_date, $end_date) {
+function generateReport($conn, $id, $start_date, $end_date) {
     // Define color scheme
     $primaryColor = array(102, 126, 234);   // #667eea
     $primaryDark = array(90, 103, 216);     // #5a67d8
@@ -56,7 +57,7 @@ function generateReport($conn, $member_id, $start_date, $end_date) {
     // Fetch member details
     $member_sql = "SELECT * FROM members WHERE id = ?";
     $stmt = $conn->prepare($member_sql);
-    $stmt->bind_param("i", $member_id);
+    $stmt->bind_param("s", $id);
     $stmt->execute();
     $member_result = $stmt->get_result();
     
@@ -69,23 +70,23 @@ function generateReport($conn, $member_id, $start_date, $end_date) {
     
     // Fetch purchases within date range
     $purchases_sql = "SELECT p.*, i.item_name, i.item_code 
-                     FROM purchases p 
-                     JOIN items i ON p.item_id = i.item_id 
-                     WHERE p.member_id = ? AND p.purchase_date BETWEEN ? AND ?
-                     ORDER BY p.purchase_date DESC";
+                 FROM purchases p 
+                 JOIN items i ON p.item_id = i.item_id 
+                 WHERE p.member_id = ? AND p.purchase_date BETWEEN ? AND ?
+                 ORDER BY p.purchase_date DESC";
     
     $stmt = $conn->prepare($purchases_sql);
-    $stmt->bind_param("iss", $member_id, $start_date, $end_date);
+    $stmt->bind_param("iss", $id, $start_date, $end_date);
     $stmt->execute();
     $purchases_result = $stmt->get_result();
     
     // Calculate total purchases amount
     $total_sql = "SELECT SUM(total_price) as total_spent
-                 FROM purchases 
-                 WHERE member_id = ? AND purchase_date BETWEEN ? AND ?";
+    FROM purchases 
+    WHERE member_id = ? AND purchase_date BETWEEN ? AND ?";
     
     $stmt = $conn->prepare($total_sql);
-    $stmt->bind_param("iss", $member_id, $start_date, $end_date);
+    $stmt->bind_param("iss", $id, $start_date, $end_date);
     $stmt->execute();
     $total_result = $stmt->get_result();
     $total_row = $total_result->fetch_assoc();
@@ -133,8 +134,8 @@ function generateReport($conn, $member_id, $start_date, $end_date) {
     $pdf->Cell(0, 8, 'MEMBER DETAILS', 0, 1, 'L');
     $pdf->SetFont('Helvetica', '', 10);
     
-    $pdf->Cell(50, 7, 'Coop Number:', 0, 0);
-    $pdf->Cell(0, 7, $member['coop_number'], 0, 1);
+    $pdf->Cell(50, 7, 'Member ID:', 0, 0);
+    $pdf->Cell(0, 7, $member['id'], 0, 1);
     
     $pdf->Cell(50, 7, 'Full Name:', 0, 0);
     $pdf->Cell(0, 7, $member['full_name'], 0, 1);
@@ -268,7 +269,7 @@ $pdf->Ln(10);
     $pdf->Cell(0, 5, 'Page ' . $pdf->PageNo(), 0, 0, 'C');
     
     // Output PDF
-    $pdf->Output('Member_Credit_Report_' . $member['coop_number'] . '.pdf', 'D');
+    $pdf->Output('Member_Credit_Report_' . $member['id'] . '.pdf', 'D');
 }
 ?>
 
@@ -407,6 +408,19 @@ $pdf->Ln(10);
             border-radius: 6px;
             border-left: 4px solid var(--danger);
         }
+        .loading {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(0,0,0,.3);
+    border-radius: 50%;
+    border-top-color: var(--primary);
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
         
         .member-select-container {
             position: relative;
@@ -460,12 +474,17 @@ $pdf->Ln(10);
         <?php endif; ?>
         
         <form method="post" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>">
-            <div class="form-group member-select-container">
-                <label for="member_id">Select Member:</label>
-                <input type="text" id="member_search" placeholder="Search by name, ID or coop number" autocomplete="off">
-                <input type="hidden" id="member_id" name="member_id" value="<?php echo $member_id; ?>" required>
-                <div id="memberResults"></div>
-            </div>
+        <div class="form-group member-select-container">
+    <label for="id">Select Member:</label>
+    <div style="position: relative;">
+        <input type="text" id="member_search" placeholder="Search by name or member ID" autocomplete="off">
+        <div id="memberResults"></div>
+        <div id="loadingIndicator" style="position: absolute; right: 10px; top: 10px; display: none;">
+            <div class="loading"></div>
+        </div>
+    </div>
+    <input type="hidden" id="id" name="id" value="<?php echo $id; ?>" required>
+</div>
             
             <div class="form-group">
                 <label for="start_date">Start Date:</label>
@@ -484,76 +503,83 @@ $pdf->Ln(10);
     
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const memberSearch = document.getElementById('member_search');
-            const memberIdInput = document.getElementById('member_id');
-            const memberResults = document.getElementById('memberResults');
-            const startDateInput = document.getElementById('start_date');
-            const endDateInput = document.getElementById('end_date');
-            
-            // Set default dates (current month)
-            if (!startDateInput.value) {
-                const today = new Date();
-                const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-                const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-                
-                startDateInput.value = formatDate(firstDay);
-                endDateInput.value = formatDate(lastDay);
-            }
-            
-            // Member search functionality
-            memberSearch.addEventListener('input', function() {
-                const query = this.value.trim();
-                
-                if (query.length < 2) {
-                    memberResults.style.display = 'none';
-                    return;
+    const memberSearch = document.getElementById('member_search');
+    const memberIdInput = document.getElementById('id');
+    const memberResults = document.getElementById('memberResults');
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    
+    // Set default dates (current month)
+    const today = new Date();
+    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+    const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    
+    document.getElementById('start_date').valueAsDate = firstDay;
+    document.getElementById('end_date').valueAsDate = lastDay;
+    
+    // Member search functionality
+    memberSearch.addEventListener('input', function() {
+        const query = this.value.trim();
+        
+        if (query.length < 2) {
+            memberResults.style.display = 'none';
+            return;
+        }
+        
+        // Show loading indicator
+        loadingIndicator.style.display = 'block';
+        
+        fetch('get_members.php?q=' + encodeURIComponent(query))
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
                 }
+                return response.json();
+            })
+            .then(data => {
+                memberResults.innerHTML = '';
                 
-                fetch('get_members.php?q=' + encodeURIComponent(query))
-                    .then(response => response.json())
-                    .then(data => {
-                        memberResults.innerHTML = '';
+                if (data.length > 0) {
+                    data.forEach(member => {
+                        const div = document.createElement('div');
+                        div.className = 'member-item';
+                        div.textContent = `${member.full_name} (ID: ${member.id})`;
+                        div.dataset.id = member.id;
+                        div.dataset.name = member.full_name;
                         
-                        if (data.length > 0) {
-                            data.forEach(member => {
-                                const div = document.createElement('div');
-                                div.className = 'member-item';
-                                div.textContent = `${member.id} - ${member.full_name} (${member.coop_number})`;
-                                div.dataset.id = member.id;
-                                div.dataset.name = member.full_name;
-                                
-                                div.addEventListener('click', function() {
-                                    memberIdInput.value = this.dataset.id;
-                                    memberSearch.value = this.dataset.name;
-                                    memberResults.style.display = 'none';
-                                });
-                                
-                                memberResults.appendChild(div);
-                            });
-                            
-                            memberResults.style.display = 'block';
-                        } else {
+                        div.addEventListener('click', function() {
+                            memberIdInput.value = this.dataset.id;
+                            memberSearch.value = this.dataset.name;
                             memberResults.style.display = 'none';
-                        }
-                    })
-                    .catch(error => console.error('Error:', error));
-            });
-            
-            // Close dropdown when clicking outside
-            document.addEventListener('click', function(e) {
-                if (e.target !== memberSearch && e.target !== memberResults) {
-                    memberResults.style.display = 'none';
+                        });
+                        
+                        memberResults.appendChild(div);
+                    });
+                    
+                    memberResults.style.display = 'block';
+                } else {
+                    const div = document.createElement('div');
+                    div.className = 'member-item';
+                    div.textContent = 'No members found';
+                    memberResults.appendChild(div);
+                    memberResults.style.display = 'block';
                 }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                memberResults.style.display = 'none';
+            })
+            .finally(() => {
+                loadingIndicator.style.display = 'none';
             });
-            
-            // Helper function to format date as YYYY-MM-DD
-            function formatDate(date) {
-                const year = date.getFullYear();
-                const month = String(date.getMonth() + 1).padStart(2, '0');
-                const day = String(date.getDate()).padStart(2, '0');
-                return `${year}-${month}-${day}`;
-            }
-        });
+    });
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!memberSearch.contains(e.target) && !memberResults.contains(e.target)) {
+            memberResults.style.display = 'none';
+        }
+    });
+});
     </script>
 </body>
 </html>

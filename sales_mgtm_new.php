@@ -32,7 +32,7 @@ class SalesManager {
         $filters = array_merge($defaults, $filters);
         
         $query = "SELECT p.purchase_id, p.purchase_date, 
-                  m.id as member_id, m.full_name, m.coop_number, 
+                  m.id as member_id, m.full_name, m.member_id, 
                   i.item_id, i.item_name, i.item_code,
                   p.quantity, p.price_per_unit, p.total_price,
                   m.current_credit_balance
@@ -76,7 +76,7 @@ class SalesManager {
 
     // Get members for dropdown
     public function getMembers() {
-        $query = "SELECT id, full_name, coop_number FROM members ORDER BY full_name";
+        $query = "SELECT id, full_name, member_id FROM members ORDER BY full_name";
         $result = $this->conn->query($query);
         return $result->fetch_all(MYSQLI_ASSOC);
     }
@@ -150,7 +150,7 @@ class SalesManager {
     // Get member purchasing trends
     public function getTopMembers($startDate, $endDate, $limit = 5) {
         $query = "SELECT 
-                    m.id as member_id, m.full_name, m.coop_number,
+                    m.id as member_id, m.full_name, m.member_id,
                     COUNT(p.purchase_id) as transaction_count,
                     SUM(p.total_price) as total_spent
                   FROM purchases p
@@ -257,7 +257,7 @@ class SalesReport extends FPDF {
             $this->Cell(15, 10, $row['purchase_id'], 1, 0, 'C');
             $this->Cell(25, 10, $row['purchase_date'], 1, 0, 'C');
             $this->Cell(50, 10, substr($row['full_name'], 0, 20), 1, 0, 'L');
-            $this->Cell(20, 10, $row['coop_number'], 1, 0, 'C');
+            $this->Cell(20, 10, $row['member_id'], 1, 0, 'C');
             $this->Cell(50, 10, substr($row['item_name'], 0, 25), 1, 0, 'L');
             $this->Cell(20, 10, $row['item_code'], 1, 0, 'C');
             $this->Cell(15, 10, $row['quantity'], 1, 0, 'C');
@@ -568,7 +568,7 @@ $topMemberSpending = array_column($topMembers, 'total_spent');
                     <?php foreach ($members as $member): ?>
                         <option value="<?php echo $member['id']; ?>" 
                             <?php echo ($filters['member_id'] == $member['id']) ? 'selected' : ''; ?>>
-                            <?php echo htmlspecialchars($member['full_name'] . ' (' . $member['coop_number'] . ')'); ?>
+                            <?php echo htmlspecialchars($member['full_name'] . ' (' . $member['member_id'] . ')'); ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
@@ -687,7 +687,7 @@ $topMemberSpending = array_column($topMembers, 'total_spent');
                             <li class="list-group-item d-flex justify-content-between align-items-center">
                                 <div>
                                     <div class="fw-bold"><?php echo htmlspecialchars($member['full_name']); ?></div>
-                                    <small class="text-muted"><?php echo $member['coop_number']; ?></small>
+                                    <small class="text-muted"><?php echo $member['member_id']; ?></small>
                                 </div>
                                 <span class="badge bg-success rounded-pill">
                                     Rs. <?php echo number_format($member['total_spent'], 2); ?>
@@ -763,7 +763,7 @@ $topMemberSpending = array_column($topMembers, 'total_spent');
                                 <td><?php echo $sale['purchase_id']; ?></td>
                                 <td><?php echo $sale['purchase_date']; ?></td>
                                 <td><?php echo htmlspecialchars($sale['full_name']); ?></td>
-                                <td><?php echo $sale['coop_number']; ?></td>
+                                <td><?php echo $sale['member_id']; ?></td>
                                 <td><?php echo htmlspecialchars($sale['item_name']); ?></td>
                                 <td><?php echo $sale['item_code']; ?></td>
                                 <td><?php echo $sale['quantity']; ?></td>

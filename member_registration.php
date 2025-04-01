@@ -343,7 +343,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     
                     <div class="actions">
                         <button type="submit" class="btn btn-generate">Generate Number</button>
-                        <a href="display_coop_number.php" class="btn btn-view">View Membership Numbers</a>
+                        <a href="display_member_id.php" class="btn btn-view">View Membership Numbers</a>
                     </div>
                 </form>
             </div>

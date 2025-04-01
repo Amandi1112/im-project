@@ -80,3 +80,13 @@ CREATE TABLE `items` (
   `created_at` datetime DEFAULT current_timestamp(),
   `purchase_date` date DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+
+
+ $activityStmt = $pdo->prepare("
+                            INSERT INTO activity_log (activity) 
+                            VALUES (?)
+                        ");
+                        $activityStmt->execute([
+                            "Member " . $member['full_name'] . " purchased " . $purchase['quantity'] . " " . $purchase['item_name']
+                        ]);

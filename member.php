@@ -15,7 +15,7 @@ class MemberRegistration {
 
     // Generate cooperative number: C + 5 digits
     private function generateCoopNumber() {
-        $stmt = $this->conn->query("SELECT MAX(coop_number) AS last_number FROM members");
+        $stmt = $this->conn->query("SELECT MAX(id) AS last_number FROM members");
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
         $lastNumber = $result['last_number'] ? intval(substr($result['last_number'], 1)) : 0;
@@ -107,7 +107,7 @@ class MemberRegistration {
         }
 
         // Generate cooperative membership number
-        $coop_number = $this->generateCoopNumber();
+        $id = $this->generateCoopNumber();
 
         // Calculate age
         $age = $this->calculateAge($memberData['date_of_birth']);
@@ -116,7 +116,7 @@ class MemberRegistration {
         $sql = "INSERT INTO members (
             full_name,
             bank_membership_number,
-            coop_number,
+            id,
             address,
             nic,
             date_of_birth,
@@ -128,7 +128,7 @@ class MemberRegistration {
         ) VALUES (
             :full_name,
             :bank_membership_number,
-            :coop_number,
+            :id,
             :address,
             :nic,
             :date_of_birth,
@@ -143,7 +143,7 @@ class MemberRegistration {
             $stmt = $this->conn->prepare($sql);
             $stmt->bindValue(':full_name', $memberData['full_name']);
             $stmt->bindValue(':bank_membership_number', $memberData['bank_membership_number']);
-            $stmt->bindValue(':coop_number', $coop_number);
+            $stmt->bindValue(':id', $id);
             $stmt->bindValue(':address', $memberData['address']);
             $stmt->bindValue(':nic', $memberData['nic']);
             $stmt->bindValue(':date_of_birth', $memberData['date_of_birth']);
@@ -157,7 +157,7 @@ class MemberRegistration {
 
             return [
                 'success' => $result,
-                'coop_number' => $coop_number
+                'id' => $id
             ];
 
         } catch (PDOException $e) {
@@ -539,8 +539,8 @@ $('#monthly_income').on('input', function() {
                         });
 
                         // If coop number is returned, display it
-                        if (response.coop_number) {
-                            toastr.info(`Cooperative Number: ${response.coop_number}`, 'Cooperative Number');
+                        if (response.id) {
+                            toastr.info(`Cooperative Number: ${response.id}`, 'Cooperative Number');
                         }
                     } else {
                         // Handle validation errors

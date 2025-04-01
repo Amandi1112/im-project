@@ -78,7 +78,7 @@ function getLoyalCustomers($conn, $limit = 10) {
     $query = "SELECT 
                 m.id,
                 m.full_name,
-                m.coop_number,
+                
                 m.telephone_number,
                 COUNT(p.purchase_id) as purchase_count,
                 SUM(p.total_price) as total_spent,
@@ -86,7 +86,7 @@ function getLoyalCustomers($conn, $limit = 10) {
                 DATEDIFF(CURRENT_DATE, MAX(p.purchase_date)) as days_since_last_purchase
               FROM members m
               JOIN purchases p ON m.id = p.member_id
-              GROUP BY m.id, m.full_name, m.coop_number, m.telephone_number
+              GROUP BY m.id, m.full_name, m.telephone_number
               ORDER BY purchase_count DESC, days_since_last_purchase ASC
               LIMIT ?";
     
@@ -109,7 +109,7 @@ function getRecentPurchases($conn, $limit = 10) {
                 p.purchase_id,
                 p.purchase_date,
                 m.full_name,
-                m.coop_number,
+              
                 i.item_name,
                 p.quantity,
                 p.total_price
@@ -324,7 +324,7 @@ $recentPurchases = getRecentPurchases($conn);
                         <?php foreach ($loyalCustomers as $customer): ?>
                         <tr>
                             <td><?php echo htmlspecialchars($customer['full_name']); ?></td>
-                            <td><?php echo htmlspecialchars($customer['coop_number']); ?></td>
+                            <td><?php echo htmlspecialchars($customer['id']); ?></td>
                             <td><?php echo htmlspecialchars($customer['telephone_number']); ?></td>
                             <td><?php echo $customer['purchase_count']; ?></td>
                             <td>Rs. <?php echo number_format($customer['total_spent'], 2); ?></td>
@@ -366,7 +366,7 @@ $recentPurchases = getRecentPurchases($conn);
                         <tr>
                             <td><?php echo htmlspecialchars($purchase['purchase_date']); ?></td>
                             <td><?php echo htmlspecialchars($purchase['full_name']); ?></td>
-                            <td><?php echo htmlspecialchars($purchase['coop_number']); ?></td>
+                            <td><?php echo htmlspecialchars($purchase['member_id']); ?></td>
                             <td><?php echo htmlspecialchars($purchase['item_name']); ?></td>
                             <td><?php echo $purchase['quantity']; ?></td>
                             <td>Rs. <?php echo number_format($purchase['total_price'], 2); ?></td>

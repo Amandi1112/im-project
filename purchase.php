@@ -58,9 +58,9 @@ if (isset($_GET['action'])) {
     if ($_GET['action'] == 'search_members' && isset($_GET['term'])) {
         $term = '%' . $_GET['term'] . '%';
         $stmt = $pdo->prepare("
-            SELECT id, CONCAT(full_name, ' (Coop: ', coop_number, ')') as label 
+            SELECT id, CONCAT(full_name, ' (Coop: ', id, ')') as label 
             FROM members 
-            WHERE full_name LIKE ? OR coop_number LIKE ?
+            WHERE full_name LIKE ? OR id LIKE ?
             ORDER BY full_name
             LIMIT 10
         ");
@@ -95,14 +95,14 @@ if (isset($_GET['action'])) {
 function generateInvoicePDF($purchaseId, $pdo) {
     // Get purchase details for all items in this transaction
     $stmt = $pdo->prepare("
-        SELECT p.*, m.full_name, m.bank_membership_number, m.coop_number, m.address, m.telephone_number,
+        SELECT p.*, m.id, m.full_name, m.bank_membership_number, m.address, m.telephone_number,
                i.item_name, i.price_per_unit, i.item_code, s.supplier_name
         FROM purchases p
-        JOIN members m ON p.member_id = m.id
+        JOIN members m ON p.id = m.id
         JOIN items i ON p.item_id = i.item_id
         LEFT JOIN supplier s ON i.supplier_id = s.supplier_id
         WHERE p.purchase_id = ? OR 
-              (p.member_id = (SELECT member_id FROM purchases WHERE purchase_id = ?) AND 
+              (p.id = (SELECT id FROM purchases WHERE purchase_id = ?) AND 
               p.purchase_date = (SELECT purchase_date FROM purchases WHERE purchase_id = ?))
         ORDER BY p.purchase_id
     ");
@@ -195,7 +195,7 @@ $pdf->Cell(126,5,$firstPurchase['address'],0,1);
 $pdf->SetXY(17, 73);
 $pdf->Cell(126,5,'Tel: '.$firstPurchase['telephone_number'],0,1);
 $pdf->SetXY(17, 78);
-$pdf->Cell(126,5,'Coop: '.$firstPurchase['coop_number'],0,1);
+$pdf->Cell(126,5,'Coop: '.$firstPurchase['id'],0,1);
 
 // ========== ITEM TABLE ========== //
 $pdf->SetY(90);
@@ -374,15 +374,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     foreach ($purchaseDetails as $purchase) {
                         // Insert purchase record
                         $purchaseStmt = $pdo->prepare("
-                            INSERT INTO purchases (member_id, item_id, coop_number, full_name, quantity, 
-                                                  price_per_unit, total_price, purchase_date, current_credit_balance)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, CURDATE(), ?)
-                        ");
-                        $purchaseStmt->execute([
-                            $memberId, $purchase['item_id'], $member['coop_number'], $member['full_name'], 
-                            $purchase['quantity'], $purchase['price_per_unit'], $purchase['total_price'], 
-                            $member['current_credit_balance'] + $totalPurchaseAmount
-                        ]);
+    INSERT INTO purchases (member_id, item_id, full_name, quantity, 
+                          price_per_unit, total_price, purchase_date, current_credit_balance)
+    VALUES (?, ?, ?, ?, ?, ?, CURDATE(), ?)
+");
+$purchaseStmt->execute([
+    $memberId, $purchase['item_id'], $member['full_name'], 
+    $purchase['quantity'], $purchase['price_per_unit'], $purchase['total_price'], 
+    $member['current_credit_balance'] + $totalPurchaseAmount
+]);
                         
                         $purchaseIds[] = $pdo->lastInsertId();
                         
@@ -395,13 +395,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $updateItemStmt->execute([$purchase['quantity'], $purchase['item_id']]);
                         
                         // Log activity
-                        $activityStmt = $pdo->prepare("
-                            INSERT INTO activity_log (activity) 
-                            VALUES (?)
-                        ");
-                        $activityStmt->execute([
-                            "Member " . $member['full_name'] . " purchased " . $purchase['quantity'] . " " . $purchase['item_name']
-                        ]);
+                       
                     }
                     
                     // Update member's credit balance once for the entire purchase

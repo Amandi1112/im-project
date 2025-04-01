@@ -40,7 +40,7 @@ class MemberManager {
             $whereClauses[] = "(
                 full_name LIKE :search OR
                 bank_membership_number LIKE :search OR
-                coop_number LIKE :search OR
+                id LIKE :search OR
                 nic LIKE :search OR
                 occupation LIKE :search
             )";
@@ -56,7 +56,7 @@ class MemberManager {
     // Fetch members with pagination and search
     public function getMembers($page = 1, $perPage = 10, $searchTerm = '', $filterColumn = '', $filterValue = '', $sortColumn = 'id', $sortOrder = 'DESC') {
         // Validate sort column to prevent SQL injection
-        $allowedColumns = ['id', 'full_name', 'coop_number', 'age', 'monthly_income', 'registration_date'];
+        $allowedColumns = ['id', 'full_name', 'age', 'monthly_income', 'registration_date'];
         $sortColumn = in_array($sortColumn, $allowedColumns) ? $sortColumn : 'id';
         $sortOrder = strtoupper($sortOrder) === 'ASC' ? 'ASC' : 'DESC';
 
@@ -69,7 +69,7 @@ class MemberManager {
         // Prepare SQL
         $stmt = $this->conn->prepare("
             SELECT
-                id, full_name, bank_membership_number, coop_number,
+                id, full_name, bank_membership_number,
                 address, nic, date_of_birth, age, telephone_number,
                 occupation, monthly_income, credit_limit, registration_date
             FROM members
@@ -100,7 +100,7 @@ class MemberManager {
     
         $stmt = $this->conn->prepare("
             SELECT
-                full_name, bank_membership_number, coop_number,
+                id,full_name, bank_membership_number,
                 address, nic, date_of_birth, age, telephone_number,
                 occupation, monthly_income, credit_limit,
                 DATE(registration_date) as registration_date
@@ -285,7 +285,7 @@ foreach ($members as $member) {
     $pdf->SetFillColor($fill ? $grayLight[0] : 255); // Alternate row colors
     $pdf->Cell($colWidths['name'], 7, $member['full_name'], 1, 0, 'L', $fill);
     $pdf->Cell($colWidths['bank'], 7, $member['bank_membership_number'], 1, 0, 'L', $fill);
-    $pdf->Cell($colWidths['coop'], 7, $member['coop_number'], 1, 0, 'C', $fill);
+    $pdf->Cell($colWidths['coop'], 7, $member['id'], 1, 0, 'C', $fill);
     $pdf->Cell($colWidths['address'], 7, $memberManager->shortenText($member['address'], 30), 1, 0, 'L', $fill);
     $pdf->Cell($colWidths['nic'], 7, $member['nic'], 1, 0, 'C', $fill);
     $pdf->Cell($colWidths['age'], 7, $member['age'], 1, 0, 'C', $fill);
@@ -883,7 +883,7 @@ ob_end_flush();
                     response.members.forEach(member => {
                         tableBody.append(`
                             <tr>
-                                <td>${member.coop_number}</td>
+                                <td>${member.id}</td>
                                 <td>${member.full_name}</td>
                                 <td>${member.nic}</td>
                                 <td>${member.age}</td>

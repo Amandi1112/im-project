@@ -15,7 +15,7 @@ if ($conn->connect_error) {
 
 // Function to get top customers by purchase amount
 function getTopCustomers($conn, $limit = 5) {
-    $sql = "SELECT m.id, m.full_name, m.coop_number, SUM(p.total_price) as total_spent, 
+    $sql = "SELECT m.id, m.full_name, m.id, SUM(p.total_price) as total_spent, 
                    COUNT(p.purchase_id) as purchase_count 
             FROM members m 
             JOIN purchases p ON m.id = p.member_id 
@@ -450,7 +450,7 @@ $conn->close();
                     <tr>
                         <td><?php echo $customer['id']; ?></td>
                         <td><?php echo $customer['full_name']; ?></td>
-                        <td><span class="badge badge-primary"><?php echo $customer['coop_number']; ?></span></td>
+                        <td><span class="badge badge-primary"><?php echo $customer['member_id']; ?></span></td>
                         <td>$<?php echo number_format($customer['total_spent'], 2); ?></td>
                         <td><?php echo number_format($customer['purchase_count']); ?></td>
                     </tr>
