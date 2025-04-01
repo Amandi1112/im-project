@@ -147,11 +147,12 @@ function addNewItem($itemName, $pricePerUnit, $supplierId, $conn) {
  * @param float $pricePerUnit The price per unit at the time of purchase.
  * @param string $purchaseDate The date of purchase.
  * @param string|null $expireDate The expiration date of the item, if applicable.
+ * @param string $supplierId The ID of the supplier
  * @param mysqli $conn The database connection object.
  *
  * @return bool True if the purchase was added successfully, false otherwise.
  */
-function addPurchase($itemId, $quantity, $pricePerUnit, $purchaseDate, $expireDate, $conn) {
+function addPurchase($itemId, $quantity, $pricePerUnit, $purchaseDate, $expireDate,$supplier_id, $conn) {
     $totalPrice = $quantity * $pricePerUnit;
     
     // Start transaction to ensure atomicity
@@ -159,10 +160,10 @@ function addPurchase($itemId, $quantity, $pricePerUnit, $purchaseDate, $expireDa
     
     try {
         // Insert purchase record
-        $sql = "INSERT INTO item_purchases (item_id, quantity, price_per_unit, total_price, purchase_date, expire_date) 
-                VALUES (?, ?, ?, ?, ?, ?)";
+        $sql = "INSERT INTO item_purchases (item_id, quantity, price_per_unit, total_price, purchase_date, expire_date,supplier_id) 
+                VALUES (?, ?, ?, ?, ?, ?,?)";
         $stmt = $conn->prepare($sql);
-        $stmt->bind_param("idddss", $itemId, $quantity, $pricePerUnit, $totalPrice, $purchaseDate, $expireDate);
+        $stmt->bind_param("idddsss", $itemId, $quantity, $pricePerUnit, $totalPrice, $purchaseDate, $expireDate,$supplier_id);
         $stmt->execute();
         
         // Update item quantity and price in the items table
@@ -237,11 +238,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['submit_items'])) {
             }
             
             // Add purchase record
-            if (addPurchase($itemId, $quantity, $pricePerUnit, $purchaseDate, $expireDate, $conn)) {
-                $successCount++;
-            } else {
-                $errorCount++;
-            }
+            // Add purchase record
+if (addPurchase($itemId, $quantity, $pricePerUnit, $purchaseDate, $expireDate, $supplierId, $conn)) {
+    $successCount++;
+} else {
+    $errorCount++;
+}
         }
     }
     

@@ -95,17 +95,18 @@ if (isset($_GET['action'])) {
 function generateInvoicePDF($purchaseId, $pdo) {
     // Get purchase details for all items in this transaction
     $stmt = $pdo->prepare("
-        SELECT p.*, m.id, m.full_name, m.bank_membership_number, m.address, m.telephone_number,
-               i.item_name, i.price_per_unit, i.item_code, s.supplier_name
-        FROM purchases p
-        JOIN members m ON p.id = m.id
-        JOIN items i ON p.item_id = i.item_id
-        LEFT JOIN supplier s ON i.supplier_id = s.supplier_id
-        WHERE p.purchase_id = ? OR 
-              (p.id = (SELECT id FROM purchases WHERE purchase_id = ?) AND 
-              p.purchase_date = (SELECT purchase_date FROM purchases WHERE purchase_id = ?))
-        ORDER BY p.purchase_id
-    ");
+    SELECT p.*, m.id as member_id, m.full_name, m.bank_membership_number, 
+           m.address, m.telephone_number, i.item_name, i.price_per_unit, 
+           i.item_code, s.supplier_name
+    FROM purchases p
+    JOIN members m ON p.member_id = m.id
+    JOIN items i ON p.item_id = i.item_id
+    LEFT JOIN supplier s ON i.supplier_id = s.supplier_id
+    WHERE p.purchase_id = ? OR 
+          (p.member_id = (SELECT member_id FROM purchases WHERE purchase_id = ?) 
+           AND p.purchase_date = (SELECT purchase_date FROM purchases WHERE purchase_id = ?))
+    ORDER BY p.purchase_id
+");
     $stmt->execute([$purchaseId, $purchaseId, $purchaseId]);
     $purchases = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
