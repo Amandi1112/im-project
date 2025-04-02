@@ -869,20 +869,6 @@ $recentActivities = [
                     </div>
                 </div>
 
-                <div class="quick-actions" style="font-weight: bold;">
-                    <a href="report1.php" class="action-btn" style="font-weight: bold; font-size: 20px; background-color:rgb(170, 209, 237);">
-                        <i class="fas fa-file-alt"></i> View Sales Report
-                    </a>
-                    <a href="report2.php" class="action-btn" style="font-weight: bold; font-size: 20px; background-color:rgb(170, 209, 237);">
-                        <i class="fas fa-warehouse"></i> Check Inventory
-                    </a>
-                    <a href="member_registration.php" class="action-btn" style="font-weight: bold; font-size: 20px; background-color:rgb(170, 209, 237);">
-                        <i class="fas fa-user-plus"></i> Register Member
-                    </a>
-                    <a href="supplier.php" class="action-btn" style="font-weight: bold; font-size: 20px; background-color:rgb(170, 209, 237);">
-                        <i class="fas fa-truck-loading"></i> Add Supplier
-                    </a>
-                </div>
             </div>
         </div>
     </div>

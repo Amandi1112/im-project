@@ -156,35 +156,6 @@ if (count($itemIds) > 0) {
             
             $pdf->Ln(10);
             
-            // ========== ITEMS SUPPLIED SECTION ========== //
-            $pdf->SetFont('Helvetica', 'B', 12);
-            $pdf->Cell(0, 11, 'ITEMS SUPPLIED', 0, 1, 'L');
-            
-            // Table Header
-            $pdf->SetFillColor($primaryColor[0], $primaryColor[1], $primaryColor[2]);
-            $pdf->SetTextColor(255);
-            $pdf->SetFont('Helvetica', 'B', 10);
-            
-            $pdf->Cell(40, 10, 'ITEM CODE', 1, 0, 'C', true);
-            $pdf->Cell(60, 10, 'ITEM NAME', 1, 0, 'C', true);
-            $pdf->Cell(40, 10, 'UNIT PRICE', 1, 0, 'C', true);
-            $pdf->Cell(20, 10, 'QUANTITY', 1, 1, 'C', true);
-            
-            // Table Data
-            $pdf->SetTextColor($darkColor[0], $darkColor[1], $darkColor[2]);
-            $pdf->SetFont('Helvetica', '', 10);
-            
-            $fill = false;
-            foreach ($items as $item) {
-                $pdf->SetFillColor($fill ? $grayLight[0] : 255);
-                $pdf->Cell(40, 8, $item['item_code'], 1, 0, 'L', $fill);
-                $pdf->Cell(60, 8, $item['item_name'], 1, 0, 'L', $fill);
-                $pdf->Cell(40, 8, 'Rs. ' . number_format($item['price_per_unit'], 2), 1, 0, 'R', $fill);
-                $pdf->Cell(20, 8, $item['current_quantity'], 1, 1, 'R', $fill);
-                $fill = !$fill;
-            }
-            
-            $pdf->Ln(10);
             
             // ========== PURCHASE HISTORY SECTION ========== //
             $pdf->SetFont('Helvetica', 'B', 12);
@@ -255,9 +226,33 @@ if (count($itemIds) > 0) {
                 $pdf->SetFont('Helvetica', 'I', 10);
                 $pdf->Cell(0, 8, 'No payments found for this period.', 0, 1, 'L');
             }
+
+            // ========== SIGNATURE SECTION ========== //
+$pdf->SetY(-80); // Position 50mm from bottom
+$pdf->SetFont('Helvetica', '', 10);
+$pdf->SetTextColor($darkColor[0], $darkColor[1], $darkColor[2]);
+
+// Signature titles
+$pdf->Cell(105, 5, 'Verified by:', 0, 0, 'L');
+$pdf->Cell(200, 5, 'Approved by:', 0, 1, 'L');
+
+// Add empty space for signatures (removed the 'B' border parameter)
+$pdf->Cell(95, 20, '', 0, 0, 'L'); // Space for Co-op Staff signature
+$pdf->Cell(200, 20, '', 0, 1, 'L'); // Space for Bank Manager signature
+
+// Signature labels
+$pdf->Cell(95, 5, 'Co-op City Shop Staff', 0, 0, 'L');
+$pdf->Cell(200, 5, 'Bank Manager', 0, 1, 'L');
+
+// Signature details (name and date)
+$pdf->Cell(95, 5, 'Name: _________________________', 0, 0, 'L');
+$pdf->Cell(200, 5, 'Name: _________________________', 0, 1, 'L');
+
+$pdf->Cell(95, 5, 'Date: ' . date('Y-m-d'), 0, 0, 'L');
+$pdf->Cell(200, 5, 'Date: ' . date('Y-m-d'), 0, 1, 'L');
             
             // ========== FOOTER SECTION ========== //
-            $pdf->SetY(-20);
+            $pdf->SetY(-30);
             $pdf->SetFont('Helvetica', 'I', 8);
             $pdf->SetTextColor($grayColor[0], $grayColor[1], $grayColor[2]);
             $pdf->Cell(0, 5, 'This is a computer generated report. Thank you for your business!', 0, 1, 'C');
