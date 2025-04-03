@@ -11,22 +11,301 @@ try {
 } catch (PDOException $e) {
     die("Database connection failed: " . $e->getMessage());
 }
-
 // Handle PDF generation request
 if (isset($_GET['generate_pdf']) && $_GET['generate_pdf'] == '1') {
     require('fpdf/fpdf.php');
-    
-    // Color scheme from previous examples
-    $primaryColor = array(102, 126, 234);   // #667eea
-    $primaryDark = array(90, 103, 216);     // #5a67d8
-    $secondaryColor = array(237, 242, 247); // #edf2f7
-    $successColor = array(72, 187, 120);    // #48bb78
-    $warningColor = array(237, 137, 54);    // #ed8936
-    $infoColor = array(66, 153, 225);       // #4299e1
-    $lightColor = array(247, 250, 252);     // #f7fafc
-    $darkColor = array(45, 55, 72);         // #2d3748
-    $grayColor = array(113, 128, 150);      // #718096
-    $grayLight = array(226, 232, 240);      // #e2e8f0
+
+    class PDF extends FPDF {
+        // Header with company information
+        function Header() {
+            // Blue header background
+            $this->SetFillColor(41, 128, 185);
+            $this->Rect(0, 0, $this->GetPageWidth(), 50, 'F');
+            
+            // Add logo if available
+            if (file_exists('images/logo.jpeg')) {
+                $this->Image('images/logo.jpeg', 10, 5, 30);
+            }
+            
+            // Company information
+            $this->SetTextColor(255, 255, 255);
+            $this->SetFont('Arial', 'B', 18);
+            $this->Cell(0, 8, 'T&C CO-OP CITY SHOP', 0, 1, 'C');
+            $this->SetFont('Arial', '', 11);
+            $this->Cell(0, 6, 'Karawita', 0, 1, 'C');
+            $this->Cell(0, 6, 'Phone: +94 11 2345678 | Email: accounts@coopshop.lk', 0, 1, 'C');
+            
+            // Report title
+            $this->SetFont('Arial','B',16);
+            $this->Cell(0,15,'SUPPLIER PERFORMANCE REPORT',0,1,'C');
+            $this->Ln(5);
+            
+            // Report period
+            $this->SetFont('Arial','',10);
+            $period = "From: " . $_GET['start_date'] . " To: " . $_GET['end_date'];
+            $this->Cell(0,5,'Period: ' . $period,0,1,'C');
+            
+            // Horizontal line
+            $this->Line(10, $this->GetY()+5, $this->GetPageWidth()-10, $this->GetY()+5);
+            $this->Ln(10);
+        }
+        
+        // Professional footer
+        function Footer() {
+            $this->SetY(-15);
+            $this->SetFont('Arial','I',8);
+            $this->Cell(0,5,'Confidential - For internal use only',0,0,'L');
+            $this->Cell(0,5,'Page '.$this->PageNo().'/{nb}',0,0,'R');
+        }
+        
+        // Supplier Information Section
+        function SupplierInfo($supplier) {
+            $this->SetFont('Arial','B',12);
+            $this->Cell(0, 6, 'SUPPLIER INFORMATION', 0, 1, 'L');
+            $this->SetFont('Arial','',10);
+            
+            $this->Cell(40, 6, 'Supplier Name:', 0, 0);
+            $this->Cell(0, 6, $supplier['supplier_name'], 0, 1);
+            
+            $this->Cell(40, 6, 'Supplier ID:', 0, 0);
+            $this->Cell(0, 6, $supplier['supplier_id'], 0, 1);
+            
+            $this->Cell(40, 6, 'Contact:', 0, 0);
+            $this->Cell(0, 6, $supplier['contact_number'], 0, 1);
+            
+            $this->Cell(40, 6, 'Address:', 0, 0);
+            $this->MultiCell(0, 6, $supplier['address'], 0, 1);
+            
+            $this->Ln(5);
+        }
+        
+        // Financial Summary Section
+        function FinancialSummary($totalPurchases, $totalPayments, $outstandingBalance) {
+            $this->SetFont('Arial','B',12);
+            $this->Cell(0, 6, 'FINANCIAL SUMMARY', 0, 1, 'L');
+            $this->SetFont('Arial','',10);
+            
+            $this->Cell(70, 6, 'Total Purchases:', 0, 0);
+            $this->Cell(0, 6, 'Rs. ' . number_format($totalPurchases, 2), 0, 1);
+            
+            $this->Cell(70, 6, 'Total Payments:', 0, 0);
+            $this->Cell(0, 6, 'Rs. ' . number_format($totalPayments, 2), 0, 1);
+            
+            // Determine color for outstanding balance
+            if ($outstandingBalance > 0) {
+                $this->SetFillColor(255, 200, 200); // Light red for positive balance (owed)
+            } elseif ($outstandingBalance < 0) {
+                $this->SetFillColor(255, 255, 150); // Light yellow for overpayment
+            } else {
+                $this->SetFillColor(200, 255, 200); // Light green for balanced
+            }
+            
+            $this->SetFont('Arial','B',10);
+            $this->Cell(70, 6, 'Outstanding Balance:', 0, 0);
+            $this->Cell(50, 6, 'Rs. ' . number_format($outstandingBalance, 2), 1, 1, 'L', true);
+            
+            $this->Ln(10);
+        }
+        
+        // Purchase History Table
+        function PurchaseHistoryTable($purchases) {
+            $this->SetFont('Arial','B',12);
+            $this->Cell(0, 6, 'PURCHASE HISTORY', 0, 1, 'L');
+            
+            if (empty($purchases)) {
+                $this->SetFont('Arial','I',10);
+                $this->Cell(0, 6, 'No purchases found for this period.', 0, 1, 'L');
+                $this->Ln(10);
+                return;
+            }
+            
+            // Table Header
+            $this->SetFont('Arial','B',9);
+            $this->SetFillColor(54, 123, 180);
+            $this->SetTextColor(255);
+            $this->SetDrawColor(54, 123, 180);
+            $this->SetLineWidth(0.3);
+            
+            $header = array('Date', 'Item', 'Qty', 'Unit Price', 'Total', 'Expiry');
+            $w = array(25, 60, 15, 25, 25, 25);
+            
+            for($i=0; $i<count($header); $i++) {
+                $this->Cell($w[$i], 7, $header[$i], 1, 0, 'C', true);
+            }
+            $this->Ln();
+            
+            // Table Content
+            $this->SetFont('Arial','',8);
+            $this->SetTextColor(0);
+            $fill = false;
+            
+            foreach($purchases as $purchase) {
+                // Check if we need a new page
+                if($this->GetY() > 250) {
+                    $this->AddPage();
+                    $this->SetFont('Arial','B',9);
+                    $this->SetFillColor(54, 123, 180);
+                    $this->SetTextColor(255);
+                    for($i=0; $i<count($header); $i++) {
+                        $this->Cell($w[$i], 7, $header[$i], 1, 0, 'C', true);
+                    }
+                    $this->Ln();
+                    $this->SetFont('Arial','',8);
+                    $this->SetTextColor(0);
+                }
+                
+                // Alternate row color
+                $this->SetFillColor($fill ? 224 : 255, $fill ? 235 : 255, 255);
+                
+                // Format dates
+                $purchase_date = date('d M Y', strtotime($purchase['purchase_date']));
+                $expire_date = !empty($purchase['expire_date']) ? date('d M Y', strtotime($purchase['expire_date'])) : 'N/A';
+                
+                $this->Cell($w[0], 6, $purchase_date, 'LR', 0, 'L', $fill);
+                $this->Cell($w[1], 6, $this->trimText($purchase['item_name'], 25), 'LR', 0, 'L', $fill);
+                $this->Cell($w[2], 6, $purchase['quantity'], 'LR', 0, 'R', $fill);
+                $this->Cell($w[3], 6, number_format($purchase['price_per_unit'], 2), 'LR', 0, 'R', $fill);
+                $this->Cell($w[4], 6, number_format($purchase['total_price'], 2), 'LR', 0, 'R', $fill);
+                $this->Cell($w[5], 6, $expire_date, 'LR', 0, 'L', $fill);
+                $this->Ln();
+                
+                $fill = !$fill;
+            }
+            
+            // Closing line
+            $this->Cell(array_sum($w), 0, '', 'T');
+            $this->Ln(10);
+        }
+        
+        // Payment History Table
+        function PaymentHistoryTable($payments) {
+            $this->SetFont('Arial','B',12);
+            $this->Cell(0, 6, 'PAYMENT HISTORY', 0, 1, 'L');
+            
+            if (empty($payments)) {
+                $this->SetFont('Arial','I',10);
+                $this->Cell(0, 6, 'No payments found for this period.', 0, 1, 'L');
+                $this->Ln(10);
+                return;
+            }
+            
+            // Table Header
+            $this->SetFont('Arial','B',9);
+            $this->SetFillColor(54, 123, 180);
+            $this->SetTextColor(255);
+            $this->SetDrawColor(54, 123, 180);
+            $this->SetLineWidth(0.3);
+            
+            $header = array('Payment ID', 'Date', 'Amount', 'Method', 'Reference');
+            $w = array(30, 30, 30, 40, 40);
+            
+            for($i=0; $i<count($header); $i++) {
+                $this->Cell($w[$i], 7, $header[$i], 1, 0, 'C', true);
+            }
+            $this->Ln();
+            
+            // Table Content
+            $this->SetFont('Arial','',8);
+            $this->SetTextColor(0);
+            $fill = false;
+            
+            foreach($payments as $payment) {
+                // Check if we need a new page
+                if($this->GetY() > 250) {
+                    $this->AddPage();
+                    $this->SetFont('Arial','B',9);
+                    $this->SetFillColor(54, 123, 180);
+                    $this->SetTextColor(255);
+                    for($i=0; $i<count($header); $i++) {
+                        $this->Cell($w[$i], 7, $header[$i], 1, 0, 'C', true);
+                    }
+                    $this->Ln();
+                    $this->SetFont('Arial','',8);
+                    $this->SetTextColor(0);
+                }
+                
+                // Alternate row color
+                $this->SetFillColor($fill ? 224 : 255, $fill ? 235 : 255, 255);
+                
+                $payment_date = date('d M Y', strtotime($payment['payment_date']));
+                
+                $this->Cell($w[0], 6, $payment['id'], 'LR', 0, 'L', $fill);
+                $this->Cell($w[1], 6, $payment_date, 'LR', 0, 'L', $fill);
+                $this->Cell($w[2], 6, 'Rs. ' . number_format($payment['amount'], 2), 'LR', 0, 'R', $fill);
+                $this->Cell($w[3], 6, $payment['payment_method'] ?? 'N/A', 'LR', 0, 'L', $fill);
+                $this->Cell($w[4], 6, $payment['reference_number'] ?? 'N/A', 'LR', 0, 'L', $fill);
+                $this->Ln();
+                
+                $fill = !$fill;
+            }
+            
+            // Closing line
+            $this->Cell(array_sum($w), 0, '', 'T');
+            $this->Ln(10);
+        }
+        
+        // Signature section
+        function SignatureSection() {
+            $this->Ln(15);
+            
+            // Set common dimensions
+            $panelWidth = 85;
+            $lineLength = 60;
+            $startY = $this->GetY();
+            
+            // Vertical spacing values
+            $afterTitle = 8;
+            $afterLine = 6;
+            $afterSignature = 6;
+            $afterName = 6;
+            
+            // Co-op City Staff section (LEFT)
+            $this->SetFont('Arial','B',10);
+            $this->Cell($panelWidth, 6, 'Co-op City Staff:', 0, 1, 'L');
+            $this->Ln($afterTitle);
+            $this->Cell($lineLength, 2, '', 'B', 1, 'L');
+            $this->Ln($afterLine);
+            $this->Cell($panelWidth, 6, 'Signature', 0, 1, 'L');
+            $this->Ln($afterSignature);
+            $this->SetFont('Arial','I',9);
+            $this->Cell($panelWidth, 6, 'Name: ___________________', 0, 1, 'L');
+            $this->Ln($afterName);
+            $this->Cell($panelWidth, 6, 'Date: ' . date('Y-m-d'), 0, 1, 'L');
+            
+            // Bank Manager section (RIGHT)
+            $this->SetY($startY);
+            $this->SetX($panelWidth + 20);
+            $this->SetFont('Arial','B',10);
+            $this->Cell($panelWidth, 6, 'Bank Manager:', 0, 1, 'L');
+            $this->SetX($panelWidth + 20);
+            $this->Ln($afterTitle);
+            $this->SetX($panelWidth + 20);
+            $this->Cell($lineLength, 2, '', 'B', 1, 'L');
+            $this->SetX($panelWidth + 20);
+            $this->Ln($afterLine);
+            $this->SetX($panelWidth + 20);
+            $this->Cell($panelWidth, 6, 'Signature', 0, 1, 'L');
+            $this->SetX($panelWidth + 20);
+            $this->Ln($afterSignature);
+            $this->SetFont('Arial','I',9);
+            $this->SetX($panelWidth + 20);
+            $this->Cell($panelWidth, 6, 'Name: ___________________', 0, 1, 'L');
+            $this->SetX($panelWidth + 20);
+            $this->Ln($afterName);
+            $this->SetX($panelWidth + 20);
+            $this->Cell($panelWidth, 6, 'Date: ___________________', 0, 1, 'L');
+            
+            $this->Ln(10);
+        }
+        
+        // Helper function to trim long text
+        function trimText($text, $maxLength) {
+            if (strlen($text) > $maxLength) {
+                return substr($text, 0, $maxLength-3) . '...';
+            }
+            return $text;
+        }
+    }
 
     // Get parameters
     $supplierId = $_GET['supplier_id'] ?? '';
@@ -48,32 +327,26 @@ if (isset($_GET['generate_pdf']) && $_GET['generate_pdf'] == '1') {
             $items = $itemsStmt->fetchAll(PDO::FETCH_ASSOC);
             
             // Get purchases of these items within date range
-            // Get purchases of these items within date range
-$itemIds = array_column($items, 'item_id');
-
-// Check if there are any items before creating placeholders
-if (count($itemIds) > 0) {
-    $placeholders = str_repeat('?,', count($itemIds) - 1) . '?';
-    
-    $purchasesQuery = "SELECT p.*, i.item_name 
-                      FROM item_purchases p
-                      JOIN items i ON p.item_id = i.item_id
-                      WHERE p.item_id IN ($placeholders)
-                      AND p.purchase_date BETWEEN ? AND ?";
-    
-    $params = array_merge($itemIds, [$startDate, $endDate]);
-    $purchasesStmt = $pdo->prepare($purchasesQuery);
-    $purchasesStmt->execute($params);
-    $purchases = $purchasesStmt->fetchAll(PDO::FETCH_ASSOC);
-} else {
-    // No items found for this supplier
-    $purchases = [];
-}
+            $itemIds = array_column($items, 'item_id');
+            $purchases = [];
+            
+            if (count($itemIds) > 0) {
+                $placeholders = str_repeat('?,', count($itemIds) - 1) . '?';
+                $purchasesQuery = "SELECT p.*, i.item_name 
+                                 FROM item_purchases p
+                                 JOIN items i ON p.item_id = i.item_id
+                                 WHERE p.item_id IN ($placeholders)
+                                 AND p.purchase_date BETWEEN ? AND ?";
+                $params = array_merge($itemIds, [$startDate, $endDate]);
+                $purchasesStmt = $pdo->prepare($purchasesQuery);
+                $purchasesStmt->execute($params);
+                $purchases = $purchasesStmt->fetchAll(PDO::FETCH_ASSOC);
+            }
             
             // Get payments to this supplier within date range
             $paymentsQuery = "SELECT * FROM supplier_payments 
-                             WHERE supplier_id = ? 
-                             AND payment_date BETWEEN ? AND ?";
+                            WHERE supplier_id = ? 
+                            AND payment_date BETWEEN ? AND ?";
             $paymentsStmt = $pdo->prepare($paymentsQuery);
             $paymentsStmt->execute([$supplierId, $startDate, $endDate]);
             $payments = $paymentsStmt->fetchAll(PDO::FETCH_ASSOC);
@@ -83,273 +356,21 @@ if (count($itemIds) > 0) {
             $totalPayments = array_sum(array_column($payments, 'amount'));
             $outstandingBalance = $totalPurchases - $totalPayments;
             
-            // Create PDF in landscape
-            $pdf = new FPDF('P', 'mm', 'A4');
+            // Generate PDF
+            $pdf = new PDF('P');
+            $pdf->AliasNbPages();
             $pdf->AddPage();
             
-            // ========== HEADER SECTION ========== //
-            // Header with primary color background
-            $pdf->SetFillColor($primaryColor[0], $primaryColor[1], $primaryColor[2]);
-            $pdf->Rect(10, 10, 190, 20, 'F');
-            
-            // Shop name
-            $pdf->SetTextColor(255);
-            $pdf->SetFont('Helvetica', 'B', 16);
-            $pdf->SetXY(15, 12);
-            $pdf->Cell(0, 8, 'COOPERATIVE SHOP SUPPLIER REPORT', 0, 1, 'L');
-            
-            // Report info box
-            $pdf->SetFillColor($primaryDark[0], $primaryDark[1], $primaryDark[2]);
-        
-            $pdf->SetFont('Helvetica', 'B', 12);
-            $pdf->SetXY(200, 12);
-            $pdf->Cell(80, 8, 'DATE', 0, 1, 'C');
-            $pdf->SetFont('Helvetica', '', 10);
-            $pdf->SetXY(200, 18);
-            $pdf->Cell(80, 6, date('F j, Y'), 0, 1, 'C');
-            
-            // Shop contact info
-            $pdf->SetTextColor(255);
-            $pdf->SetFont('Helvetica', '', 9);
-            $pdf->SetXY(15, 22);
-            $pdf->Cell(0, 5, '123 Business Avenue, Colombo 01 | Tel: +94 11 2345678 | Email: accounts@coopshop.lk', 0, 1, 'L');
-            
-            // ========== SUPPLIER INFORMATION SECTION ========== //
-            $pdf->SetY(40);
-            $pdf->SetTextColor($darkColor[0], $darkColor[1], $darkColor[2]);
-            
-            $pdf->SetFont('Helvetica', 'B', 12);
-            $pdf->Cell(0, 10, 'SUPPLIER INFORMATION', 0, 1, 'L');
-            $pdf->SetFont('Helvetica', '', 10);
-            
-            $pdf->Cell(40, 7, 'Supplier Name:', 0, 0);
-            $pdf->Cell(0, 7, $supplier['supplier_name'], 0, 1);
-            
-            $pdf->Cell(40, 7, 'Supplier ID:', 0, 0);
-            $pdf->Cell(0, 7, $supplier['supplier_id'], 0, 1);
-            
-            $pdf->Cell(40, 7, 'Contact:', 0, 0);
-            $pdf->Cell(0, 7, $supplier['contact_number'], 0, 1);
-            
-            $pdf->Cell(40, 7, 'Address:', 0, 0);
-            $pdf->MultiCell(0, 7, $supplier['address'], 0, 1);
-            
-            $pdf->Ln(5);
-            
-            // ========== FINANCIAL SUMMARY SECTION ========== //
-            $pdf->SetFont('Helvetica', 'B', 12);
-            $pdf->Cell(0, 10, 'FINANCIAL SUMMARY', 0, 1, 'L');
-            $pdf->SetFont('Helvetica', '', 10);
-            
-            $pdf->Cell(70, 7, 'Total Purchases:', 0, 0);
-            $pdf->Cell(0, 7, 'Rs. ' . number_format($totalPurchases, 2), 0, 1);
-            
-            $pdf->Cell(70, 7, 'Total Payments:', 0, 0);
-            $pdf->Cell(0, 7, 'Rs. ' . number_format($totalPayments, 2), 0, 1);
-            
-            $pdf->SetFont('Helvetica', 'B', 10);
-            $pdf->SetFillColor($outstandingBalance > 0 ? $warningColor[0] : $successColor[0], 
-                             $outstandingBalance > 0 ? $warningColor[1] : $successColor[1], 
-                             $outstandingBalance > 0 ? $warningColor[2] : $successColor[2]);
-            $pdf->Cell(70, 7, 'Outstanding Balance:', 0, 0);
-            $pdf->Cell(50, 7, 'Rs. ' . number_format($outstandingBalance, 2), 1, 1, 'L', true);
-            
-            $pdf->Ln(10);
-            
-            
-            // ========== PURCHASE HISTORY SECTION ========== //
-            $pdf->SetFont('Helvetica', 'B', 12);
-            $pdf->Cell(0, 8, 'PURCHASE HISTORY', 0, 1, 'L');
-            
-            if (!empty($purchases)) {
-                // Table Header
-                $pdf->SetFillColor($primaryColor[0], $primaryColor[1], $primaryColor[2]);
-                $pdf->SetTextColor(255);
-                $pdf->SetFont('Helvetica', 'B', 10);
-                
-                $pdf->Cell(30, 9, 'DATE', 1, 0, 'C', true);
-                $pdf->Cell(40, 9, 'ITEM', 1, 0, 'C', true);
-                $pdf->Cell(20, 9, 'QTY', 1, 0, 'C', true);
-                $pdf->Cell(35, 9, 'UNIT PRICE', 1, 0, 'C', true);
-                $pdf->Cell(35, 9, 'TOTAL', 1, 0, 'C', true);
-                $pdf->Cell(30, 9, 'EXPIRY', 1, 1, 'C', true);
-                
-                // Table Data
-                $pdf->SetTextColor($darkColor[0], $darkColor[1], $darkColor[2]);
-                $pdf->SetFont('Helvetica', '', 10);
-                
-                $fill = false;
-                foreach ($purchases as $purchase) {
-                    $pdf->SetFillColor($fill ? $grayLight[0] : 255);
-                    $pdf->Cell(30, 7, $purchase['purchase_date'], 1, 0, 'C', $fill);
-                    $pdf->Cell(40, 7, $purchase['item_name'], 1, 0, 'L', $fill);
-                    $pdf->Cell(20, 7, $purchase['quantity'], 1, 0, 'R', $fill);
-                    $pdf->Cell(35, 7, 'Rs. ' . number_format($purchase['price_per_unit'], 2), 1, 0, 'R', $fill);
-                    $pdf->Cell(35, 7, 'Rs. ' . number_format($purchase['total_price'], 2), 1, 0, 'R', $fill);
-                    $pdf->Cell(30, 7, $purchase['expire_date'] ?? 'N/A', 1, 1, 'C', $fill);
-                    $fill = !$fill;
-                }
-            } else {
-                $pdf->SetFont('Helvetica', 'I', 10);
-                $pdf->Cell(0, 8, 'No purchases found for this period.', 0, 1, 'L');
-            }
-            
-            $pdf->Ln(10);
-            
-            // ========== PAYMENT HISTORY SECTION ========== //
-            $pdf->SetFont('Helvetica', 'B', 12);
-            $pdf->Cell(0, 8, 'PAYMENT HISTORY', 0, 1, 'L');
-            
-            if (!empty($payments)) {
-                // Table Header
-                $pdf->SetFillColor($primaryColor[0], $primaryColor[1], $primaryColor[2]);
-                $pdf->SetTextColor(255);
-                $pdf->SetFont('Helvetica', 'B', 10);
-                
-                $pdf->Cell(40, 8, 'PAYMENT ID', 1, 0, 'C', true);
-                $pdf->Cell(40, 8, 'DATE', 1, 0, 'C', true);
-                $pdf->Cell(40, 8, 'AMOUNT', 1, 1, 'C', true);
-                
-                // Table Data
-                $pdf->SetTextColor($darkColor[0], $darkColor[1], $darkColor[2]);
-                $pdf->SetFont('Helvetica', '', 10);
-                
-                $fill = false;
-                foreach ($payments as $payment) {
-                    $pdf->SetFillColor($fill ? $grayLight[0] : 255);
-                    $pdf->Cell(40, 7, $payment['id'], 1, 0, 'C', $fill);
-                    $pdf->Cell(40, 7, $payment['payment_date'], 1, 0, 'C', $fill);
-                    $pdf->Cell(40, 7, 'Rs. ' . number_format($payment['amount'], 2), 1, 1, 'R', $fill);
-                    $fill = !$fill;
-                }
-            } else {
-                $pdf->SetFont('Helvetica', 'I', 10);
-                $pdf->Cell(0, 8, 'No payments found for this period.', 0, 1, 'L');
-            }
-
-            // ========== SIGNATURE SECTION ========== //
-$pdf->SetY(-80); // Position 50mm from bottom
-$pdf->SetFont('Helvetica', '', 10);
-$pdf->SetTextColor($darkColor[0], $darkColor[1], $darkColor[2]);
-
-// Signature titles
-$pdf->Cell(105, 5, 'Verified by:', 0, 0, 'L');
-$pdf->Cell(200, 5, 'Approved by:', 0, 1, 'L');
-
-// Add empty space for signatures (removed the 'B' border parameter)
-$pdf->Cell(95, 20, '', 0, 0, 'L'); // Space for Co-op Staff signature
-$pdf->Cell(200, 20, '', 0, 1, 'L'); // Space for Bank Manager signature
-
-// Signature labels
-$pdf->Cell(95, 5, 'Co-op City Shop Staff', 0, 0, 'L');
-$pdf->Cell(200, 5, 'Bank Manager', 0, 1, 'L');
-
-// Signature details (name and date)
-$pdf->Cell(95, 5, 'Name: _________________________', 0, 0, 'L');
-$pdf->Cell(200, 5, 'Name: _________________________', 0, 1, 'L');
-
-$pdf->Cell(95, 5, 'Date: ' . date('Y-m-d'), 0, 0, 'L');
-$pdf->Cell(200, 5, 'Date: ' . date('Y-m-d'), 0, 1, 'L');
-            
-            // ========== FOOTER SECTION ========== //
-            $pdf->SetY(-30);
-            $pdf->SetFont('Helvetica', 'I', 8);
-            $pdf->SetTextColor($grayColor[0], $grayColor[1], $grayColor[2]);
-            $pdf->Cell(0, 5, 'This is a computer generated report. Thank you for your business!', 0, 1, 'C');
-            $pdf->Cell(0, 5, 'Generated on ' . date('Y-m-d H:i:s'), 0, 1, 'C');
-            $pdf->Cell(0, 5, 'Page ' . $pdf->PageNo(), 0, 0, 'C');
+            // Add content
+            $pdf->SupplierInfo($supplier);
+            $pdf->FinancialSummary($totalPurchases, $totalPayments, $outstandingBalance);
+            $pdf->PurchaseHistoryTable($purchases);
+            $pdf->PaymentHistoryTable($payments);
+            $pdf->SignatureSection();
             
             // Output PDF
             $pdf->Output('D', 'Supplier_Report_' . $supplier['supplier_name'] . '_' . $startDate . '_' . $endDate . '.pdf');
             exit;
-        }
-    }
-}
-
-// Handle AJAX request for supplier suggestions
-if (isset($_GET['search_term'])) {
-    $searchTerm = '%' . $_GET['search_term'] . '%';
-    $stmt = $pdo->prepare("SELECT supplier_id, supplier_name FROM supplier WHERE supplier_name LIKE ? ORDER BY supplier_name LIMIT 10");
-    $stmt->execute([$searchTerm]);
-    $suppliers = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    echo json_encode($suppliers);
-    exit;
-}
-
-// Handle form submission
-$reportData = [];
-$supplierId = '';
-$startDate = '';
-$endDate = '';
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $supplierId = $_POST['supplier_id'] ?? '';
-    $startDate = $_POST['start_date'] ?? '';
-    $endDate = $_POST['end_date'] ?? '';
-    
-    // Basic validation
-    if (!empty($supplierId) && !empty($startDate) && !empty($endDate)) {
-        // Get supplier details
-        $supplierQuery = "SELECT * FROM supplier WHERE supplier_id = ?";
-        $supplierStmt = $pdo->prepare($supplierQuery);
-        $supplierStmt->execute([$supplierId]);
-        $supplier = $supplierStmt->fetch(PDO::FETCH_ASSOC);
-        
-        if ($supplier) {
-            // Get items supplied by this supplier
-            $itemsQuery = "SELECT * FROM items WHERE supplier_id = ?";
-            $itemsStmt = $pdo->prepare($itemsQuery);
-            $itemsStmt->execute([$supplierId]);
-            $items = $itemsStmt->fetchAll(PDO::FETCH_ASSOC);
-            
-            // Get purchases of these items within date range
-            // Get purchases of these items within date range
-$itemIds = array_column($items, 'item_id');
-
-// Check if there are any items before creating placeholders
-if (count($itemIds) > 0) {
-    $placeholders = str_repeat('?,', count($itemIds) - 1) . '?';
-    
-    $purchasesQuery = "SELECT p.*, i.item_name 
-                      FROM item_purchases p
-                      JOIN items i ON p.item_id = i.item_id
-                      WHERE p.item_id IN ($placeholders)
-                      AND p.purchase_date BETWEEN ? AND ?";
-    
-    $params = array_merge($itemIds, [$startDate, $endDate]);
-    $purchasesStmt = $pdo->prepare($purchasesQuery);
-    $purchasesStmt->execute($params);
-    $purchases = $purchasesStmt->fetchAll(PDO::FETCH_ASSOC);
-} else {
-    // No items found for this supplier
-    $purchases = [];
-}
-            
-            // Get payments to this supplier within date range
-            $paymentsQuery = "SELECT * FROM supplier_payments 
-                             WHERE supplier_id = ? 
-                             AND payment_date BETWEEN ? AND ?";
-            $paymentsStmt = $pdo->prepare($paymentsQuery);
-            $paymentsStmt->execute([$supplierId, $startDate, $endDate]);
-            $payments = $paymentsStmt->fetchAll(PDO::FETCH_ASSOC);
-            
-            // Calculate totals
-            $totalPurchases = array_sum(array_column($purchases, 'total_price'));
-            $totalPayments = array_sum(array_column($payments, 'amount'));
-            $outstandingBalance = $totalPurchases - $totalPayments;
-            
-            // Prepare report data
-            $reportData = [
-                'supplier' => $supplier,
-                'items' => $items,
-                'purchases' => $purchases,
-                'payments' => $payments,
-                'totalPurchases' => $totalPurchases,
-                'totalPayments' => $totalPayments,
-                'outstandingBalance' => $outstandingBalance,
-                'startDate' => $startDate,
-                'endDate' => $endDate
-            ];
         }
     }
 }
@@ -996,7 +1017,7 @@ $suppliers = $pdo->query($suppliersQuery)->fetchAll(PDO::FETCH_ASSOC);
                 }
                 
                 e.preventDefault();
-                showLoading();
+               
                 
                 // Submit form after a small delay to show loading animation
                 setTimeout(() => {
@@ -1005,9 +1026,6 @@ $suppliers = $pdo->query($suppliersQuery)->fetchAll(PDO::FETCH_ASSOC);
             });
         });
         
-        function showLoading() {
-            document.getElementById('loadingOverlay').style.display = 'flex';
-        }
         
         function hideLoading() {
             document.getElementById('loadingOverlay').style.display = 'none';
@@ -1117,7 +1135,7 @@ $suppliers = $pdo->query($suppliersQuery)->fetchAll(PDO::FETCH_ASSOC);
                 return;
             }
             
-            showLoading();
+       
             
             // Redirect to the same page with PDF generation parameters
             window.location.href = `<?php echo $_SERVER['PHP_SELF']; ?>?generate_pdf=1&supplier_id=${supplierId}&start_date=${startDate}&end_date=${endDate}`;

@@ -1,6 +1,5 @@
 <?php
-// Include FPDF library
-require('fpdf/fpdf.php');
+
 
 // Database connection
 $servername = "localhost";
@@ -46,13 +45,244 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 }
 
 function generateReport($conn, $id, $start_date, $end_date) {
-    // Define color scheme
-    $primaryColor = array(102, 126, 234);   // #667eea
-    $primaryDark = array(90, 103, 216);     // #5a67d8
-    $successColor = array(72, 187, 120);    // #48bb78
-    $darkColor = array(45, 55, 72);         // #2d3748
-    $grayColor = array(113, 128, 150);      // #718096
-    $grayLight = array(226, 232, 240);      // #e2e8f0
+    require('fpdf/fpdf.php');
+
+    class CreditPDF extends FPDF {
+        private $primaryColor = array(41, 128, 185);
+        private $successColor = array(72, 187, 120);
+        private $warningColor = array(255, 193, 7);
+        private $dangerColor = array(255, 100, 100);
+        private $headerColor = array(54, 123, 180);
+        private $lightColor = array(224, 235, 255);
+        private $reportStartDate;
+        private $reportEndDate;
+        
+        // Add constructor to receive dates
+        function __construct($start_date, $end_date, $orientation = 'P') {
+            parent::__construct($orientation);
+            $this->reportStartDate = $start_date;
+            $this->reportEndDate = $end_date;
+        }
+        
+        function Header() {
+            // Header background
+            $this->SetFillColor($this->primaryColor[0], $this->primaryColor[1], $this->primaryColor[2]);
+            $this->Rect(0, 0, $this->GetPageWidth(), 50, 'F');
+            
+            // Add logo if exists
+            if (file_exists('images/logo.jpeg')) {
+                $this->Image('images/logo.jpeg', 10, 5, 30);
+            }
+            
+            // Company information
+            $this->SetTextColor(255, 255, 255);
+            $this->SetFont('Arial', 'B', 18);
+            $this->Cell(0, 8, 'T&C CO-OP CITY SHOP', 0, 1, 'C');
+            $this->SetFont('Arial', '', 11);
+            $this->Cell(0, 6, 'Karawita', 0, 1, 'C');
+            $this->Cell(0, 6, 'Phone: +94 11 2345678 | Email: accounts@coopshop.lk', 0, 1, 'C');
+            
+            // Report title
+            $this->SetFont('Arial','B',16);
+            $this->Cell(0,15,'MEMBER CREDIT REPORT',0,1,'C');
+            $this->Ln(5);
+            
+            // Report period - now using the class properties
+            $this->SetFont('Arial','',10);
+            $period = "From: " . date('M j, Y', strtotime($this->reportStartDate)) . 
+                     " To: " . date('M j, Y', strtotime($this->reportEndDate));
+            $this->Cell(0,5,'Period: ' . $period,0,1,'C');
+            
+            // Horizontal line
+            $this->Line(10, $this->GetY()+5, $this->GetPageWidth()-10, $this->GetY()+5);
+            $this->Ln(10);
+        }
+        
+        function Footer() {
+            $this->SetY(-15);
+            $this->SetFont('Arial','I',8);
+            $this->Cell(0,5,'Confidential - For internal use only',0,0,'L');
+            $this->Cell(0,5,'Page '.$this->PageNo().'/{nb}',0,0,'R');
+        }
+        
+        function MemberDetails($member) {
+            $this->SetFont('Arial','B',12);
+            $this->Cell(0,8,'MEMBER DETAILS',0,1,'L');
+            $this->SetFont('Arial','',10);
+            
+            $this->Cell(50,7,'Member ID:',0,0);
+            $this->Cell(0,7,$member['id'],0,1);
+            
+            $this->Cell(50,7,'Full Name:',0,0);
+            $this->Cell(0,7,$member['full_name'],0,1);
+            
+            $this->Cell(50,7,'Bank ID:',0,0);
+            $this->Cell(0,7,$member['bank_membership_number'],0,1);
+            
+            $this->Cell(50,7,'NIC:',0,0);
+            $this->Cell(0,7,$member['nic'],0,1);
+            
+            $this->Cell(50,7,'Phone:',0,0);
+            $this->Cell(0,7,$member['telephone_number'],0,1);
+            
+            $this->Ln(10);
+        }
+        
+        function CreditSummary($credit_limit, $total_spent, $available_credit, $start_date, $end_date) {
+            $this->SetFont('Arial','B',12);
+            $this->Cell(0,8,'CREDIT SUMMARY',0,1,'L');
+            $this->SetFont('Arial','',10);
+            
+            $labelWidth = 70;
+            $valueX = 100;
+            
+            $this->Cell($labelWidth,7,'Credit Limit:',0,0);
+            $this->SetX($valueX);
+            $this->Cell(0,7,'Rs. ' . number_format($credit_limit, 2),0,1);
+            
+            $this->Cell($labelWidth,7,'Total Purchases:',0,0);
+            $this->SetX($valueX);
+            $this->Cell(0,7,'Rs. ' . number_format($total_spent, 2),0,1);
+            
+            $this->SetFont('Arial','B',10);
+            $this->SetFillColor($this->successColor[0], $this->successColor[1], $this->successColor[2]);
+            $this->Cell($labelWidth,7,'Available Credit:',0,0);
+            $this->SetX($valueX);
+            $this->Cell(0,7,'Rs. ' . number_format($available_credit, 2),1,1,'L',true);
+            
+            $this->Ln(10);
+        }
+        
+        function PurchaseTable($purchases, $total_spent) {
+            $this->SetFont('Arial','B',12);
+            $this->Cell(0,8,'PURCHASE HISTORY',0,1,'L');
+            
+            if (empty($purchases)) {
+                $this->SetFont('Arial','I',10);
+                $this->Cell(0,8,'No purchases found within the selected date range.',0,1,'L');
+                return;
+            }
+            
+            // Table header
+            $this->SetFillColor($this->headerColor[0], $this->headerColor[1], $this->headerColor[2]);
+            $this->SetTextColor(255);
+            $this->SetFont('Arial','B',9);
+            $this->SetDrawColor($this->headerColor[0], $this->headerColor[1], $this->headerColor[2]);
+            $this->SetLineWidth(0.3);
+            
+            $w = array(25, 30, 60, 20, 30, 30); // Column widths
+            $headers = array('Date', 'Item Code', 'Item Name', 'Qty', 'Unit Price', 'Total');
+            
+            for($i=0; $i<count($headers); $i++) {
+                $this->Cell($w[$i],7,$headers[$i],1,0,'C',true);
+            }
+            $this->Ln();
+            
+            // Table content
+            $this->SetTextColor(0);
+            $fill = false;
+            
+            foreach($purchases as $row) {
+                // Alternate row colors
+                $this->SetFillColor($fill ? $this->lightColor[0] : 255);
+                $fill = !$fill;
+                
+                $this->Cell($w[0],6,$row['purchase_date'],'LR',0,'C',$fill);
+                $this->Cell($w[1],6,$row['item_code'],'LR',0,'C',$fill);
+                $this->Cell($w[2],6,$this->CellFitScale($w[2], 6, $row['item_name']),'LR',0,'L',$fill);
+                $this->Cell($w[3],6,$row['quantity'],'LR',0,'C',$fill);
+                $this->Cell($w[4],6,'Rs. ' . number_format($row['price_per_unit'], 2),'LR',0,'R',$fill);
+                $this->Cell($w[5],6,'Rs. ' . number_format($row['total_price'], 2),'LR',0,'R',$fill);
+                $this->Ln();
+            }
+            
+            // Total row
+            $this->SetFont('Arial','B',10);
+            $this->Cell(array_sum($w)-$w[5],8,'Total','T',0,'R');
+            $this->Cell($w[5],8,'Rs. ' . number_format($total_spent, 2),'T',1,'R');
+        }
+        
+        function SignatureSection() {
+            $this->Ln(15);
+            
+            $panelWidth = 85;
+            $lineLength = 60;
+            $startY = $this->GetY();
+            
+            $afterTitle = 8;
+            $afterLine = 6;
+            $afterSignature = 6;
+            $afterName = 6;
+            
+            // Co-op City Staff section (LEFT)
+            $this->SetFont('Arial','B',10);
+            $this->Cell($panelWidth, 6, 'Co-op City Staff:', 0, 1, 'L');
+            $this->Ln($afterTitle);
+            
+            $this->Cell($lineLength, 2, '', 'B', 1, 'L');
+            $this->Ln($afterLine);
+            
+            $this->Cell($panelWidth, 6, 'Signature', 0, 1, 'L');
+            $this->Ln($afterSignature);
+            
+            $this->SetFont('Arial','I',9);
+            $this->Cell($panelWidth, 6, 'Name: ___________________', 0, 1, 'L');
+            $this->Ln($afterName);
+            
+            $this->Cell($panelWidth, 6, 'Date: ___________________', 0, 1, 'L');
+            
+             // Bank Manager section (RIGHT) - moved further right
+    $rightPanelX = 130; // Increased from previous value (was ~100) to move right
+    $this->SetY($startY);
+    $this->SetX($rightPanelX);
+    
+    $this->SetFont('Arial','B',10);
+    $this->Cell($panelWidth, 6, 'Bank Manager:', 0, 1, 'L');
+    $this->SetX($rightPanelX);
+    $this->Ln($afterTitle);
+    
+    // Signature line
+    $this->SetX($rightPanelX);
+    $this->Cell($lineLength, 2, '', 'B', 1, 'L');
+    $this->SetX($rightPanelX);
+    $this->Ln($afterLine);
+    
+    // Signature label
+    $this->SetX($rightPanelX);
+    $this->Cell($panelWidth, 6, 'Signature', 0, 1, 'L');
+    $this->SetX($rightPanelX);
+    $this->Ln($afterSignature);
+    
+    // Name field
+    $this->SetFont('Arial','I',9);
+    $this->SetX($rightPanelX);
+    $this->Cell($panelWidth, 6, 'Name: ___________________', 0, 1, 'L');
+    $this->SetX($rightPanelX);
+    $this->Ln($afterName);
+    
+    // Date field
+    $this->SetX($rightPanelX);
+    $this->Cell($panelWidth, 6, 'Date: ___________________', 0, 1, 'L');
+    
+    $this->Ln(10); // Final document spacing
+        }
+        
+        // Helper function to fit text in cells
+        function CellFitScale($w, $h, $txt, $border=0, $ln=0, $align='', $fill=false) {
+            if($this->GetStringWidth($txt) <= $w) {
+                return $txt;
+            }
+            
+            $txt_length = strlen($txt);
+            $ellipsis = '...';
+            
+            while($this->GetStringWidth($txt . $ellipsis) > $w) {
+                $txt = substr($txt, 0, --$txt_length);
+            }
+            
+            return $txt . $ellipsis;
+        }
+    }
 
     // Fetch member details
     $member_sql = "SELECT * FROM members WHERE id = ?";
@@ -79,6 +309,7 @@ function generateReport($conn, $id, $start_date, $end_date) {
     $stmt->bind_param("iss", $id, $start_date, $end_date);
     $stmt->execute();
     $purchases_result = $stmt->get_result();
+    $purchases = $purchases_result->fetch_all(MYSQLI_ASSOC);
     
     // Calculate total purchases amount
     $total_sql = "SELECT SUM(total_price) as total_spent
@@ -95,178 +326,16 @@ function generateReport($conn, $id, $start_date, $end_date) {
     // Calculate available credit
     $available_credit = $member['credit_limit'] - $total_spent;
     
-    // Create PDF in portrait
-    $pdf = new FPDF('P', 'mm', 'A4');
+    // Generate PDF - now passing dates to constructor
+    $pdf = new CreditPDF($start_date, $end_date, 'P');
+    $pdf->AliasNbPages();
     $pdf->AddPage();
     
-    // ========== HEADER SECTION ========== //
-    // Header with primary color background
-    $pdf->SetFillColor($primaryColor[0], $primaryColor[1], $primaryColor[2]);
-    $pdf->Rect(10, 10, 190, 20, 'F');
-    
-    // Shop name
-    $pdf->SetTextColor(255);
-    $pdf->SetFont('Helvetica', 'B', 16);
-    $pdf->SetXY(15, 12);
-    $pdf->Cell(0, 8, 'T&C CO-OP CITY SHOP - KARAWITA', 0, 1, 'L');
-    
-    // Report info box
-    $pdf->SetFillColor($primaryDark[0], $primaryDark[1], $primaryDark[2]);
-    $pdf->Rect(140, 12, 60, 16, 'F');
-    $pdf->SetFont('Helvetica', 'B', 12);
-    $pdf->SetXY(140, 12);
-    $pdf->Cell(60, 8, 'CREDIT REPORT', 0, 1, 'C');
-    $pdf->SetFont('Helvetica', '', 10);
-    $pdf->SetXY(140, 18);
-    $pdf->Cell(60, 6, date('F j, Y'), 0, 1, 'C');
-    
-    // Shop contact info
-    $pdf->SetTextColor(255);
-    $pdf->SetFont('Helvetica', '', 9);
-    $pdf->SetXY(15, 22);
-    $pdf->Cell(0, 5, 'Karawita | Tel: +94 11 2345678 | Email: accounts@coopshop.lk', 0, 1, 'L');
-    
-    // ========== MEMBER DETAILS SECTION ========== //
-    $pdf->SetY(40);
-    $pdf->SetTextColor($darkColor[0], $darkColor[1], $darkColor[2]);
-    
-    $pdf->SetFont('Helvetica', 'B', 12);
-    $pdf->Cell(0, 8, 'MEMBER DETAILS', 0, 1, 'L');
-    $pdf->SetFont('Helvetica', '', 10);
-    
-    $pdf->Cell(50, 7, 'Member ID:', 0, 0);
-    $pdf->Cell(0, 7, $member['id'], 0, 1);
-    
-    $pdf->Cell(50, 7, 'Full Name:', 0, 0);
-    $pdf->Cell(0, 7, $member['full_name'], 0, 1);
-    
-    $pdf->Cell(50, 7, 'Bank ID:', 0, 0);
-    $pdf->Cell(0, 7, $member['bank_membership_number'], 0, 1);
-    
-    $pdf->Cell(50, 7, 'NIC:', 0, 0);
-    $pdf->Cell(0, 7, $member['nic'], 0, 1);
-    
-    $pdf->Cell(50, 7, 'Phone:', 0, 0);
-    $pdf->Cell(0, 7, $member['telephone_number'], 0, 1);
-    
-    $pdf->Ln(10);
-    
-    // ========== CREDIT SUMMARY SECTION (RIGHT ALIGNED) ========== //
-    $pdf->SetFont('Helvetica', 'B', 12);
-    $pdf->Cell(0, 8, 'CREDIT SUMMARY', 0, 1, 'L');
-    
-    // Right-align the credit summary details by adjusting X position
-    $labelWidth = 70;
-    $valueX = 100; // Starting X position for values (moved right)
-    
-    $pdf->SetFont('Helvetica', '', 10);
-    $pdf->Cell($labelWidth, 7, 'Credit Limit:', 0, 0);
-    $pdf->SetX($valueX);
-    $pdf->Cell(0, 7, 'Rs. ' . number_format($member['credit_limit'], 2), 0, 1);
-    
-    $pdf->Cell($labelWidth, 7, 'Total Purchases (' . date('M j, Y', strtotime($start_date)) . ' to ' . date('M j, Y', strtotime($end_date)) . '):', 0, 0);
-    $pdf->SetX($valueX);
-    $pdf->Cell(0, 7, 'Rs. ' . number_format($total_spent, 2), 0, 1);
-    
-    $pdf->SetFont('Helvetica', 'B', 10);
-    $pdf->SetFillColor($successColor[0], $successColor[1], $successColor[2]);
-    $pdf->Cell($labelWidth, 7, 'Available Credit:', 0, 0);
-    $pdf->SetX($valueX);
-    $pdf->Cell(0, 7, 'Rs. ' . number_format($available_credit, 2), 1, 1, 'L', true);
-    
-    $pdf->Ln(10);
-    
-    // ========== PURCHASE HISTORY SECTION ========== //
-    $pdf->SetFont('Helvetica', 'B', 12);
-    $pdf->Cell(0, 8, 'PURCHASE HISTORY', 0, 1, 'L');
-    
-    if ($purchases_result->num_rows > 0) {
-        // Table header
-        $pdf->SetFillColor($primaryColor[0], $primaryColor[1], $primaryColor[2]);
-        $pdf->SetTextColor(255);
-        $pdf->SetFont('Helvetica', 'B', 10);
-        
-        $pdf->Cell(25, 8, 'Date', 1, 0, 'C', true);
-        $pdf->Cell(30, 8, 'Item Code', 1, 0, 'C', true);
-        $pdf->Cell(60, 8, 'Item Name', 1, 0, 'C', true);
-        $pdf->Cell(20, 8, 'Qty', 1, 0, 'C', true);
-        $pdf->Cell(30, 8, 'Unit Price', 1, 0, 'C', true);
-        $pdf->Cell(30, 8, 'Total', 1, 1, 'C', true);
-        
-        // Table content
-        $pdf->SetTextColor($darkColor[0], $darkColor[1], $darkColor[2]);
-        $pdf->SetFont('Helvetica', '', 9);
-        
-        $fill = false;
-        while ($row = $purchases_result->fetch_assoc()) {
-            $pdf->SetFillColor($fill ? $grayLight[0] : 255);
-            $pdf->Cell(25, 7, $row['purchase_date'], 1, 0, 'C', $fill);
-            $pdf->Cell(30, 7, $row['item_code'], 1, 0, 'C', $fill);
-            $pdf->Cell(60, 7, $row['item_name'], 1, 0, 'L', $fill);
-            $pdf->Cell(20, 7, $row['quantity'], 1, 0, 'C', $fill);
-            $pdf->Cell(30, 7, 'Rs. ' . number_format($row['price_per_unit'], 2), 1, 0, 'R', $fill);
-            $pdf->Cell(30, 7, 'Rs. ' . number_format($row['total_price'], 2), 1, 1, 'R', $fill);
-            $fill = !$fill;
-        }
-        
-        // Total row
-        $pdf->SetFont('Helvetica', 'B', 10);
-        $pdf->Cell(135, 8, 'Total', 1, 0, 'R');
-        $pdf->Cell(60, 8, 'Rs. ' . number_format($total_spent, 2), 1, 1, 'R');
-    } else {
-        $pdf->SetFont('Helvetica', 'I', 10);
-        $pdf->Cell(0, 8, 'No purchases found within the selected date range.', 0, 1, 'L');
-    }
-    
-    // ========== SIGNATURE SECTION ========== //
-$pdf->SetY($pdf->GetY() + 15); // Add space before signatures
-
-// Define variables for better alignment
-$pageWidth = $pdf->GetPageWidth();
-$leftColX = 20;
-$rightColX = $pageWidth / 2 + 10;
-$lineWidth = 80; // Width of signature line
-$grayColor = array(128, 128, 128); // Gray color for lines
-
-// Co-op City Staff Signature (left aligned)
-$pdf->SetFont('Helvetica', 'B', 10);
-$pdf->SetX($leftColX);
-$pdf->Cell($lineWidth, 8, 'Co-op City Staff Signature:', 0, 0, 'L');
-
-// Bank Manager Signature (right aligned)
-$pdf->SetX($rightColX);
-$pdf->Cell($lineWidth, 8, 'Bank Manager Signature:', 0, 1, 'L');
-
-// Space for signatures
-$pdf->SetFont('Helvetica', '', 10);
-$pdf->Cell(0, 20, '', 0, 1); // Space for signatures
-
-// Signature lines
-$pdf->SetDrawColor($grayColor[0], $grayColor[1], $grayColor[2]);
-$pdf->Line($leftColX, $pdf->GetY() - 10, $leftColX + $lineWidth, $pdf->GetY() - 10); // Co-op line
-$pdf->Line($rightColX, $pdf->GetY() - 10, $rightColX + $lineWidth, $pdf->GetY() - 10); // Bank line
-
-// Add name/date fields under signature lines
-$pdf->SetFont('Helvetica', '', 8);
-$pdf->SetX($leftColX);
-$pdf->Cell($lineWidth/2, 5, 'Name:', 0, 0, 'L');
-$pdf->SetX($rightColX);
-$pdf->Cell($lineWidth/2, 5, 'Name:', 0, 1, 'L');
-
-$pdf->SetX($leftColX);
-$pdf->Cell($lineWidth/2, 5, 'Date:', 0, 0, 'L');
-$pdf->SetX($rightColX);
-$pdf->Cell($lineWidth/2, 5, 'Date:', 0, 1, 'L');
-
-// Add space after signatures
-$pdf->Ln(10);
-    // ========== FOOTER SECTION ========== //
-    $pdf->SetY(-20);
-    $pdf->SetFont('Helvetica', 'I', 8);
-    $pdf->SetTextColor($grayColor[0], $grayColor[1], $grayColor[2]);
-    $pdf->Cell(0, 5, 'This is a computer generated report. Thank you for your business!', 0, 1, 'C');
-    $pdf->Cell(0, 5, 'Generated on ' . date('Y-m-d H:i:s'), 0, 1, 'C');
-    $pdf->Cell(0, 5, 'Page ' . $pdf->PageNo(), 0, 0, 'C');
+    // Add content sections
+    $pdf->MemberDetails($member);
+    $pdf->CreditSummary($member['credit_limit'], $total_spent, $available_credit, $start_date, $end_date);
+    $pdf->PurchaseTable($purchases, $total_spent);
+    $pdf->SignatureSection();
     
     // Output PDF
     $pdf->Output('Member_Credit_Report_' . $member['id'] . '.pdf', 'D');

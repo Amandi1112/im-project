@@ -1,5 +1,4 @@
 <?php
-// [Previous PHP code remains exactly the same until the HTML starts]
 // Database connection
 $servername = "localhost";
 $username = "root";
@@ -150,8 +149,310 @@ function getPurchaseDetails($conn, $start_date = '', $end_date = '', $supplier_f
 
 // Get all purchase details with filters
 $purchases = getPurchaseDetails($conn, $start_date, $end_date, $supplier_filter, $item_filter);
-?>
 
+// Generate PDF report if requested
+if (isset($_GET['generate_pdf'])) {
+    require('fpdf/fpdf.php');
+
+    class PDF extends FPDF {
+        // Company header with logo
+        
+        function Header() {
+            $this->Rect(0, 0, $this->GetPageWidth(), 50, 'F');
+            $this->SetFillColor(41, 128, 185); // Primary blue
+            $this->Rect(0, 0, $this->GetPageWidth(), 50, 'F');
+            // Add logo (replace with your actual logo path)
+            if (file_exists('images/logo.jpeg')) {
+                $this->Image('images/logo.jpeg', 10, 5, 30);
+            }
+            
+            // Company information
+            $this->SetTextColor(255, 255, 255); // White text
+            $this->SetFont('Arial', 'B', 18);
+            $this->Cell(0, 8, 'T&C co-op City shop', 0, 1, 'C');
+            $this->SetFont('Arial', '', 11);
+            $this->Cell(0, 6, 'Karawita', 0, 1, 'C');
+            $this->Cell(0, 6, 'Phone: +94 11 2345678 | Email: accounts@coopshop.lk', 0, 1, 'C');
+            
+            // Report title
+            $this->SetFont('Arial','B',16);
+            $this->Cell(0,15,'PURCHASE ITEMS REPORT',0,1,'C');
+            $this->Ln(5);
+            
+            // Report period
+            $this->SetFont('Arial','',10);
+            $period = "All Purchases";
+            if (!empty($_GET['start_date']) || !empty($_GET['end_date'])) {
+                $period = "From: " . (!empty($_GET['start_date']) ? $_GET['start_date'] : 'Beginning') . 
+                          " To: " . (!empty($_GET['end_date']) ? $_GET['end_date'] : 'Now');
+            }
+            $this->Cell(0,5,'Period: ' . $period,0,1,'C');
+            
+            // Filter details
+            $filters = [];
+            if (!empty($_GET['supplier_name'])) $filters[] = "Supplier: " . $_GET['supplier_name'];
+            if (!empty($_GET['item_name'])) $filters[] = "Item: " . $_GET['item_name'];
+            
+            if (!empty($filters)) {
+                $this->Cell(0,5,'Filters: ' . implode(', ', $filters),0,1,'C');
+            }
+            
+            // Horizontal line
+            $this->Line(10, $this->GetY()+5, $this->GetPageWidth()-10, $this->GetY()+5);
+            $this->Ln(10);
+        }
+        
+        // Professional footer
+        function Footer() {
+            $this->SetY(-15);
+            $this->SetFont('Arial','I',8);
+            $this->Cell(0,5,'Confidential - For internal use only',0,0,'L');
+            $this->Cell(0,5,'Page '.$this->PageNo().'/{nb}',0,0,'R');
+        }
+        
+        // Colored table header
+        function TableHeader() {
+            $this->SetFont('Arial','B',9);
+            $this->SetFillColor(54, 123, 180); // Blue header
+            $this->SetTextColor(255);
+            $this->SetDrawColor(54, 123, 180);
+            $this->SetLineWidth(0.3);
+            
+            $header = array(
+                'Purchase Date',
+                'Item Name', 
+                'Supplier',
+                'Qty',
+                'Unit Price',
+                'Total Price',
+                'Expiry Date',
+                'Status'
+            );
+            
+            // Adjusted widths for portrait mode
+            $w = array(25, 35, 35, 15, 20, 20, 25, 20);
+            
+            for($i=0; $i<count($header); $i++) {
+                $this->Cell($w[$i],7,$header[$i],1,0,'C',true);
+            }
+            $this->Ln();
+        }
+        
+        // Table content with alternating colors
+        function TableContent($purchases) {
+            $this->SetFont('Arial','',8);
+            $this->SetTextColor(0);
+            $this->SetFillColor(224, 235, 255); // Light blue alternate row
+            $fill = false;
+            
+            // Adjusted widths for portrait mode
+            $w = array(25, 35, 35, 15, 20, 20, 25, 20);
+            
+            foreach($purchases as $purchase) {
+                // Determine status and row color
+                $status = $this->getExpirationStatus($purchase['expire_date']);
+                $rowColor = $this->getStatusColor($status);
+                
+                if($rowColor) {
+                    $this->SetFillColor($rowColor[0], $rowColor[1], $rowColor[2]);
+                    $fill = true;
+                } else {
+                    // Fixed syntax error here - using separate SetFillColor calls
+                    if($fill) {
+                        $this->SetFillColor(240, 240, 240);
+                    } else {
+                        $this->SetFillColor(255, 255, 255);
+                    }
+                    $fill = !$fill;
+                }
+                
+                // Format dates
+                $purchase_date = date('d M Y', strtotime($purchase['purchase_date']));
+                $expire_date = !empty($purchase['expire_date']) ? date('d M Y', strtotime($purchase['expire_date'])) : 'N/A';
+                
+                // Check if we need a new page due to limited space
+                if($this->GetY() > 250) {
+                    $this->AddPage();
+                    $this->TableHeader();
+                }
+                
+                // Cell contents - adjust text handling for smaller cells
+                $this->Cell($w[0],6,$purchase_date,'LR',0,'L',$fill);
+                
+                // Item name with potential wrapping
+                $this->Cell($w[1],6,$this->CellFitScale($w[1], 6, $purchase['item_name']),'LR',0,'L',$fill);
+                $this->Cell($w[2],6,$this->CellFitScale($w[2], 6, $purchase['supplier_name']),'LR',0,'L',$fill);
+                
+                $this->Cell($w[3],6,$purchase['quantity'],'LR',0,'R',$fill);
+                $this->Cell($w[4],6,number_format($purchase['price_per_unit'], 2),'LR',0,'R',$fill);
+                $this->Cell($w[5],6,number_format($purchase['total_price'], 2),'LR',0,'R',$fill);
+                $this->Cell($w[6],6,$expire_date,'LR',0,'L',$fill);
+                $this->Cell($w[7],6,$status,'LR',0,'L',$fill);
+                $this->Ln();
+            }
+            
+            // Closing line
+            $this->Cell(array_sum($w),0,'','T');
+        }
+        
+        // Helper function to fit text in cells
+        function CellFitScale($w, $h, $txt, $border=0, $ln=0, $align='', $fill=false) {
+            // If the text is short enough, just return it
+            if($this->GetStringWidth($txt) <= $w) {
+                return $txt;
+            }
+            
+            // Text is too long, truncate with ellipsis
+            $txt_length = strlen($txt);
+            $ellipsis = '...';
+            
+            while($this->GetStringWidth($txt . $ellipsis) > $w) {
+                $txt = substr($txt, 0, --$txt_length);
+            }
+            
+            return $txt . $ellipsis;
+        }
+        
+        // Get expiration status text
+        function getExpirationStatus($expire_date) {
+            if (empty($expire_date)) return 'No expiry';
+            
+            $currentDate = new DateTime();
+            $expireDate = new DateTime($expire_date);
+            $interval = $currentDate->diff($expireDate);
+            
+            if ($expireDate < $currentDate) return 'Expired';
+            if ($interval->days <= 30) return 'Expiring ('.$interval->days.'d)';
+            return 'Active';
+        }
+        
+        // Get color based on status
+        function getStatusColor($status) {
+            if (strpos($status, 'Expired') !== false) return array(255, 200, 200); // Light red
+            if (strpos($status, 'Expiring') !== false) return array(255, 255, 150); // Light yellow
+            return false; // Use default alternating colors
+        }
+        
+        // Summary section
+        function Summary($totalQuantity, $totalAmount, $count) {
+            $this->Ln(10);
+            $this->SetFont('Arial','B',12);
+            $this->Cell(0,6,'SUMMARY',0,1,'L');
+            $this->SetFont('Arial','',10);
+            
+            $this->Cell(50,6,'Total Purchases:',0,0,'L');
+            $this->Cell(0,6,$count,0,1,'L');
+            
+            $this->Cell(50,6,'Total Quantity:',0,0,'L');
+            $this->Cell(0,6,$totalQuantity,0,1,'L');
+            
+            $this->Cell(50,6,'Total Amount:',0,0,'L');
+            $this->Cell(0,6,'Rs. '.number_format($totalAmount, 2),0,1,'L');
+            
+            $this->Ln(5);
+            $this->SetFont('Arial','I',8);
+            $this->Cell(0, 6, 'Report generated on: ' . date('F j, Y'), 0, 1, 'L');
+        }
+        
+        // Signature section with improved spacing
+        // Signature section with improved spacing
+// Signature section with side-by-side panels
+// Signature section with perfectly aligned side-by-side panels
+// Signature section with perfectly matched spacing
+function SignatureSection() {
+    $this->Ln(15);
+    
+    // Set common dimensions for both panels
+    $panelWidth = 85; // Width of each signature panel
+    $lineLength = 60; // Length of the signature line
+    $startY = $this->GetY(); // Starting Y position
+    
+    // Vertical spacing values (in mm)
+    $afterTitle = 8;    // Space after "Co-op City Staff"/"Bank Manager"
+    $afterLine = 6;     // Space after signature line
+    $afterSignature = 6; // Space after "Signature" text
+    $afterName = 6;     // Space after name field
+
+    // Co-op City Staff section (LEFT)
+    $this->SetFont('Arial','B',10);
+    $this->Cell($panelWidth, 6, 'Co-op City Staff:', 0, 1, 'L');
+    $this->Ln($afterTitle);
+    
+    // Signature line
+    $this->Cell($lineLength, 2, '', 'B', 1, 'L');
+    $this->Ln($afterLine);
+    
+    // Signature label
+    $this->Cell($panelWidth, 6, 'Signature', 0, 1, 'L');
+    $this->Ln($afterSignature);
+    
+    // Name field
+    $this->SetFont('Arial','I',9);
+    $this->Cell($panelWidth, 6, 'Name: ___________________', 0, 1, 'L');
+    $this->Ln($afterName);
+    
+    // Date field
+    $this->Cell($panelWidth, 6, 'Date: ' . date('Y-m-d'), 0, 1, 'L');
+    
+    // Reset position for Bank Manager section
+    $this->SetY($startY);
+    $this->SetX($panelWidth + 20);
+    
+    // Bank Manager section (RIGHT) - identical spacing to left section
+    $this->SetFont('Arial','B',10);
+    $this->Cell($panelWidth, 6, 'Bank Manager:', 0, 1, 'L');
+    $this->SetX($panelWidth + 20);
+    $this->Ln($afterTitle);
+    
+    // Signature line
+    $this->SetX($panelWidth + 20);
+    $this->Cell($lineLength, 2, '', 'B', 1, 'L');
+    $this->SetX($panelWidth + 20);
+    $this->Ln($afterLine);
+    
+    // Signature label
+    $this->SetX($panelWidth + 20);
+    $this->Cell($panelWidth, 6, 'Signature', 0, 1, 'L');
+    $this->SetX($panelWidth + 20);
+    $this->Ln($afterSignature);
+    
+    // Name field
+    $this->SetFont('Arial','I',9);
+    $this->SetX($panelWidth + 20);
+    $this->Cell($panelWidth, 6, 'Name: ___________________', 0, 1, 'L');
+    $this->SetX($panelWidth + 20);
+    $this->Ln($afterName);
+    
+    // Date field
+    $this->SetX($panelWidth + 20);
+    $this->Cell($panelWidth, 6, 'Date: ___________________', 0, 1, 'L');
+    
+    $this->Ln(10); // Final document spacing
+}
+    }
+
+    // Generate PDF - changed to portrait orientation
+    $pdf = new PDF('P'); // Portrait orientation
+    $pdf->AliasNbPages();
+    $pdf->AddPage();
+    
+    // Build table
+    $pdf->TableHeader();
+    $pdf->TableContent($purchases);
+    
+    // Calculate totals
+    $totalQuantity = array_sum(array_column($purchases, 'quantity'));
+    $totalAmount = array_sum(array_column($purchases, 'total_price'));
+    
+    // Add summary and signature
+    $pdf->Summary($totalQuantity, $totalAmount, count($purchases));
+    $pdf->SignatureSection();
+    
+    // Output PDF
+    $pdf->Output('Purchase_Report_'.date('Ymd_His').'.pdf', 'D');
+    exit;
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -437,8 +738,18 @@ $purchases = getPurchaseDetails($conn, $start_date, $end_date, $supplier_filter,
                     <h2 style="color:black;"><i class="fas fa-shopping-cart me-2"></i> Purchased Items Details</h2>
                 </div>
                 <div class="col-md-4 text-end">
-                    
-                    <a href="member_purchases_report.php" class="btn btn-light"><i class="fas fa-file-pdf me-1"></i> Generate Report</a>
+                    <form method="GET" action="" style="display: inline;">
+                        <!-- Pass all filter parameters to the PDF generation -->
+                        <input type="hidden" name="start_date" value="<?php echo $start_date; ?>">
+                        <input type="hidden" name="end_date" value="<?php echo $end_date; ?>">
+                        <input type="hidden" name="supplier_id" value="<?php echo $supplier_filter; ?>">
+                        <input type="hidden" name="supplier_name" value="<?php echo htmlspecialchars($supplier_name); ?>">
+                        <input type="hidden" name="item_id" value="<?php echo $item_filter; ?>">
+                        <input type="hidden" name="item_name" value="<?php echo htmlspecialchars($item_name); ?>">
+                        <button type="submit" name="generate_pdf" value="1" class="btn btn-light">
+                            <i class="fas fa-file-pdf me-1"></i> Generate Report
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>

@@ -55,7 +55,8 @@ class PDF extends FPDF {
             'Status'
         );
         
-        $w = array(30, 50, 50, 15, 25, 25, 25, 25);
+        // Adjusted column widths for portrait mode
+        $w = array(25, 35, 35, 15, 20, 20, 25, 25);
         
         for($i=0; $i<count($header); $i++) {
             $this->Cell($w[$i],7,$header[$i],1,0,'C',true);
@@ -70,9 +71,16 @@ class PDF extends FPDF {
         $this->SetFillColor(224, 235, 255); // Light blue alternate row
         $fill = false;
         
-        $w = array(30, 50, 50, 15, 25, 25, 25, 25);
+        // Adjusted column widths for portrait mode
+        $w = array(25, 35, 35, 15, 20, 20, 25, 25);
         
         foreach($purchases as $purchase) {
+            // Check if we need a new page
+            if($this->GetY() > 250) {
+                $this->AddPage();
+                $this->TableHeader();
+            }
+            
             // Determine status and row color
             $status = $this->getExpirationStatus($purchase['expire_date']);
             $rowColor = $this->getStatusColor($status);
@@ -91,8 +99,8 @@ class PDF extends FPDF {
             
             // Cells
             $this->Cell($w[0],6,$purchase_date,'LR',0,'L',$fill);
-            $this->Cell($w[1],6,$purchase['item_name'],'LR',0,'L',$fill);
-            $this->Cell($w[2],6,$purchase['supplier_name'],'LR',0,'L',$fill);
+            $this->Cell($w[1],6,$this->StringLimit($purchase['item_name'], 20),'LR',0,'L',$fill);
+            $this->Cell($w[2],6,$this->StringLimit($purchase['supplier_name'], 20),'LR',0,'L',$fill);
             $this->Cell($w[3],6,$purchase['quantity'],'LR',0,'R',$fill);
             $this->Cell($w[4],6,number_format($purchase['price_per_unit'], 2),'LR',0,'R',$fill);
             $this->Cell($w[5],6,number_format($purchase['total_price'], 2),'LR',0,'R',$fill);
@@ -103,6 +111,14 @@ class PDF extends FPDF {
         
         // Closing line
         $this->Cell(array_sum($w),0,'','T');
+    }
+    
+    // Helper function to limit string length for better fit in portrait mode
+    function StringLimit($string, $limit) {
+        if(strlen($string) > $limit) {
+            return substr($string, 0, $limit-3) . '...';
+        }
+        return $string;
     }
     
     // Get expiration status text
@@ -216,16 +232,15 @@ $totalQuantity = array_sum(array_column($purchases, 'quantity'));
 $totalAmount = array_sum(array_column($purchases, 'total_price'));
 
 // Generate PDF
-$pdf = new PDF('L'); // Landscape orientation
+$pdf = new PDF(); // Default is portrait orientation (removed 'L')
 $pdf->AliasNbPages();
 $pdf->AddPage();
-
-
 
 // Build table
 $pdf->TableHeader();
 $pdf->TableContent($purchases);
 $pdf->Summary($totalQuantity, $totalAmount, count($purchases));
+$pdf->SignatureSection(); // Make sure signature section is included
 
 // Output PDF
 $pdf->Output('Purchase_Report_'.date('Ymd_His').'.pdf', 'D');
