@@ -53,7 +53,8 @@ function getPurchaseDetails($conn, $start_date = '', $end_date = '', $supplier_f
                 i.item_code,
                 i.item_name,
                 s.supplier_id,
-                s.supplier_name
+                s.supplier_name,
+                COALESCE(ip.unit, i.unit) AS unit
             FROM 
                 item_purchases ip
             JOIN 
@@ -543,71 +544,69 @@ $data = array_column($supplierTotals, 'supplier_total');
         
         <div class="table-responsive">
             <table class="table table-bordered table-hover" style="font-weight: bold; color:black;">
-                <thead class="thead-light">
-                    <tr>
-                        <th>Purchase Date</th>
-                        <th>Item Name</th>
-                        <th>Supplier</th>
-                        <th>Quantity</th>
-                        <th>Price/Unit</th>
-                        <th>Total Price</th>
-                        <th>Expire Date</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php 
-                    $totalQuantity = 0;
-                    $totalAmount = 0;
-                    
-                    foreach($purchases as $purchase): 
-                        // Check if the item is expired or expiring soon
-                        $status = '';
-                        $rowClass = '';
-                        $currentDate = new DateTime();
-                        
-                        if (!empty($purchase['expire_date'])) {
-                            $expireDate = new DateTime($purchase['expire_date']);
-                            $interval = $currentDate->diff($expireDate);
-                            
-                            if ($expireDate < $currentDate) {
-                                $status = 'Expired';
-                                $rowClass = 'expired';
-                            } elseif ($interval->days <= 30) {
-                                $status = 'Expiring soon (' . $interval->days . ' days)';
-                                $rowClass = 'expiring-soon';
-                            } else {
-                                $status = 'Active';
-                            }
-                        } else {
-                            $status = 'No expiry';
-                        }
-                        
-                        $totalQuantity += $purchase['quantity'];
-                        $totalAmount += $purchase['total_price'];
-                    ?>
-                    <tr class="<?php echo $rowClass; ?>">
-                        <td><?php echo date('d M Y', strtotime($purchase['purchase_date'])); ?></td>
-                        <td><?php echo $purchase['item_name']; ?></td>
-                        <td><?php echo $purchase['supplier_name']; ?></td>
-                        <td><?php echo $purchase['quantity']; ?></td>
-                        <td><?php echo number_format($purchase['price_per_unit'], 2); ?></td>
-                        <td><?php echo number_format($purchase['total_price'], 2); ?></td>
-                        <td><?php echo !empty($purchase['expire_date']) ? date('d M Y', strtotime($purchase['expire_date'])) : 'N/A'; ?></td>
-                        <td><?php echo $status; ?></td>
-                    </tr>
-                    <?php endforeach; ?>
-                    
-                    <?php if (count($purchases) > 0): ?>
-                    <tr class="total-row">
-                        <td colspan="3" class="text-end">Total:</td>
-                        <td><?php echo $totalQuantity; ?></td>
-                        <td></td>
-                        <td><?php echo number_format($totalAmount, 2); ?></td>
-                        <td colspan="2"></td>
-                    </tr>
-                    <?php endif; ?>
-                </tbody>
+            <thead class="thead-light">
+            <tr>
+                <th>Purchase Date</th>
+                <th>Item Name</th>
+                <th>Supplier</th>
+                <th>Quantity (Unit)</th>
+                <th>Price/Unit</th>
+                <th>Total Price</th>
+                <th>Expire Date</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+    <?php 
+    $totalQuantity = 0;
+    $totalAmount = 0;
+    
+    foreach ($purchases as $purchase) {
+        // Calculate the status based on the expiration date
+        $currentDate = new DateTime();
+        $expireDate = new DateTime($purchase['expire_date']);
+        $interval = $currentDate->diff($expireDate);
+        $daysUntilExpire = $interval->days;
+    
+        if ($daysUntilExpire < 0) {
+            $status = 'expired';
+            $rowClass = 'expired';
+        } elseif ($daysUntilExpire <= 7) {
+            $status = 'expiring soon';
+            $rowClass = 'expiring-soon';
+        } else {
+            $status = 'active';
+            $rowClass = '';
+        }
+    
+        $totalQuantity += $purchase['quantity'];
+        $totalAmount += $purchase['total_price'];
+        ?>
+        <tr class="<?php echo $rowClass; ?>">
+            <td><?php echo date('d M Y', strtotime($purchase['purchase_date'])); ?></td>
+            <td><?php echo $purchase['item_name']; ?></td>
+            <td><?php echo $purchase['supplier_name']; ?></td>
+            <td><?php echo $purchase['quantity'] . ' ' . $purchase['unit']; ?></td>
+            <td>Rs.<?php echo number_format($purchase['price_per_unit'], 2) . '/' . $purchase['unit']; ?></td>
+            <td>Rs.<?php echo number_format($purchase['total_price'], 2); ?></td>
+            <td><?php echo !empty($purchase['expire_date']) ? date('d M Y', strtotime($purchase['expire_date'])) : 'N/A'; ?></td>
+            <td><?php echo ucwords($status); ?></td>
+        </tr>
+    <?php
+    }
+    ?>
+    
+    <?php if (count($purchases) > 0): ?>
+    <tr class="total-row">
+    <td></td>
+        <td colspan="3" class="text-end">Total:</td>
+        
+        <td></td>
+        <td>Rs.<?php echo number_format($totalAmount, 2); ?></td>
+        <td colspan="2"></td>
+    </tr>
+    <?php endif; ?>
+</tbody>
             </table>
             
             <?php if (count($purchases) == 0): ?>

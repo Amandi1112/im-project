@@ -14,7 +14,6 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-
 // Database connection with error handling
 try {
     $conn = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
@@ -38,7 +37,7 @@ function sanitizeInput($data) {
 
 // Function to format currency
 function formatCurrency($amount) {
-    return number_format(floatval($amount), 2);
+    return number_format(floatval($amount), 2, '.', ',');
 }
 ?>
 <!DOCTYPE html>
@@ -47,8 +46,8 @@ function formatCurrency($amount) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Inventory Management Dashboard | MyWebsite</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <title></title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -61,66 +60,152 @@ function formatCurrency($amount) {
     <!-- Custom CSS -->
     <style>
         :root {
-            --primary: #667eea;
-            --primary-dark: #5a67d8;
-            --secondary: #edf2f7;
-            --danger: #e53e3e;
-            --danger-dark: #c53030;
-            --success: #48bb78;
-            --success-dark: #38a169;
-            --warning: #ed8936;
-            --warning-dark: #dd6b20;
-            --info: #4299e1;
-            --info-dark: #3182ce;
-            --light: #f7fafc;
-            --dark: #2d3748;
-            --gray: #718096;
-            --gray-light: #e2e8f0;
-    }
+            --primary: #4a6fa5;
+            --primary-dark: #345382;
+            --secondary: #16db93;
+            --secondary-dark: #12b378;
+            --danger: #e63946;
+            --danger-dark: #c1121f;
+            --success: #06d6a0;
+            --success-dark: #04a87e;
+            --warning: #ffb703;
+            --warning-dark: #fb8500;
+            --info: #118ab2;
+            --info-dark: #0d6986;
+            --light: #f8f9fa;
+            --dark: #1d3557;
+            --gray: #6c757d;
+            --gray-light: #e9ecef;
+            --bg-color: #f0f3f5;
+            --card-bg: #ffffff;
+            --text-color: #2b2d42;
+        }
     
-    body {
-        font-family: 'Poppins', sans-serif;
-        background-color: #f5f7fa;
-        color: #333;
-    }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            padding-bottom: 70px;
+            font-size: 15px;
+        }
         
         .dashboard-header {
             background: linear-gradient(to right, var(--primary), var(--primary-dark));
             color: white;
-            padding: 1.5rem 0;
+            padding: 1.25rem 0;
             margin-bottom: 2rem;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
         
         .card {
             border: none;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.08);
             transition: transform 0.3s ease, box-shadow 0.3s ease;
             margin-bottom: 1.5rem;
+            overflow: hidden;
         }
         
         .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+            transform: translateY(-8px);
+            box-shadow: 0 12px 20px rgba(0,0,0,0.12);
         }
         
-        .card-header {
-            background: linear-gradient(to right, var(--gradient-primary), var(--gradient-secondary)); /* New gradient */
-    color: white;
-    border-radius: 8px 8px 0 0 !important;
-    font-weight: 600;
+        /* Inventory Distribution Panel */
+        .inventory-distribution-card {
+            background: var(--card-bg);
+            border-top: 5px solid var(--info);
+            height: 500px;
         }
         
-        .table-responsive {
-            overflow-x: auto;
+        .inventory-distribution-card .card-header {
+            background: linear-gradient(to right, var(--info), var(--info-dark));
+            color: white;
+            border-bottom: none;
+            padding: 1rem 1.5rem;
+        }
+        
+        /* Current Inventory Panel */
+        .current-inventory-card {
+            background: var(--card-bg);
+            border-top: 5px solid var(--success);
+        }
+
+        .current-inventory-card .card-body {
+            height: calc(100% - 56px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .current-inventory-card .table-responsive {
+            flex: 1;
+            overflow-y: auto;
+        }
+        
+        .current-inventory-card .card-header {
+            background: linear-gradient(to right, var(--success), var(--success-dark));
+            color: white;
+            border-bottom: none;
+            padding: 1rem 1.5rem;
+        }
+        
+        /* Table styles */
+        .table {
+            margin-bottom: 0;
+            border-collapse: separate;
+            border-spacing: 0;
         }
         
         .table th {
-            background-color: var(--light-gray);
+            background-color: rgba(240, 240, 240, 0.5);
+            color: var(--dark);
             font-weight: 600;
+            border-bottom: 2px solid var(--gray-light);
+            padding: 0.85rem 1rem;
         }
         
+        .table td {
+            padding: 0.85rem 1rem;
+            vertical-align: middle;
+            border-bottom: 1px solid var(--gray-light);
+        }
+        
+        .table tr:hover {
+            background-color: rgba(240, 240, 240, 0.3);
+        }
+        
+        /* Badge styles */
+        .badge {
+            padding: 0.4rem 0.65rem;
+            font-weight: 500;
+            border-radius: 30px;
+        }
+        
+        .badge-low {
+            background-color: var(--danger);
+            color: white;
+        }
+        
+        .badge-medium {
+            background-color: var(--warning);
+            color: var(--dark);
+        }
+        
+        .badge-high {
+            background-color: var(--success);
+            color: white;
+        }
+        
+        /* Chart container */
+        .chart-container {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            height: 350px;
+            box-shadow: inset 0 0 8px rgba(0,0,0,0.05);
+        }
+        
+        /* Search box styling */
         .search-box {
             position: relative;
             margin-bottom: 1rem;
@@ -131,155 +216,103 @@ function formatCurrency($amount) {
             top: 50%;
             left: 15px;
             transform: translateY(-50%);
-            color: #6c757d;
+            color: var(--gray);
         }
         
         .search-box input {
             padding-left: 40px;
+            border-radius: 25px;
+            border: 1px solid var(--gray-light);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            font-size: 0.9rem;
+            padding-top: 0.6rem;
+            padding-bottom: 0.6rem;
+        }
+        
+        .search-box input:focus {
+            box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.2);
+            border-color: var(--primary);
+        }
+        
+        /* Button styling */
+        .btn-light {
+            background-color: white;
+            border: 1px solid var(--gray-light);
+            color: var(--dark);
             border-radius: 20px;
-            border: 1px solid #dee2e6;
+            font-size: 0.85rem;
+            font-weight: 500;
+            padding: 0.4rem 1rem;
+            transition: all 0.2s;
         }
         
-        .badge-low {
-            background-color: var(--accent-color);
+        .btn-light:hover {
+            background-color: var(--gray-light);
+            border-color: var(--gray);
         }
         
-        .badge-medium {
-            background-color: #f39c12;
-        }
-        
-        .badge-high {
-            background-color: #27ae60;
-        }
-        
-        .status-indicator {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            margin-right: 5px;
-        }
-        
-        .status-active {
-            background-color: #2ecc71;
-        }
-        
-        .status-inactive {
-            background-color: #e74c3c;
-        }
-        
+        /* Footer styling */
         .footer {
-            background-color: var(--dark-gray);
+            background-color: var(--dark);
             color: white;
-            padding: 1.5rem 0;
-            margin-top: 2rem;
-        }
-        .card-animate {
-            animation: fadeIn 0.5s ease-in-out;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .chart-container {
-            position: relative;
-            height: 250px;
+            padding: 1.25rem 0;
+            position: fixed;
+            bottom: 0;
             width: 100%;
+            z-index: 10;
         }
         
-        .progress-thin {
-            height: 6px;
-        }
-        
-        .notification-badge {
-            position: absolute;
-            top: -5px;
-            right: -5px;
-            font-size: 0.7rem;
-            padding: 3px 6px;
-        }
-        
-        .sidebar-toggler {
-            display: none;
-            cursor: pointer;
-        }
-        
-        @media (max-width: 992px) {
-            .sidebar-toggler {
-                display: inline-block;
-            }
-        }
-        
-        /* Pulse animation for important items */
+        /* Animation for low stock pulse */
         @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.4); }
-            70% { box-shadow: 0 0 0 10px rgba(231, 76, 60, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); }
+            0% { box-shadow: 0 0 0 0 rgba(230, 57, 70, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(230, 57, 70, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(230, 57, 70, 0); }
         }
         
         .pulse-warning {
             animation: pulse 2s infinite;
         }
         
-        /* Dark mode toggle */
-        .dark-mode-toggle {
-            cursor: pointer;
-            transition: all 0.3s ease;
+        /* For the legend below chart */
+        .chart-legend {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            margin-top: 1rem;
         }
         
-        .dark-mode {
-            background-color: #1a1a2e;
-            color: #f8f9fa;
+        .chart-legend-item {
+            display: flex;
+            align-items: center;
+            font-size: 0.85rem;
+            color: var(--gray);
         }
         
-        .dark-mode .card {
-            background-color: #16213e;
-            color: #f8f9fa;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        .chart-legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 6px;
         }
         
-        .dark-mode .table {
-            color: #f8f9fa;
+        /* Header username and date badges */
+        .header-badge {
+            background-color: rgba(255,255,255,0.15);
+            border-radius: 20px;
+            padding: 0.4rem 1rem;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            margin-left: 0.5rem;
         }
         
-        .dark-mode .table th {
-            background-color: #0f3460;
-            color: #f8f9fa;
+        .header-badge i {
+            margin-right: 0.4rem;
         }
-        
-        .dark-mode .dashboard-header {
-            background-color: #0f3460;
-        }
-        .btn-primary {
-    background: linear-gradient(to right, #667eea, #764ba2);
-    box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
-    border: none;
-}
-
-.btn-primary:hover {
-    background: linear-gradient(to right, #5a6fd1, #6a4299);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 15px rgba(102, 126, 234, 0.4);
-}
-
-.btn-success {
-    background: linear-gradient(to right, #28a745, #218838);
-    box-shadow: 0 4px 10px rgba(40, 167, 69, 0.3);
-    border: none;
-}
-
-.btn-info {
-    background: linear-gradient(to right, #17a2b8, #138496);
-    box-shadow: 0 4px 10px rgba(23, 162, 184, 0.3);
-    border: none;
-}
-        
     </style>
 </head>
 <body>
-    <!-- Dashboard Header with Dark Mode Toggle -->
+    <!-- Dashboard Header -->
     <header class="dashboard-header">
         <div class="container">
             <div class="row align-items-center">
@@ -287,125 +320,55 @@ function formatCurrency($amount) {
                     <button class="sidebar-toggler btn btn-sm btn-light me-3" id="sidebarToggler">
                         <i class="fas fa-bars"></i>
                     </button>
-                    <h1><i class="fas fa-boxes me-2"></i>Inventory Management</h1>
+                    <h2 class="mb-0"><i class="fas fa-boxes me-2"></i>Inventory Management</h2>
                 </div>
                 <div class="col-md-6 text-end">
                     
-                    <span class="badge bg-light text-dark me-2">
-                        <i class="fas fa-user me-1"></i> 
-                        <?php echo isset($_SESSION['username']) ? htmlspecialchars($_SESSION['username']) : 'Guest'; ?>
-                    </span>
-                    <span class="badge bg-light text-dark">
-                        <i class="fas fa-calendar-alt me-1"></i> <?php echo date('F j, Y'); ?>
+                    <span class="header-badge">
+                        <i class="fas fa-calendar-alt"></i> <?php echo date('F j, Y'); ?>
                     </span>
                 </div>
             </div>
         </div>
     </header>
+    
     <!-- Main Content -->
     <div class="container">
-        <!-- Summary Cards with Animation -->
-        <div class="row mb-4">
-            <div class="col-md-4">
-                <div class="card card-animate">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="text-muted mb-2">Total Items</h6>
-                                <h3 class="mb-0" id="totalItems">
-                                    <?php
-                                    $sql = "SELECT COUNT(*) as total FROM items";
-                                    $result = $conn->query($sql);
-                                    echo $result->fetch_assoc()['total'];
-                                    ?>
-                                </h3>
-                                <div class="progress progress-thin mt-2">
-                                    <div class="progress-bar bg-primary" id="itemsProgress" role="progressbar" style="width: 0%"></div>
-                                </div>
-                            </div>
-                            <div class="bg-primary bg-opacity-10 p-3 rounded position-relative">
-                                <i class="fas fa-box text-primary fs-4"></i>
-                                <span class="notification-badge badge bg-danger" id="lowStockBadge" style="display: none;">!</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="col-md-4">
-                <div class="card card-animate">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="text-muted mb-2">Total Suppliers</h6>
-                                <h3 class="mb-0" id="totalSuppliers">
-                                    <?php
-                                    $sql = "SELECT COUNT(*) as total FROM supplier";
-                                    $result = $conn->query($sql);
-                                    echo $result->fetch_assoc()['total'];
-                                    ?>
-                                </h3>
-                                <div class="progress progress-thin mt-2">
-                                    <div class="progress-bar bg-success" id="suppliersProgress" role="progressbar" style="width: 0%"></div>
-                                </div>
-                            </div>
-                            <div class="bg-success bg-opacity-10 p-3 rounded">
-                                <i class="fas fa-truck text-success fs-4"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="col-md-4">
-                <div class="card card-animate">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="text-muted mb-2">Recent Purchases</h6>
-                                <h3 class="mb-0" id="recentPurchases">
-                                    <?php
-                                    $sql = "SELECT COUNT(*) as total FROM item_purchases WHERE purchase_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)";
-                                    $result = $conn->query($sql);
-                                    echo $result->fetch_assoc()['total'];
-                                    ?>
-                                </h3>
-                                <div class="progress progress-thin mt-2">
-                                    <div class="progress-bar bg-warning" id="purchasesProgress" role="progressbar" style="width: 0%"></div>
-                                </div>
-                            </div>
-                            <div class="bg-warning bg-opacity-10 p-3 rounded">
-                                <i class="fas fa-shopping-cart text-warning fs-4"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
         <!-- Inventory Charts Row -->
         <div class="row mb-4">
             <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header" style="color: black;">
+                <div class="card inventory-distribution-card">
+                    <div class="card-header">
                         <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Inventory Distribution</h5>
                     </div>
                     <div class="card-body">
                         <div class="chart-container">
                             <canvas id="inventoryChart"></canvas>
                         </div>
+                        <div class="chart-legend">
+                            <div class="chart-legend-item">
+                                <span class="chart-legend-color" style="background-color: var(--danger);" ></span>
+                                Low Stock
+                            </div>
+                            <div class="chart-legend-item">
+                                <span class="chart-legend-color" style="background-color: var(--warning);"></span>
+                                Medium Stock
+                            </div>
+                            <div class="chart-legend-item">
+                                <span class="chart-legend-color" style="background-color: var(--success);"></span>
+                                High Stock
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
             <div class="col-md-6">
-            <div class="card">
+                <div class="card current-inventory-card">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0" style="color: black;"><i class="fas fa-box-open me-2"></i>Current Inventory</h5>
+                        <h5 class="mb-0"><i class="fas fa-box-open me-2"></i>Current Inventory</h5>
                         <div>
-                            <button class="btn btn-sm btn-outline-secondary me-2" id="exportInventory">
-                                <i class="fas fa-download me-1"></i> Export
-                            </button>
-                            <a href="display_purchase_details.php" class="btn btn-sm btn-light">View All</a>
+                            
+                            <a href="display_purchase_details.php" class="btn btn-light">View All</a>
                         </div>
                     </div>
                     <div class="card-body">
@@ -413,28 +376,26 @@ function formatCurrency($amount) {
                             <i class="fas fa-search"></i>
                             <input type="text" id="searchItems" class="form-control" placeholder="Search items...">
                         </div>
-                        
+                                
                         <div class="table-responsive">
-                            <table class="table table-hover" id="itemsTable">
+                            <table class="table" id="itemsTable">
                                 <thead>
                                     <tr>
-                                        <th>Item Code</th>
                                         <th>Item Name</th>
-                                        <th>Price</th>
-                                        <th>Qty</th>
+                                        <th>Price/Unit</th>
+                                        <th>Qty (Unit)</th>
                                         <th>Status</th>
-                                       
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <?php
                                     // Fetch items with supplier name and quantity status
-                                    $sql = "SELECT i.item_id, i.item_code, i.item_name, i.price_per_unit, 
-                                            i.current_quantity, s.supplier_name 
-                                            FROM items i
-                                            LEFT JOIN supplier s ON i.supplier_id = s.supplier_id
-                                            ORDER BY i.current_quantity ASC
-                                            LIMIT 8";
+                                    $sql = "SELECT i.item_id, i.item_code, i.item_name, i.price_per_unit,
+                                    i.current_quantity, s.supplier_name, i.unit
+                                    FROM items i
+                                    LEFT JOIN supplier s ON i.supplier_id = s.supplier_id
+                                    ORDER BY i.current_quantity ASC
+                                    LIMIT 8";
                                     $result = $conn->query($sql);
 
                                     if ($result->num_rows > 0) {
@@ -442,7 +403,7 @@ function formatCurrency($amount) {
                                             $quantity = intval($row['current_quantity']);
                                             $status = '';
                                             $statusClass = '';
-                                            
+
                                             if ($quantity < 5) {
                                                 $status = 'Low';
                                                 $statusClass = 'badge-low pulse-warning';
@@ -453,21 +414,16 @@ function formatCurrency($amount) {
                                                 $status = 'High';
                                                 $statusClass = 'badge-high';
                                             }
-                                            
+
                                             echo "<tr data-id='" . htmlspecialchars($row["item_id"]) . "'>";
-                                            echo "<td>" . htmlspecialchars($row["item_code"]) . "</td>";
                                             echo "<td>" . htmlspecialchars($row["item_name"]) . "</td>";
-                                            echo "<td>$" . formatCurrency($row["price_per_unit"]) . "</td>";
-                                            echo "<td>" . $quantity . "</td>";
+                                            echo "<td>Rs." . formatCurrency($row["price_per_unit"]) . "/" . htmlspecialchars($row["unit"]) . "</td>";
+                                            echo "<td>" . $quantity . " " . htmlspecialchars($row["unit"]) . "</td>";
                                             echo "<td><span class='badge " . $statusClass . "'>" . $status . "</span></td>";
-                                            echo "<td>
-                                                    
-                                                    
-                                                  </td>";
                                             echo "</tr>";
                                         }
                                     } else {
-                                        echo "<tr><td colspan='6' class='text-center'>No items found in inventory</td></tr>";
+                                        echo "<tr><td colspan='4' class='text-center'>No items found in inventory</td></tr>";
                                     }
                                     ?>
                                 </tbody>
@@ -477,47 +433,21 @@ function formatCurrency($amount) {
                 </div>
             </div>
         </div>
-        
-            
-            
+    </div>
     
     <!-- Footer -->
     <footer class="footer">
         <div class="container">
             <div class="row">
                 <div class="col-md-6">
-                    <p class="mb-0">&copy; <?php echo date('Y'); ?> MyWebsite. All rights reserved.</p>
+                    <p class="mb-0">&copy; <?php echo date('Y'); ?> All rights reserved.</p>
                 </div>
                 <div class="col-md-6 text-end">
-                    <p class="mb-0">Inventory Management System v1.0</p>
+                    <p class="mb-0"></p>
                 </div>
             </div>
         </div>
     </footer>
-    
-    <!-- Modal for Item Details -->
-    <div class="modal fade" id="itemModal" tabindex="-1" aria-labelledby="itemModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="itemModalLabel">Item Details</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body" id="itemModalBody">
-                    <!-- Content will be loaded via AJAX -->
-                    <div class="text-center">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary">Save Changes</button>
-                </div>
-            </div>
-        </div>
-    </div>
     
     <!-- Bootstrap JS Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -525,9 +455,6 @@ function formatCurrency($amount) {
     <!-- Custom JavaScript -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize animations
-            initAnimations();
-            
             // Initialize charts
             initCharts();
             
@@ -537,33 +464,9 @@ function formatCurrency($amount) {
             // Initialize event listeners
             initEventListeners();
             
-            // Initialize progress bars
-            initProgressBars();
-            
-            // Initialize dark mode
-            initDarkMode();
-            
             // Check for low stock items
             checkLowStock();
         });
-        
-        function initAnimations() {
-            // Add animation to cards on scroll
-            const animateOnScroll = () => {
-                const cards = document.querySelectorAll('.card');
-                cards.forEach(card => {
-                    const cardPosition = card.getBoundingClientRect().top;
-                    const screenPosition = window.innerHeight / 1.3;
-                    
-                    if (cardPosition < screenPosition) {
-                        card.classList.add('card-animate');
-                    }
-                });
-            };
-            
-            window.addEventListener('scroll', animateOnScroll);
-            animateOnScroll(); // Run once on load
-        }
         
         function initCharts() {
             // Inventory Distribution Pie Chart
@@ -589,19 +492,21 @@ function formatCurrency($amount) {
                             ?>
                         ],
                         backgroundColor: [
-                            '#e74c3c',
-                            '#f39c12',
-                            '#27ae60'
+                            'var(--danger)',
+                            'var(--warning)',
+                            'var(--success)'
                         ],
-                        borderWidth: 1
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    cutout: '70%',
                     plugins: {
                         legend: {
-                            position: 'bottom',
+                            display: false
                         },
                         tooltip: {
                             callbacks: {
@@ -614,47 +519,10 @@ function formatCurrency($amount) {
                                 }
                             }
                         }
-                    }
-                }
-            });
-            
-            // Monthly Purchases Line Chart
-            const purchasesCtx = document.getElementById('purchasesChart').getContext('2d');
-            const purchasesChart = new Chart(purchasesCtx, {
-                type: 'line',
-                data: {
-                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-                    datasets: [{
-                        label: 'Purchases',
-                        data: [
-                            <?php
-                            // This is simplified - in a real app you'd query actual monthly data
-                            for ($i = 1; $i <= 12; $i++) {
-                                $rand = rand(5, 20);
-                                echo $rand;
-                                if ($i < 12) echo ', ';
-                            }
-                            ?>
-                        ],
-                        backgroundColor: 'rgba(52, 152, 219, 0.2)',
-                        borderColor: 'rgba(52, 152, 219, 1)',
-                        borderWidth: 2,
-                        tension: 0.4,
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
                     },
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        }
+                    animation: {
+                        animateScale: true,
+                        animateRotate: true
                     }
                 }
             });
@@ -666,22 +534,6 @@ function formatCurrency($amount) {
             if (searchItems) {
                 searchItems.addEventListener('keyup', function() {
                     searchTable('itemsTable', this.value);
-                });
-            }
-            
-            // Purchases table search
-            const searchPurchases = document.getElementById('searchPurchases');
-            if (searchPurchases) {
-                searchPurchases.addEventListener('keyup', function() {
-                    searchTable('purchasesTable', this.value);
-                });
-            }
-            
-            // Suppliers table search
-            const searchSuppliers = document.getElementById('searchSuppliers');
-            if (searchSuppliers) {
-                searchSuppliers.addEventListener('keyup', function() {
-                    searchTable('suppliersTable', this.value);
                 });
             }
         }
@@ -712,40 +564,9 @@ function formatCurrency($amount) {
         }
         
         function initEventListeners() {
-            // View item details
-            document.querySelectorAll('.view-item').forEach(button => {
-                button.addEventListener('click', function() {
-                    const itemId = this.getAttribute('data-id');
-                    viewItemDetails(itemId);
-                });
-            });
-            
-            // Edit item
-            document.querySelectorAll('.edit-item').forEach(button => {
-                button.addEventListener('click', function() {
-                    const itemId = this.getAttribute('data-id');
-                    editItem(itemId);
-                });
-            });
-            
             // Export inventory
             document.getElementById('exportInventory').addEventListener('click', function() {
                 exportTableToCSV('itemsTable', 'inventory_export.csv');
-            });
-            
-            // Export purchases
-            document.getElementById('exportPurchases').addEventListener('click', function() {
-                exportTableToCSV('purchasesTable', 'purchases_export.csv');
-            });
-            
-            // Refresh activity log
-            document.getElementById('refreshActivity').addEventListener('click', function() {
-                refreshActivityLog();
-            });
-            
-            // Dark mode toggle
-            document.getElementById('darkModeToggle').addEventListener('click', function() {
-                toggleDarkMode();
             });
             
             // Sidebar toggler
@@ -753,55 +574,6 @@ function formatCurrency($amount) {
                 // You would implement sidebar toggle functionality here
                 alert('Sidebar toggle functionality would go here in a full implementation');
             });
-        }
-        
-        function viewItemDetails(itemId) {
-            // In a real application, this would fetch data via AJAX
-            const modal = new bootstrap.Modal(document.getElementById('itemModal'));
-            document.getElementById('itemModalLabel').textContent = 'Item Details - ID: ' + itemId;
-            
-            // Simulate AJAX loading
-            setTimeout(() => {
-                document.getElementById('itemModalBody').innerHTML = `
-                    <div class="row">
-                        <div class="col-md-4">
-                            <img src="https://via.placeholder.com/300" class="img-fluid rounded mb-3" alt="Item Image">
-                        </div>
-                        <div class="col-md-8">
-                            <h4>Item Details</h4>
-                            <table class="table table-bordered">
-                                <tr>
-                                    <th>Item Code:</th>
-                                    <td>ITEM-${itemId}</td>
-                                </tr>
-                                <tr>
-                                    <th>Item Name:</th>
-                                    <td>Sample Item ${itemId}</td>
-                                </tr>
-                                <tr>
-                                    <th>Price:</th>
-                                    <td>$19.99</td>
-                                </tr>
-                                <tr>
-                                    <th>Current Quantity:</th>
-                                    <td>15</td>
-                                </tr>
-                                <tr>
-                                    <th>Supplier:</th>
-                                    <td>Sample Supplier</td>
-                                </tr>
-                            </table>
-                        </div>
-                    </div>
-                `;
-            }, 500);
-            
-            modal.show();
-        }
-        
-        function editItem(itemId) {
-            // In a real application, this would open an edit form
-            alert('Edit functionality for item ID: ' + itemId + ' would go here');
         }
         
         function exportTableToCSV(tableId, filename) {
@@ -813,9 +585,6 @@ function formatCurrency($amount) {
                 const row = [], cols = rows[i].querySelectorAll('td, th');
                 
                 for (let j = 0; j < cols.length; j++) {
-                    // Skip action columns
-                    if (cols[j].querySelector('.edit-item') || cols[j].querySelector('.view-item')) continue;
-                    
                     // Clean inner text
                     let text = cols[j].innerText.replace(/(\r\n|\n|\r)/gm, '');
                     text = text.replace(/(\s\s)/gm, ' ');
@@ -843,69 +612,8 @@ function formatCurrency($amount) {
             }
         }
         
-        function refreshActivityLog() {
-            const refreshBtn = document.getElementById('refreshActivity');
-            refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing';
-            
-            // Simulate AJAX refresh
-            setTimeout(() => {
-                // In a real app, this would fetch new data from the server
-                const activityLog = document.getElementById('activityLog');
-                const newActivity = document.createElement('li');
-                newActivity.className = 'list-group-item d-flex justify-content-between align-items-center';
-                newActivity.innerHTML = `
-                    <span>Manual refresh performed</span>
-                    <small class="text-muted">just now</small>
-                `;
-                activityLog.insertBefore(newActivity, activityLog.firstChild);
-                
-                // Remove oldest item if more than 5
-                if (activityLog.children.length > 5) {
-                    activityLog.removeChild(activityLog.lastChild);
-                }
-                
-                refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
-                
-                // Show notification
-                showNotification('Activity log refreshed successfully', 'success');
-            }, 1000);
-        }
-        
-        function initProgressBars() {
-            // Animate progress bars on load
-            setTimeout(() => {
-                document.getElementById('itemsProgress').style.width = '75%';
-                document.getElementById('suppliersProgress').style.width = '60%';
-                document.getElementById('purchasesProgress').style.width = '45%';
-            }, 500);
-        }
-        
-        function initDarkMode() {
-            const darkModeToggle = document.getElementById('darkModeToggle');
-            const body = document.body;
-            
-            // Check for saved user preference
-            if (localStorage.getItem('darkMode') === 'enabled') {
-                body.classList.add('dark-mode');
-                darkModeToggle.innerHTML = '<i class="fas fa-sun me-1"></i> Light Mode';
-            }
-            
-            // Toggle dark mode
-            darkModeToggle.addEventListener('click', () => {
-                body.classList.toggle('dark-mode');
-                
-                if (body.classList.contains('dark-mode')) {
-                    localStorage.setItem('darkMode', 'enabled');
-                    darkModeToggle.innerHTML = '<i class="fas fa-sun me-1"></i> Light Mode';
-                } else {
-                    localStorage.setItem('darkMode', 'disabled');
-                    darkModeToggle.innerHTML = '<i class="fas fa-moon me-1"></i> Dark Mode';
-                }
-            });
-        }
-        
         function checkLowStock() {
-            // In a real app, this would check actual low stock items
+            // Check for low stock items
             const lowStockCount = <?php
                 $sql = "SELECT COUNT(*) as count FROM items WHERE current_quantity < 5";
                 $result = $conn->query($sql);
@@ -913,10 +621,6 @@ function formatCurrency($amount) {
             ?>;
             
             if (lowStockCount > 0) {
-                document.getElementById('lowStockBadge').style.display = 'block';
-                document.getElementById('lowStockBadge').textContent = lowStockCount;
-                
-                // Show notification
                 showNotification(`Warning: ${lowStockCount} item(s) are low in stock`, 'warning');
             }
         }
@@ -945,11 +649,6 @@ function formatCurrency($amount) {
                 }, 150);
             }, 5000);
         }
-        
-        // Auto-refresh dashboard every 5 minutes
-        setTimeout(function() {
-            window.location.reload();
-        }, 300000); // 300000 ms = 5 minutes
     </script>
 </body>
 </html>

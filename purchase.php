@@ -819,6 +819,7 @@ $transactions = $pdo->query("
         </div>
     </template>
     
+    
     <script>
         // Load member info when selected
         function loadMemberInfo(memberId) {

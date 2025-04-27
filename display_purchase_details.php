@@ -82,7 +82,8 @@ function getPurchaseDetails($conn, $start_date = '', $end_date = '', $supplier_f
                 i.item_code,
                 i.item_name,
                 s.supplier_id,
-                s.supplier_name
+                s.supplier_name,
+                COALESCE(ip.unit, i.unit) AS unit
             FROM 
                 item_purchases ip
             JOIN 
@@ -465,7 +466,8 @@ $purchases = getPurchaseDetails($conn, $start_date, $end_date, $supplier_filter,
                         <th style="font-size: 12px; font-weight: bold;"><i class="far fa-calendar me-1"></i> Purchase Date</th>
                         <th style="font-size: 13.5px; font-weight: bold;"><i class="fas fa-box me-1"></i> Item Name</th>
                         <th style="font-size: 13.5px; font-weight: bold;"><i class="fas fa-truck me-1"></i> Supplier</th>
-                        <th style="font-size: 12px; font-weight: bold;"><i class="fas fa-cubes me-1"></i> Quantity</th>
+                        
+                        <th style="font-size: 12px; font-weight: bold;"><i class="fas fa-cubes me-1"></i> Quantity (Unit)</th>
                         <th style="font-size: 12px; font-weight: bold;"><i class="fas fa-tag me-1"></i> Price/Unit</th>
                         <th style="font-size: 12px; font-weight: bold;"><i class="fas fa-money-bill-wave me-1"></i> Total Price</th>
                         <th style="font-size: 12px; font-weight: bold;"><i class="fas fa-hourglass-end me-1"></i> Expire Date</th>
@@ -512,7 +514,8 @@ $purchases = getPurchaseDetails($conn, $start_date, $end_date, $supplier_filter,
                         <td style="font-size: 17px;"><?php echo date('d M Y', strtotime($purchase['purchase_date'])); ?></td>
                         <td style="font-size: 17px;"><?php echo $purchase['item_name']; ?></td>
                         <td style="font-size: 17px;"><?php echo $purchase['supplier_name']; ?></td>
-                        <td style="font-size: 17px;"><?php echo $purchase['quantity']; ?></td>
+                        
+                        <td style="font-size: 17px;"><?php echo $purchase['quantity'] . ' ' . $purchase['unit']; ?></td>
                         <td style="font-size: 17px;">Rs.<?php echo number_format($purchase['price_per_unit'], 2); ?></td>
                         <td style="font-size: 17px;">Rs.<?php echo number_format($purchase['total_price'], 2); ?></td>
                         <td style="font-size: 17px;"><?php echo !empty($purchase['expire_date']) ? date('d M Y', strtotime($purchase['expire_date'])) : 'N/A'; ?></td>

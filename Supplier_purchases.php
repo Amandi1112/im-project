@@ -268,7 +268,7 @@ $suppliers = getSuppliers($conn);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bulk Item Addition | Beautiful Interface</title>
+    <title>Bulk Item Addition</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap">
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -486,6 +486,7 @@ $suppliers = getSuppliers($conn);
                 margin-bottom: 15px;
             }
             
+            
             .action-buttons {
                 flex-direction: column;
                 gap: 10px;
@@ -626,15 +627,16 @@ $suppliers = getSuppliers($conn);
                 
                 // Construct the new row HTML
                 const newRow = `
-                    <div class="item-row">
+                    <div class="item-row" style="margin-bottom: 15px;">
                         <div class="row">
-                            <div class="col-md-3">
+                            <div class="col-md-3" style="margin-bottom: 15px;">
                                 <div class="mb-3">
                                     <label class="form-label">Item Name</label>
                                     <input type="text" class="form-control item-name" name="items[${itemCount}][item_name]" required>
                                 </div>
+                                
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-md-2" style="margin-bottom: 15px;">
                                 <div class="mb-3">
                                     <label class="form-label">Supplier</label>
                                     <select class="form-select supplier-select" name="items[${itemCount}][supplier_id]" required>
@@ -643,31 +645,31 @@ $suppliers = getSuppliers($conn);
                                     </select>
                                 </div>
                             </div>
-                            <div class="col-md-1">
+                            <div class="col-md-1" style="margin-bottom: 15px;">
                                 <div class="mb-3">
                                     <label class="form-label">Quantity</label>
                                     <input type="number" class="form-control" name="items[${itemCount}][quantity]" min="1" required>
                                 </div>
                             </div>
-                            <div class="col-md-1">
+                            <div class="col-md-1" style="margin-bottom: 15px;">
                                 <div class="mb-3">
                                     <label class="form-label">Price/Unit</label>
                                     <input type="number" step="0.01" class="form-control price-per-unit" name="items[${itemCount}][price_per_unit]" required>
                                 </div>
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-md-2" style="margin-bottom: 15px;">
                                 <div class="mb-3">
                                     <label class="form-label">Purchase Date</label>
                                     <input type="date" class="form-control" name="items[${itemCount}][purchase_date]" value="${new Date().toISOString().split('T')[0]}" required>
                                 </div>
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-md-2" style="margin-bottom: 15px;">
                                 <div class="mb-3">
                                     <label class="form-label">Expire Date</label>
                                     <input type="date" class="form-control" name="items[${itemCount}][expire_date]">
                                 </div>
                             </div>
-                            <div class="col-md-1">
+                            <div class="col-md-1" style="margin-bottom: 15px;">
                                 <div class="mb-3">
                                     <label class="form-label">&nbsp;</label>
                                     <button type="button" class="btn btn-danger form-control remove-item"><i class="fas fa-trash"></i></button>
