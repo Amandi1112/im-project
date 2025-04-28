@@ -15,59 +15,61 @@ class MemberManager {
     }
 
     // Get total number of members
-    public function getTotalMembers($searchTerm = '', $filterColumn = '', $filterValue = '') {
-        $whereClause = $this->buildWhereClause($searchTerm, $filterColumn, $filterValue);
-
-        $stmt = $this->conn->prepare("SELECT COUNT(*) as total FROM members {$whereClause}");
-
-        if (!empty($searchTerm)) {
-            $stmt->bindValue(':search', "%{$searchTerm}%", PDO::PARAM_STR);
-        }
-
-        if (!empty($filterValue)) {
-            $stmt->bindValue(':filter', $filterValue);
-        }
-
-        $stmt->execute();
-        return $stmt->fetch(PDO::FETCH_ASSOC)['total'];
+    // Replace your getTotalMembers method with this:
+public function getTotalMembers($searchTerm = '', $filterColumn = '', $filterValue = '') {
+    $whereClause = $this->buildWhereClause($searchTerm, $filterColumn, $filterValue);
+    
+    $sql = "SELECT COUNT(*) as total FROM members {$whereClause}";
+    $stmt = $this->conn->prepare($sql);
+    
+    if (!empty($searchTerm)) {
+        $searchParam = "%{$searchTerm}%";
+        $stmt->bindValue(':search1', $searchParam, PDO::PARAM_STR);
+        $stmt->bindValue(':search2', $searchParam, PDO::PARAM_STR);
+        $stmt->bindValue(':search3', $searchParam, PDO::PARAM_STR);
+        $stmt->bindValue(':search4', $searchParam, PDO::PARAM_STR);
+        $stmt->bindValue(':search5', $searchParam, PDO::PARAM_STR);
     }
+    
+    if (!empty($filterColumn) && !empty($filterValue)) {
+        $stmt->bindValue(':filter', $filterValue);
+    }
+    
+    $stmt->execute();
+    return $stmt->fetch(PDO::FETCH_ASSOC)['total'];
+}
 
     // Build dynamic WHERE clause for search and filter
     private function buildWhereClause($searchTerm = '', $filterColumn = '', $filterValue = '') {
         $whereClauses = [];
-
+        
         if (!empty($searchTerm)) {
             $whereClauses[] = "(
-                full_name LIKE :search OR
-                bank_membership_number LIKE :search OR
-                id LIKE :search OR
-                nic LIKE :search OR
-                occupation LIKE :search
+                full_name LIKE :search1 OR
+                bank_membership_number LIKE :search2 OR
+                id LIKE :search3 OR
+                nic LIKE :search4 OR
+                occupation LIKE :search5
             )";
         }
-
+        
         if (!empty($filterColumn) && !empty($filterValue)) {
             $whereClauses[] = "{$filterColumn} = :filter";
         }
-
+        
         return !empty($whereClauses) ? 'WHERE ' . implode(' AND ', $whereClauses) : '';
     }
 
     // Fetch members with pagination and search
     public function getMembers($page = 1, $perPage = 10, $searchTerm = '', $filterColumn = '', $filterValue = '', $sortColumn = 'id', $sortOrder = 'DESC') {
-        // Validate sort column to prevent SQL injection
         $allowedColumns = ['id', 'full_name', 'age', 'monthly_income', 'registration_date'];
         $sortColumn = in_array($sortColumn, $allowedColumns) ? $sortColumn : 'id';
         $sortOrder = strtoupper($sortOrder) === 'ASC' ? 'ASC' : 'DESC';
-
-        // Calculate offset
+        
         $offset = ($page - 1) * $perPage;
-
-        // Build dynamic WHERE clause
         $whereClause = $this->buildWhereClause($searchTerm, $filterColumn, $filterValue);
-
-        // Prepare SQL
-        $stmt = $this->conn->prepare("
+        
+        $sql = "
             SELECT
                 id, full_name, bank_membership_number,
                 address, nic, date_of_birth, age, telephone_number,
@@ -76,20 +78,26 @@ class MemberManager {
             {$whereClause}
             ORDER BY {$sortColumn} {$sortOrder}
             LIMIT :limit OFFSET :offset
-        ");
-
-        // Bind parameters
+        ";
+        
+        $stmt = $this->conn->prepare($sql);
+        
         if (!empty($searchTerm)) {
-            $stmt->bindValue(':search', "%{$searchTerm}%", PDO::PARAM_STR);
+            $searchParam = "%{$searchTerm}%";
+            $stmt->bindValue(':search1', $searchParam, PDO::PARAM_STR);
+            $stmt->bindValue(':search2', $searchParam, PDO::PARAM_STR);
+            $stmt->bindValue(':search3', $searchParam, PDO::PARAM_STR);
+            $stmt->bindValue(':search4', $searchParam, PDO::PARAM_STR);
+            $stmt->bindValue(':search5', $searchParam, PDO::PARAM_STR);
         }
-
-        if (!empty($filterValue)) {
+        
+        if (!empty($filterColumn) && !empty($filterValue)) {
             $stmt->bindValue(':filter', $filterValue);
         }
-
+        
         $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
         $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-
+        
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
@@ -97,26 +105,33 @@ class MemberManager {
     // Export members to PDF
     public function exportMembersToPdf($searchTerm = '', $filterColumn = '', $filterValue = '') {
         $whereClause = $this->buildWhereClause($searchTerm, $filterColumn, $filterValue);
-    
-        $stmt = $this->conn->prepare("
+        
+        $sql = "
             SELECT
-                id,full_name, bank_membership_number,
+                id, full_name, bank_membership_number,
                 address, nic, date_of_birth, age, telephone_number,
                 occupation, monthly_income, credit_limit,
                 DATE(registration_date) as registration_date
             FROM members
             {$whereClause}
             ORDER BY registration_date DESC
-        ");
-
+        ";
+        
+        $stmt = $this->conn->prepare($sql);
+        
         if (!empty($searchTerm)) {
-            $stmt->bindValue(':search', "%{$searchTerm}%", PDO::PARAM_STR);
+            $searchParam = "%{$searchTerm}%";
+            $stmt->bindValue(':search1', $searchParam, PDO::PARAM_STR);
+            $stmt->bindValue(':search2', $searchParam, PDO::PARAM_STR);
+            $stmt->bindValue(':search3', $searchParam, PDO::PARAM_STR);
+            $stmt->bindValue(':search4', $searchParam, PDO::PARAM_STR);
+            $stmt->bindValue(':search5', $searchParam, PDO::PARAM_STR);
         }
-
-        if (!empty($filterValue)) {
+        
+        if (!empty($filterColumn) && !empty($filterValue)) {
             $stmt->bindValue(':filter', $filterValue);
         }
-
+        
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
@@ -767,9 +782,7 @@ ob_end_flush();
                         <option value="telephone_number">Telephone Number</option>
                     </select>
                 </div>
-                <div class="form-group">
-                    <input type="text" name="filter_value" placeholder="Filter value" class="form-control">
-                </div>
+              
                 <div class="form-group">
                     <button type="submit" class="btn btn-primary" style="font-size: 15px;">
                         <i class="fas fa-search"></i> Search

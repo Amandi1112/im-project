@@ -46,9 +46,8 @@ function formatCurrency($amount) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title></title>
+    <title>Inventory Management</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
@@ -60,25 +59,26 @@ function formatCurrency($amount) {
     <!-- Custom CSS -->
     <style>
         :root {
-            --primary: #4a6fa5;
-            --primary-dark: #345382;
-            --secondary: #16db93;
-            --secondary-dark: #12b378;
-            --danger: #e63946;
-            --danger-dark: #c1121f;
-            --success: #06d6a0;
-            --success-dark: #04a87e;
-            --warning: #ffb703;
-            --warning-dark: #fb8500;
-            --info: #118ab2;
-            --info-dark: #0d6986;
-            --light: #f8f9fa;
-            --dark: #1d3557;
-            --gray: #6c757d;
-            --gray-light: #e9ecef;
-            --bg-color: #f0f3f5;
-            --card-bg: #ffffff;
-            --text-color: #2b2d42;
+            /* New modern color palette */
+            --primary: #6366f1;        /* Indigo */
+            --primary-dark:rgb(22, 17, 105);   /* Darker Indigo */
+            --secondary: #10b981;      /* Emerald */
+            --secondary-dark: #059669; /* Darker Emerald */
+            --danger: #ef4444;         /* Red */
+            --danger-dark: #dc2626;    /* Darker Red */
+            --success: #22c55e;        /* Green */
+            --success-dark: #16a34a;   /* Darker Green */
+            --warning: #f59e0b;        /* Amber */
+            --warning-dark: #d97706;   /* Darker Amber */
+            --info: #0ea5e9;           /* Sky */
+            --info-dark: #0284c7;      /* Darker Sky */
+            --light: #f9fafb;          /* Gray 50 */
+            --dark: #1e293b;           /* Slate 800 */
+            --gray: #64748b;           /* Slate 500 */
+            --gray-light: #e2e8f0;     /* Slate 200 */
+            --bg-color: #f1f5f9;       /* Slate 100 */
+            --card-bg: #ffffff;        /* White */
+            --text-color: #334155;     /* Slate 700 */
         }
     
         body {
@@ -90,49 +90,50 @@ function formatCurrency($amount) {
         }
         
         .dashboard-header {
-            background: linear-gradient(to right, var(--primary), var(--primary-dark));
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
             color: white;
-            padding: 1.25rem 0;
+            padding: 1.5rem 0;
             margin-bottom: 2rem;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
         }
         
         .card {
             border: none;
-            border-radius: 12px;
-            box-shadow: 0 8px 16px rgba(0,0,0,0.08);
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
             transition: transform 0.3s ease, box-shadow 0.3s ease;
             margin-bottom: 1.5rem;
             overflow: hidden;
         }
         
         .card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 12px 20px rgba(0,0,0,0.12);
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
         }
         
         /* Inventory Distribution Panel */
         .inventory-distribution-card {
             background: var(--card-bg);
-            border-top: 5px solid var(--info);
+            border-left: 5px solid var(--info);
             height: 500px;
         }
         
         .inventory-distribution-card .card-header {
-            background: linear-gradient(to right, var(--info), var(--info-dark));
-            color: white;
-            border-bottom: none;
-            padding: 1rem 1.5rem;
+            background: white;
+            color: var(--dark);
+            border-bottom: 1px solid var(--gray-light);
+            padding: 1.2rem 1.5rem;
+            font-weight: 600;
         }
         
         /* Current Inventory Panel */
         .current-inventory-card {
             background: var(--card-bg);
-            border-top: 5px solid var(--success);
+            border-left: 5px solid var(--secondary);
         }
 
         .current-inventory-card .card-body {
-            height: calc(100% - 56px);
+            height: calc(100% - 60px);
             display: flex;
             flex-direction: column;
         }
@@ -143,10 +144,11 @@ function formatCurrency($amount) {
         }
         
         .current-inventory-card .card-header {
-            background: linear-gradient(to right, var(--success), var(--success-dark));
-            color: white;
-            border-bottom: none;
-            padding: 1rem 1.5rem;
+            background: white;
+            color: var(--dark);
+            border-bottom: 1px solid var(--gray-light);
+            padding: 1.2rem 1.5rem;
+            font-weight: 600;
         }
         
         /* Table styles */
@@ -157,52 +159,58 @@ function formatCurrency($amount) {
         }
         
         .table th {
-            background-color: rgba(240, 240, 240, 0.5);
-            color: var(--dark);
+            background-color: rgba(241, 245, 249, 0.6);
+            color: var(--gray);
             font-weight: 600;
             border-bottom: 2px solid var(--gray-light);
-            padding: 0.85rem 1rem;
+            padding: 1rem 1.2rem;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         
         .table td {
-            padding: 0.85rem 1rem;
+            padding: 1rem 1.2rem;
             vertical-align: middle;
             border-bottom: 1px solid var(--gray-light);
+            font-size: 0.95rem;
         }
         
         .table tr:hover {
-            background-color: rgba(240, 240, 240, 0.3);
+            background-color: rgba(241, 245, 249, 0.4);
         }
         
         /* Badge styles */
         .badge {
-            padding: 0.4rem 0.65rem;
-            font-weight: 500;
-            border-radius: 30px;
+            padding: 0.5rem 0.75rem;
+            font-weight: 600;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
         }
         
         .badge-low {
-            background-color: var(--danger);
-            color: white;
+            background-color: rgba(239, 68, 68, 0.15);
+            color: var(--danger);
         }
         
         .badge-medium {
-            background-color: var(--warning);
-            color: var(--dark);
+            background-color: rgba(245, 158, 11, 0.15);
+            color: var(--warning-dark);
         }
         
         .badge-high {
-            background-color: var(--success);
-            color: white;
+            background-color: rgba(34, 197, 94, 0.15);
+            color: var(--success-dark);
         }
         
         /* Chart container */
         .chart-container {
             background-color: white;
-            border-radius: 10px;
+            border-radius: 12px;
             padding: 20px;
             height: 350px;
-            box-shadow: inset 0 0 8px rgba(0,0,0,0.05);
+            box-shadow: inset 0 0 8px rgba(0,0,0,0.02);
         }
         
         /* Search box styling */
@@ -220,17 +228,18 @@ function formatCurrency($amount) {
         }
         
         .search-box input {
-            padding-left: 40px;
-            border-radius: 25px;
+            padding-left: 45px;
+            border-radius: 10px;
             border: 1px solid var(--gray-light);
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.03);
             font-size: 0.9rem;
-            padding-top: 0.6rem;
-            padding-bottom: 0.6rem;
+            padding-top: 0.7rem;
+            padding-bottom: 0.7rem;
+            transition: all 0.3s ease;
         }
         
         .search-box input:focus {
-            box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.2);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
             border-color: var(--primary);
         }
         
@@ -238,23 +247,24 @@ function formatCurrency($amount) {
         .btn-light {
             background-color: white;
             border: 1px solid var(--gray-light);
-            color: var(--dark);
-            border-radius: 20px;
+            color: var(--primary);
+            border-radius: 8px;
             font-size: 0.85rem;
-            font-weight: 500;
-            padding: 0.4rem 1rem;
+            font-weight: 600;
+            padding: 0.5rem 1.2rem;
             transition: all 0.2s;
         }
         
         .btn-light:hover {
-            background-color: var(--gray-light);
-            border-color: var(--gray);
+            background-color: var(--primary);
+            border-color: var(--primary);
+            color: white;
         }
         
         /* Footer styling */
         .footer {
             background-color: var(--dark);
-            color: white;
+            color: rgba(255, 255, 255, 0.8);
             padding: 1.25rem 0;
             position: fixed;
             bottom: 0;
@@ -264,9 +274,9 @@ function formatCurrency($amount) {
         
         /* Animation for low stock pulse */
         @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(230, 57, 70, 0.4); }
-            70% { box-shadow: 0 0 0 10px rgba(230, 57, 70, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(230, 57, 70, 0); }
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+            70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
         }
         
         .pulse-warning {
@@ -277,8 +287,8 @@ function formatCurrency($amount) {
         .chart-legend {
             display: flex;
             justify-content: center;
-            gap: 1.5rem;
-            margin-top: 1rem;
+            gap: 2rem;
+            margin-top: 1.5rem;
         }
         
         .chart-legend-item {
@@ -286,28 +296,71 @@ function formatCurrency($amount) {
             align-items: center;
             font-size: 0.85rem;
             color: var(--gray);
+            font-weight: 500;
         }
         
         .chart-legend-color {
             width: 12px;
             height: 12px;
-            border-radius: 50%;
-            margin-right: 6px;
+            border-radius: 4px;
+            margin-right: 8px;
         }
         
         /* Header username and date badges */
         .header-badge {
             background-color: rgba(255,255,255,0.15);
-            border-radius: 20px;
-            padding: 0.4rem 1rem;
-            font-size: 0.85rem;
+            border-radius: 8px;
+            padding: 0.5rem 1.2rem;
+            font-size: 0.9rem;
             display: inline-flex;
             align-items: center;
-            margin-left: 0.5rem;
+            margin-left: 0.8rem;
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
         }
         
         .header-badge i {
-            margin-right: 0.4rem;
+            margin-right: 0.5rem;
+        }
+        
+        /* Sidebar toggle button */
+        .sidebar-toggler {
+            background-color: transparent !important;
+            border: 1px solid rgba(255, 255, 255, 0.3) !important;
+            color: white !important;
+            border-radius: 8px;
+            width: 38px;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            margin-right: 1rem;
+        }
+        
+        .sidebar-toggler:hover {
+            background-color: rgba(255, 255, 255, 0.1) !important;
+        }
+        
+        /* Status dot indicators */
+        .status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+        
+        .status-dot-low {
+            background-color: var(--danger);
+        }
+        
+        .status-dot-medium {
+            background-color: var(--warning);
+        }
+        
+        .status-dot-high {
+            background-color: var(--success);
         }
     </style>
 </head>
@@ -317,13 +370,10 @@ function formatCurrency($amount) {
         <div class="container">
             <div class="row align-items-center">
                 <div class="col-md-6 d-flex align-items-center">
-                    <button class="sidebar-toggler btn btn-sm btn-light me-3" id="sidebarToggler">
-                        <i class="fas fa-bars"></i>
-                    </button>
-                    <h2 class="mb-0"><i class="fas fa-boxes me-2"></i>Inventory Management</h2>
+                    
+                    <h2 class="mb-0" style="color: white; font-weight: bold;"><i class="fas fa-boxes me-2"></i>Inventory Overview</h2>
                 </div>
                 <div class="col-md-6 text-end">
-                    
                     <span class="header-badge">
                         <i class="fas fa-calendar-alt"></i> <?php echo date('F j, Y'); ?>
                     </span>
@@ -367,7 +417,6 @@ function formatCurrency($amount) {
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h5 class="mb-0"><i class="fas fa-box-open me-2"></i>Current Inventory</h5>
                         <div>
-                            
                             <a href="display_purchase_details.php" class="btn btn-light">View All</a>
                         </div>
                     </div>
@@ -403,23 +452,27 @@ function formatCurrency($amount) {
                                             $quantity = intval($row['current_quantity']);
                                             $status = '';
                                             $statusClass = '';
+                                            $dotClass = '';
 
                                             if ($quantity < 5) {
                                                 $status = 'Low';
                                                 $statusClass = 'badge-low pulse-warning';
+                                                $dotClass = 'status-dot-low';
                                             } elseif ($quantity < 10) {
                                                 $status = 'Medium';
                                                 $statusClass = 'badge-medium';
+                                                $dotClass = 'status-dot-medium';
                                             } else {
                                                 $status = 'High';
                                                 $statusClass = 'badge-high';
+                                                $dotClass = 'status-dot-high';
                                             }
 
                                             echo "<tr data-id='" . htmlspecialchars($row["item_id"]) . "'>";
                                             echo "<td>" . htmlspecialchars($row["item_name"]) . "</td>";
                                             echo "<td>Rs." . formatCurrency($row["price_per_unit"]) . "/" . htmlspecialchars($row["unit"]) . "</td>";
                                             echo "<td>" . $quantity . " " . htmlspecialchars($row["unit"]) . "</td>";
-                                            echo "<td><span class='badge " . $statusClass . "'>" . $status . "</span></td>";
+                                            echo "<td><span class='badge " . $statusClass . "'><span class='status-dot " . $dotClass . "'></span>" . $status . "</span></td>";
                                             echo "</tr>";
                                         }
                                     } else {
@@ -435,19 +488,7 @@ function formatCurrency($amount) {
         </div>
     </div>
     
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="container">
-            <div class="row">
-                <div class="col-md-6">
-                    <p class="mb-0">&copy; <?php echo date('Y'); ?> All rights reserved.</p>
-                </div>
-                <div class="col-md-6 text-end">
-                    <p class="mb-0"></p>
-                </div>
-            </div>
-        </div>
-    </footer>
+
     
     <!-- Bootstrap JS Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -492,23 +533,34 @@ function formatCurrency($amount) {
                             ?>
                         ],
                         backgroundColor: [
-                            'var(--danger)',
-                            'var(--warning)',
-                            'var(--success)'
+                            '#ff6b6b',       // danger-color for Low Stock
+                '#ffbe0b',       // warning-color for Medium Stock
+                '#2ecc71'        // accent-color for High Stock
                         ],
-                        borderWidth: 2,
+                        borderWidth: 3,
                         borderColor: '#ffffff'
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    cutout: '70%',
+                    cutout: '75%',
                     plugins: {
                         legend: {
                             display: false
                         },
                         tooltip: {
+                            backgroundColor: 'rgba(30, 41, 59, 0.8)',
+                            titleFont: {
+                                size: 14,
+                                family: 'Nunito'
+                            },
+                            bodyFont: {
+                                size: 13,
+                                family: 'Nunito'
+                            },
+                            padding: 12,
+                            cornerRadius: 8,
                             callbacks: {
                                 label: function(context) {
                                     const label = context.label || '';
@@ -522,7 +574,9 @@ function formatCurrency($amount) {
                     },
                     animation: {
                         animateScale: true,
-                        animateRotate: true
+                        animateRotate: true,
+                        duration: 1500,
+                        easing: 'easeOutQuart'
                     }
                 }
             });
@@ -564,52 +618,23 @@ function formatCurrency($amount) {
         }
         
         function initEventListeners() {
-            // Export inventory
-            document.getElementById('exportInventory').addEventListener('click', function() {
-                exportTableToCSV('itemsTable', 'inventory_export.csv');
-            });
-            
             // Sidebar toggler
             document.getElementById('sidebarToggler').addEventListener('click', function() {
                 // You would implement sidebar toggle functionality here
-                alert('Sidebar toggle functionality would go here in a full implementation');
+                showNotification('Sidebar feature would be implemented in a complete version', 'info');
             });
-        }
-        
-        function exportTableToCSV(tableId, filename) {
-            const table = document.getElementById(tableId);
-            const rows = table.querySelectorAll('tr');
-            let csv = [];
             
-            for (let i = 0; i < rows.length; i++) {
-                const row = [], cols = rows[i].querySelectorAll('td, th');
-                
-                for (let j = 0; j < cols.length; j++) {
-                    // Clean inner text
-                    let text = cols[j].innerText.replace(/(\r\n|\n|\r)/gm, '');
-                    text = text.replace(/(\s\s)/gm, ' ');
-                    text = text.replace(/"/g, '""');
-                    row.push('"' + text + '"');
-                }
-                
-                csv.push(row.join(','));
-            }
-            
-            // Download CSV file
-            const csvContent = csv.join('\n');
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            
-            if (navigator.msSaveBlob) { // IE 10+
-                navigator.msSaveBlob(blob, filename);
-            } else {
-                link.href = URL.createObjectURL(blob);
-                link.setAttribute('download', filename);
-                link.style.visibility = 'hidden';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            }
+            // Make table rows clickable
+            const rows = document.querySelectorAll('#itemsTable tbody tr');
+            rows.forEach(row => {
+                row.style.cursor = 'pointer';
+                row.addEventListener('click', function() {
+                    const itemId = this.getAttribute('data-id');
+                    if (itemId) {
+                        showNotification('Item details would open in a complete version', 'info');
+                    }
+                });
+            });
         }
         
         function checkLowStock() {
@@ -621,7 +646,7 @@ function formatCurrency($amount) {
             ?>;
             
             if (lowStockCount > 0) {
-                showNotification(`Warning: ${lowStockCount} item(s) are low in stock`, 'warning');
+                showNotification(`Alert: ${lowStockCount} item(s) are low in stock and need attention`, 'warning');
             }
         }
         
@@ -630,9 +655,34 @@ function formatCurrency($amount) {
             notification.className = `position-fixed bottom-0 end-0 p-3`;
             notification.style.zIndex = '11';
             
+            let bgColor, textColor;
+            switch(type) {
+                case 'warning':
+                    bgColor = 'var(--warning)';
+                    textColor = 'var(--dark)';
+                    break;
+                case 'error':
+                    bgColor = 'var(--danger)';
+                    textColor = 'white';
+                    break;
+                case 'success':
+                    bgColor = 'var(--success)';
+                    textColor = 'white';
+                    break;
+                default:
+                    bgColor = 'var(--info)';
+                    textColor = 'white';
+            }
+            
             const alert = document.createElement('div');
-            alert.className = `alert alert-${type} alert-dismissible fade show`;
+            alert.className = `alert alert-dismissible fade show`;
             alert.role = 'alert';
+            alert.style.backgroundColor = bgColor;
+            alert.style.color = textColor;
+            alert.style.borderRadius = '10px';
+            alert.style.boxShadow = '0 8px 16px rgba(0,0,0,0.15)';
+            alert.style.padding = '14px 20px';
+            alert.style.border = 'none';
             alert.innerHTML = `
                 ${message}
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>

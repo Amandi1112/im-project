@@ -230,7 +230,7 @@ if (isset($_GET['generate_pdf'])) {
             );
             
             // Adjusted widths for portrait mode
-            $w = array(25, 35, 35, 15, 20, 20, 25, 20);
+            $w = array(25, 30, 45, 10, 20, 20, 25, 15);
             
             for($i=0; $i<count($header); $i++) {
                 $this->Cell($w[$i],7,$header[$i],1,0,'C',true);
@@ -246,7 +246,7 @@ if (isset($_GET['generate_pdf'])) {
             $fill = false;
             
             // Adjusted widths for portrait mode
-            $w = array(25, 35, 35, 15, 20, 20, 25, 20);
+            $w = array(25, 30, 45, 10, 20, 20, 25, 15);
             
             foreach($purchases as $purchase) {
                 // Determine status and row color
@@ -877,7 +877,7 @@ function SignatureSection() {
     </div>
 
     <a href="home.php" class="btn btn-primary floating-btn pulse animate__animated animate__fadeInUp">
-        <i class="fas fa-home"></i>
+        <i class="fas fa-home" style="color:rgb(75, 97, 135);"></i>
     </a>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
