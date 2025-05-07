@@ -151,132 +151,174 @@ if (isset($_GET['generate_invoice'])) {
     $balance        = $total_amount - $total_payments;
 
     // Generate PDF invoice with compact layout
-    $pdf = new FPDF('P', 'mm', 'A4');
-    $pdf->SetAutoPageBreak(false); // Ensure everything stays on one page
-    $pdf->AddPage();
-    $pdf->SetMargins(12, 12, 12); // Tighter margins
+   // Create PDF with new design matching the image
+   $pdf = new FPDF('P', 'mm', 'A4');
+   $pdf->AddPage();
+   $pdf->SetMargins(10, 10, 10);
+   $pdf->SetAutoPageBreak(true, 10);
 
-    // =============== HEADER SECTION ===============
-    // Company Info (top left)
-    $pdf->SetFont('Arial', 'B', 12);
-    $pdf->SetTextColor(30, 50, 80); // Dark blue
-    $pdf->Cell(100, 6, 'T&C co-op City Shop', 0, 0, 'L');
+   // Define colors
+   $headerBlue = array(47, 117, 181); // Blue header color
+   $lightGray = array(240, 240, 240);  // Light gray for alternate rows
+   $darkBlue = array(41, 128, 185);    // Dark blue for titles
+   $darkText = array(51, 51, 51);      // Dark text color
 
-    // Invoice info (top right)
-    $pdf->SetFont('Arial', 'B', 10);
-    $pdf->Cell(0, 6, 'STATEMENT #: ' . $invoice_number, 0, 1, 'R');
+   // =============== HEADER SECTION ===============
+   // Company name (top left) - LARGE BLUE HEADER
+   $pdf->SetFont('Arial', 'B', 18);
+   $pdf->SetTextColor($headerBlue[0], $headerBlue[1], $headerBlue[2]);
+   $pdf->Cell(120, 10, 'T&C CO-OP CITY SHOP', 0, 0, 'L');
 
-    $pdf->SetFont('Arial', '', 8);
-    $pdf->SetTextColor(100, 100, 100);
-    $pdf->Cell(100, 4, 'Pahala Karawita, Karawita, Ratnapura, Sri Lanka', 0, 0, 'L');
-    $pdf->Cell(0, 4, 'Date: ' . date('m/d/Y'), 0, 1, 'R');
+   // Statement title (top right)
+   $pdf->SetFont('Arial', 'B', 18);
+   $pdf->Cell(70, 10, 'STATEMENT', 0, 1, 'R');
 
-    $pdf->Cell(100, 4, 'Phone: (123) 456-7890 | Email: co_op@sanasa.com', 0, 0, 'L');
-    $pdf->Cell(0, 4, 'Period: ' . date('m/d/Y', strtotime($start_date)) . ' - ' . date('m/d/Y', strtotime($end_date)), 0, 1, 'R');
+   // Company details (left)
+   $pdf->SetFont('Arial', '', 10);
+   $pdf->SetTextColor($darkText[0], $darkText[1], $darkText[2]);
+   $pdf->Cell(120, 5, 'Pahala Karawita, Karawita', 0, 0, 'L');
 
-    $pdf->Ln(5);
+   // Statement number (right)
+   $pdf->SetFont('Arial', '', 10);
+   $pdf->Cell(70, 5, 'STATEMENT #: ' . $invoice_number, 0, 1, 'R');
 
-    // =============== SUPPLIER INFO ===============
-    $pdf->SetFont('Arial', 'B', 9);
-    $pdf->SetTextColor(30, 50, 80);
-    $pdf->Cell(0, 5, 'BILL TO:', 0, 1);
+   // More company details
+   $pdf->Cell(120, 5, 'Ratnapura, Sri Lanka', 0, 0, 'L');
+   
+   // Date
+   $pdf->Cell(70, 5, 'Date: ' . date('d/m/Y'), 0, 1, 'R');
 
-    $pdf->SetFont('Arial', '', 8);
-    $pdf->SetTextColor(0, 0, 0);
-    $pdf->Cell(0, 4, $supplier['supplier_name'], 0, 1);
-    $pdf->Cell(0, 4, $supplier['address'], 0, 1);
-    $pdf->Cell(0, 4, 'ID: ' . $supplier['supplier_id'] . ' | Contact: ' . $supplier['contact_number'], 0, 1);
+   // Phone and email
+   $pdf->Cell(120, 5, 'Phone: (123) 456-7890 | Email: co_op@sanasa.com', 0, 0, 'L');
+   
+   // Period
+   $pdf->Cell(70, 5, 'Period: ' . date('d/m/Y', strtotime($start_date)) . ' - ' . date('d/m/Y', strtotime($end_date)), 0, 1, 'R');
 
-    $pdf->Ln(5);
+   // Draw horizontal line
+   $pdf->Ln(5);
+   $pdf->SetDrawColor(200, 200, 200);
+   $pdf->Line(10, $pdf->GetY(), 200, $pdf->GetY());
+   $pdf->Ln(7);
 
-    // =============== TRANSACTION TABLE ===============
-    // Table Header
-    $pdf->SetFillColor(230, 230, 230);
-    $pdf->SetFont('Arial', 'B', 8);
-    $pdf->Cell(20, 6, 'DATE', 1, 0, 'C', true);
-    $pdf->Cell(65, 6, 'DESCRIPTION', 1, 0, 'C', true);
-    $pdf->Cell(15, 6, 'QTY', 1, 0, 'C', true);
-    $pdf->Cell(20, 6, 'UNIT PRICE', 1, 0, 'C', true);
-    $pdf->Cell(20, 6, 'AMOUNT', 1, 1, 'C', true);
+   // =============== BILL TO SECTION ===============
+   // Bill To Header - Blue background
+   $pdf->SetFillColor($headerBlue[0], $headerBlue[1], $headerBlue[2]);
+   $pdf->SetTextColor(255, 255, 255);
+   $pdf->SetFont('Arial', 'B', 12);
+   $pdf->Cell(190, 8, 'BILL TO', 0, 1, 'L', true);
+   $pdf->Ln(5);
 
-    // Table Rows
-    $pdf->SetFont('Arial', '', 7);
-    foreach ($purchases as $purchase) {
-        $pdf->Cell(20, 5, date('m/d/Y', strtotime($purchase['purchase_date'])), 'LR', 0, 'C');
-        $pdf->Cell(65, 5, substr($purchase['item_name'], 0, 40), 'LR', 0, 'L'); // Limit description length
-        $pdf->Cell(15, 5, $purchase['quantity'], 'LR', 0, 'C');
-        $pdf->Cell(20, 5, 'Rs.' . number_format($purchase['price_per_unit'], 2), 'LR', 0, 'R');
-        $pdf->Cell(20, 5, 'Rs.' . number_format($purchase['total_price'], 2), 'LR', 1, 'R');
-    }
+   // Supplier info
+   $pdf->SetTextColor($darkText[0], $darkText[1], $darkText[2]);
+   $pdf->SetFont('Arial', 'B', 12);
+   $pdf->Cell(190, 6, $supplier['supplier_name'], 0, 1, 'L');
+   
+   $pdf->SetFont('Arial', '', 10);
+   $pdf->Cell(190, 5, $supplier['address'], 0, 1, 'L');
+   $pdf->Cell(190, 5, 'ID: ' . $supplier['supplier_id'] . ' | Contact: ' . $supplier['contact_number'], 0, 1, 'L');
+   $pdf->Ln(5);
 
-    // Table Footer
-    $pdf->SetFont('Arial', 'B', 8);
-    $pdf->Cell(120, 6, 'SUBTOTAL', 'LTB', 0, 'R');
-    $pdf->Cell(20, 6, 'Rs.' . number_format($total_amount, 2), 'RTB', 1, 'R');
+   // =============== PURCHASE DETAILS SECTION ===============
+   // Purchase Details Header - Blue background
+   $pdf->SetFillColor($headerBlue[0], $headerBlue[1], $headerBlue[2]);
+   $pdf->SetTextColor(255, 255, 255);
+   $pdf->SetFont('Arial', 'B', 12);
+   $pdf->Cell(190, 8, 'PURCHASE DETAILS', 0, 1, 'L', true);
+   $pdf->Ln(5);
 
-    $pdf->Ln(8);
+   // Table headers
+   $pdf->SetFillColor(240, 240, 240);
+   $pdf->SetTextColor($darkText[0], $darkText[1], $darkText[2]);
+   $pdf->SetFont('Arial', 'B', 10);
+   $pdf->SetDrawColor(200, 200, 200);
+   
+   // Table header row
+   $pdf->Cell(30, 8, 'Date', 1, 0, 'C', true);
+   $pdf->Cell(80, 8, 'Description', 1, 0, 'C', true);
+   $pdf->Cell(20, 8, 'Qty', 1, 0, 'C', true);
+   $pdf->Cell(30, 8, 'Unit Price', 1, 0, 'C', true);
+   $pdf->Cell(30, 8, 'Amount', 1, 1, 'C', true);
 
-    // =============== PAYMENT SUMMARY ===============
-    $pdf->SetFont('Arial', 'B', 9);
-    $pdf->SetTextColor(30, 50, 80);
-    $pdf->Cell(0, 5, 'PAYMENT SUMMARY', 0, 1);
+   // Table rows
+   $pdf->SetFont('Arial', '', 10);
+   $fill = false;
+   
+   foreach ($purchases as $purchase) {
+       $pdf->Cell(30, 8, date('d/m/Y', strtotime($purchase['purchase_date'])), 1, 0, 'C', $fill);
+       $pdf->Cell(80, 8, $purchase['item_name'], 1, 0, 'L', $fill);
+       $pdf->Cell(20, 8, $purchase['quantity'], 1, 0, 'C', $fill);
+       $pdf->Cell(30, 8, 'Rs.' . number_format($purchase['price_per_unit'], 2), 1, 0, 'R', $fill);
+       $pdf->Cell(30, 8, 'Rs.' . number_format($purchase['total_price'], 2), 1, 1, 'R', $fill);
+       $fill = !$fill; // Alternate row colors
+   }
 
-    $pdf->SetFont('Arial', '', 8);
-    $pdf->SetTextColor(0, 0, 0);
-    $pdf->Cell(30, 5, 'Total Purchases:', 0, 0);
-    $pdf->Cell(20, 5, 'Rs.' . number_format($total_amount, 2), 0, 1, 'R');
+   // Summary section - right aligned
+   $pdf->Ln(7);
+   $pdf->SetFont('Arial', 'B', 10);
+   
+   // Total row width for right side
+   $summaryWidth = 100;
+   $leftPadding = 190 - $summaryWidth;
+   
+   // Summary table with borders
+   $pdf->Cell($leftPadding, 8, '', 0, 0); // Empty cell for spacing
+   $pdf->Cell($summaryWidth - 30, 8, 'Total Purchases:', 1, 0, 'R');
+   $pdf->Cell(30, 8, 'Rs.' . number_format($total_amount, 2), 1, 1, 'R');
+   
+   $pdf->Cell($leftPadding, 8, '', 0, 0); // Empty cell for spacing
+   $pdf->Cell($summaryWidth - 30, 8, 'Payments Received:', 1, 0, 'R');
+   $pdf->Cell(30, 8, 'Rs.' . number_format($total_payments, 2), 1, 1, 'R');
+   
+   // Balance due - highlighted
+   $pdf->SetFont('Arial', 'B', 10);
+   $pdf->Cell($leftPadding, 8, '', 0, 0); // Empty cell for spacing
+   $pdf->SetFillColor(220, 230, 241); // Light blue background for balance
+   $pdf->Cell($summaryWidth - 30, 8, 'BALANCE DUE:', 1, 0, 'R', true);
+   $pdf->SetTextColor(255, 0, 0); // Red text for balance
+   $pdf->Cell(30, 8, 'Rs.' . number_format($balance, 2), 1, 1, 'R', true);
+   
+   // Reset text color
+   $pdf->SetTextColor($darkText[0], $darkText[1], $darkText[2]);
 
-    $pdf->Cell(30, 5, 'Payments Received:', 0, 0);
-    $pdf->Cell(20, 5, 'Rs.' . number_format($total_payments, 2), 0, 1, 'R');
+   // =============== PAYMENT HISTORY SECTION ===============
+   if (!empty($payments)) {
+       $pdf->Ln(7);
+       $pdf->SetFillColor($headerBlue[0], $headerBlue[1], $headerBlue[2]);
+       $pdf->SetTextColor(255, 255, 255);
+       $pdf->SetFont('Arial', 'B', 12);
+       $pdf->Cell(190, 8, 'PAYMENT HISTORY', 0, 1, 'L', true);
+       $pdf->Ln(5);
 
-    $pdf->SetFont('Arial', 'B', 9);
-    $pdf->SetTextColor(200, 0, 0);
-    $pdf->Cell(30, 6, 'BALANCE DUE:', 0, 0);
-    $pdf->Cell(20, 6, 'Rs.' . number_format($balance, 2), 0, 1, 'R');
+       // Payment history table
+       $pdf->SetTextColor($darkText[0], $darkText[1], $darkText[2]);
+       $pdf->SetFont('Arial', 'B', 10);
+       $pdf->SetFillColor(240, 240, 240);
+       $pdf->Cell(30, 8, 'Date', 1, 0, 'C', true);
+       $pdf->Cell(30, 8, 'Amount', 1, 1, 'C', true);
 
-    $pdf->Ln(5);
+       $pdf->SetFont('Arial', '', 10);
+       $fill = false;
+       foreach ($payments as $payment) {
+           $pdf->Cell(30, 8, date('d/m/Y', strtotime($payment['payment_date'])), 1, 0, 'C', $fill);
+           $pdf->Cell(30, 8, 'Rs.' . number_format($payment['amount'], 2), 1, 1, 'R', $fill);
+           $fill = !$fill; // Alternate row colors
+       }
+   }
 
-    // =============== PAYMENT HISTORY (if exists) ===============
-    if (!empty($payments)) {
-        $pdf->SetFont('Arial', 'B', 9);
-        $pdf->SetTextColor(30, 50, 80);
-        $pdf->Cell(0, 5, 'PAYMENT HISTORY', 0, 1);
+   // =============== FOOTER SECTION ===============
+   $pdf->Ln(35);
+   
+   // Signature lines
+   $pdf->SetFont('Arial', '', 10);
+   $pdf->Cell(90, 6, '__________________________', 0, 0, 'L');
+   $pdf->Cell(90, 6, '__________________________', 0, 1, 'R');
+   
+   $pdf->Cell(90, 5, 'Supplier Authorization', 0, 0, 'L');
+   $pdf->Cell(90, 5, 'Company Representative', 0, 1, 'R');
 
-        $pdf->SetFillColor(230, 230, 230);
-        $pdf->SetFont('Arial', 'B', 8);
-        $pdf->Cell(30, 6, 'DATE', 1, 0, 'C', true);
-        $pdf->Cell(30, 6, 'AMOUNT', 1, 1, 'C', true);
-
-        $pdf->SetFont('Arial', '', 8);
-        foreach ($payments as $payment) {
-            $pdf->Cell(30, 5, date('m/d/Y', strtotime($payment['payment_date'])), 'LR', 0, 'C');
-            $pdf->Cell(30, 5, 'Rs.' . number_format($payment['amount'], 2), 'LR', 1, 'R');
-        }
-        $pdf->Cell(60, 0, '', 'T'); // Closing line
-        $pdf->Ln(8);
-    }
-
-    // =============== FOOTER SECTION ===============
-    $pdf->SetFont('Arial', 'I', 7);
-    $pdf->SetTextColor(100, 100, 100);
-
-    $pdf->Ln(5);
-
-    // Signature lines
-    $pdf->SetFont('Arial', '', 8);
-    $pdf->Cell(90, 4, '__________________________', 0, 0, 'L');
-    $pdf->Cell(0, 4, '__________________________', 0, 1, 'R');
-    $pdf->Cell(90, 4, 'Supplier Authorization', 0, 0, 'L');
-    $pdf->Cell(0, 4, 'Company Representative', 0, 1, 'R');
-
-    // Final page number
-    $pdf->SetY(-10);
-    $pdf->SetFont('Arial', 'I', 7);
-    $pdf->Cell(0, 5, 'Page 1 of 1', 0, 0, 'C');
-
-    // Output the PDF
-    $pdf->Output('I', $invoice_number . '_Statement.pdf');
-    exit;
+   // Output the PDF
+   $pdf->Output('I', $invoice_number . '_Statement.pdf');
+   exit;
 }
 
 // Get all suppliers for dropdown
@@ -522,9 +564,30 @@ $items = $conn->query("SELECT * FROM items ORDER BY item_name");
             font-weight: bold;
         }
 
+
         .balance-negative {
             color: #28a745;
             font-weight: bold;
+        }
+
+        .floating-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+        
+        .floating-btn:hover {
+            transform: translateY(-3px) scale(1.1);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
         }
 
         .nav-tabs {
@@ -790,6 +853,10 @@ $items = $conn->query("SELECT * FROM items ORDER BY item_name");
         </div>
     </div>
 </div>
+
+<a href="home.php" class="btn btn-primary floating-btn animate__animated animate__fadeInUp">
+        <i class="fas fa-home"></i>
+    </a>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>

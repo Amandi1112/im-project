@@ -305,6 +305,26 @@ $data = array_column($supplierTotals, 'supplier_total');
             box-shadow: 0 6px 15px rgba(149, 165, 166, 0.4);
         }
 
+        .floating-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+        
+        .floating-btn:hover {
+            transform: translateY(-3px) scale(1.1);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+
         .supplier-search-container {
             position: relative;
         }
@@ -622,6 +642,11 @@ $data = array_column($supplierTotals, 'supplier_total');
             <?php endif; ?>
         </div>
     </div>
+
+    
+<a href="home.php" class="btn btn-primary floating-btn animate__animated animate__fadeInUp">
+        <i class="fas fa-home"></i>
+    </a>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
