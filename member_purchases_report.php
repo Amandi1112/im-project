@@ -18,9 +18,7 @@ class PDF extends FPDF {
         
         // Report title
         $this->SetFont('Arial','B',16);
-        $this->Cell(0,15,'PURCHASE ITEMS REPORT',0,1,'C');
-        $this->Ln(5);
-        
+        $this->Cell(0,15,'PURCHASE ITEMS REPORT',0,1,'C');        
        
         
         // Horizontal line
@@ -56,7 +54,7 @@ class PDF extends FPDF {
         );
         
         // Adjusted column widths for portrait mode
-        $w = array(25, 35, 35, 20, 20, 20, 25, 15);
+        $w = array(25, 40, 15, 22, 30, 20, 25, 15);
         
         for($i=0; $i<count($header); $i++) {
             $this->Cell($w[$i],7,$header[$i],1,0,'C',true);
@@ -72,7 +70,7 @@ class PDF extends FPDF {
         $fill = false;
         
         // Adjusted column widths for portrait mode
-        $w = array(25, 35, 35, 20, 20, 20, 25, 15);
+        $w = array(25, 40, 15, 22, 30, 20, 25, 15);
         
         foreach($purchases as $purchase) {
             // Check if we need a new page
@@ -100,7 +98,7 @@ class PDF extends FPDF {
             // Cells
             $this->Cell($w[0],6,$purchase_date,'LR',0,'L',$fill);
     $this->Cell($w[1],6,$this->StringLimit($purchase['item_name'], 20),'LR',0,'L',$fill);
-    $this->Cell($w[2],6,$this->StringLimit($purchase['supplier_name'], 20),'LR',0,'L',$fill);
+    $this->Cell($w[2],6,$this->StringLimit($purchase['supplier_id'], 20),'LR',0,'L',$fill);
     $this->Cell($w[3],6,$purchase['quantity'] . ' ' . $purchase['unit'],'LR',0,'R',$fill);
     $this->Cell($w[4],6,number_format($purchase['price_per_unit'], 2) . '/' . $purchase['unit'],'LR',0,'R',$fill);
     $this->Cell($w[5],6,number_format($purchase['total_price'], 2),'LR',0,'R',$fill);
@@ -151,19 +149,17 @@ class PDF extends FPDF {
         $this->Cell(50,6,'Total Purchases:',0,0,'L');
         $this->Cell(0,6,$count,0,1,'L');
         
-        $this->Cell(50,6,'Total Quantity:',0,0,'L');
-        $this->Cell(0,6,$totalQuantity,0,1,'L');
-        
         $this->Cell(50,6,'Total Amount:',0,0,'L');
-        $this->Cell(0,6,'$'.number_format($totalAmount, 2),0,1,'L');
+        $this->Cell(0,6,'Rs.'.number_format($totalAmount, 2),0,1,'L');
         
-        $this->Ln(5);
+        $this->Ln(3.5);
         $this->SetFont('Arial','I',8);
         $this->Cell(0, 6, 'Report generated on: ' . date('F j, Y'), 0, 1, 'L');
+        $this->Ln(3.5);
     }
     // Signature section
     function SignatureSection() {
-        $this->Ln(15);
+       
         
         // Co-op City Staff signature
         $this->SetFont('Arial','B',10);
@@ -171,15 +167,15 @@ class PDF extends FPDF {
         $this->Cell(90, 5, 'Bank Manager:', 0, 1, 'L');
         
         $this->SetFont('Arial','',10);
-        $this->Cell(90, 20, '', 0, 0, 'L'); // Removed 'B' parameter to remove bottom border
-        $this->Cell(90, 20, '', 0, 1, 'L'); // Removed 'B' parameter to remove bottom border
+        $this->Cell(90, 5, '', 0, 0, 'L'); // Removed 'B' parameter to remove bottom border
+        $this->Cell(90, 5, '', 0, 1, 'L'); // Removed 'B' parameter to remove bottom border
         
         $this->SetFont('Arial','I',9);
-        $this->Cell(90, 5, 'Name: _________________________', 0, 0, 'L');
-        $this->Cell(90, 5, 'Name: _________________________', 0, 1, 'L');
+        $this->Cell(90, 5, 'Signature: _________________________', 0, 0, 'L');
+        $this->Cell(90, 5, 'Signature: _________________________', 0, 1, 'L');
         
         // Added line space between name and date
-        $this->Ln(5);
+        $this->Ln(3.5);
         
         $this->Cell(90, 5, 'Date: ' . date('Y-m-d'), 0, 0, 'L');
         $this->Cell(90, 5, 'Date: _________________________', 0, 1, 'L');
@@ -197,7 +193,7 @@ if ($conn->connect_error) die("Connection failed: " . $conn->connect_error);
 
 function getPurchaseDetails($conn, $start_date = '', $end_date = '', $supplier_filter = '', $item_filter = '') {
     $sql = "SELECT ip.purchase_date, ip.expire_date, ip.quantity, ip.price_per_unit, 
-                   ip.total_price, i.item_name, s.supplier_name,
+                   ip.total_price, i.item_name, s.supplier_id,
                    COALESCE(ip.unit, i.unit) AS unit
             FROM item_purchases ip
             JOIN items i ON ip.item_id = i.item_id
