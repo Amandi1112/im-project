@@ -146,8 +146,9 @@ public function getTotalMembers($searchTerm = '', $filterColumn = '', $filterVal
 
     // Get member by ID
     public function getMemberById($id) {
-        $stmt = $this->conn->prepare("SELECT * FROM members WHERE id = :id");
-        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+        // Use proper parameter binding and make sure we're strictly matching by ID
+        $stmt = $this->conn->prepare("SELECT * FROM members WHERE id = :id LIMIT 1");
+        $stmt->bindParam(':id', $id, PDO::PARAM_STR);
         $stmt->execute();
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
@@ -158,7 +159,7 @@ public function getTotalMembers($searchTerm = '', $filterColumn = '', $filterVal
         $birthdate = new DateTime($data['date_of_birth']);
         $today = new DateTime('today');
         $age = $today->diff($birthdate)->y;
-
+    
         $stmt = $this->conn->prepare("
             UPDATE members SET
                 full_name = :full_name,
@@ -171,28 +172,28 @@ public function getTotalMembers($searchTerm = '', $filterColumn = '', $filterVal
                 occupation = :occupation,
                 monthly_income = :monthly_income,
                 credit_limit = :credit_limit
-            WHERE id = :id
+            WHERE id = :id LIMIT 1
         ");
-
-        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-        $stmt->bindParam(':full_name', $data['full_name']);
-        $stmt->bindParam(':bank_membership_number', $data['bank_membership_number']);
-        $stmt->bindParam(':address', $data['address']);
-        $stmt->bindParam(':nic', $data['nic']);
-        $stmt->bindParam(':date_of_birth', $data['date_of_birth']);
+    
+        $stmt->bindParam(':id', $id, PDO::PARAM_STR);
+        $stmt->bindParam(':full_name', $data['full_name'], PDO::PARAM_STR);
+        $stmt->bindParam(':bank_membership_number', $data['bank_membership_number'], PDO::PARAM_STR);
+        $stmt->bindParam(':address', $data['address'], PDO::PARAM_STR);
+        $stmt->bindParam(':nic', $data['nic'], PDO::PARAM_STR);
+        $stmt->bindParam(':date_of_birth', $data['date_of_birth'], PDO::PARAM_STR);
         $stmt->bindParam(':age', $age, PDO::PARAM_INT);
-        $stmt->bindParam(':telephone_number', $data['telephone_number']);
-        $stmt->bindParam(':occupation', $data['occupation']);
-        $stmt->bindParam(':monthly_income', $data['monthly_income']);
-        $stmt->bindParam(':credit_limit', $data['credit_limit']);
-
+        $stmt->bindParam(':telephone_number', $data['telephone_number'], PDO::PARAM_STR);
+        $stmt->bindParam(':occupation', $data['occupation'], PDO::PARAM_STR);
+        $stmt->bindParam(':monthly_income', $data['monthly_income'], PDO::PARAM_STR);
+        $stmt->bindParam(':credit_limit', $data['credit_limit'], PDO::PARAM_STR);
+    
         return $stmt->execute();
     }
-
     // Delete member by ID
     public function deleteMember($id) {
-        $stmt = $this->conn->prepare("DELETE FROM members WHERE id = :id");
-        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+        // Add LIMIT 1 to ensure only one record is deleted
+        $stmt = $this->conn->prepare("DELETE FROM members WHERE id = :id LIMIT 1");
+        $stmt->bindParam(':id', $id, PDO::PARAM_STR);
         return $stmt->execute();
     }
 }
@@ -963,88 +964,107 @@ ob_end_flush();
 
         // Edit Member
         $(document).on('click', '.edit-btn', function() {
-            const memberId = $(this).data('id');
-            $.ajax({
-                url: window.location.href,
-                method: 'GET',
-                data: { 
-                    id: memberId,
-                    action: 'get_member'
-                },
-                dataType: 'json',
-                success: function(member) {
-                    if (member.error) {
-                        alert(member.error);
-                        return;
-                    }
-                    $('#editMemberId').val(member.id);
-                    $('#editFullName').val(member.full_name);
-                    $('#editBankMembershipNumber').val(member.bank_membership_number);
-                    $('#editAddress').val(member.address);
-                    $('#editNic').val(member.nic);
-                    $('#editDateOfBirth').val(member.date_of_birth);
-                    $('#editTelephoneNumber').val(member.telephone_number);
-                    $('#editOccupation').val(member.occupation);
-                    $('#editMonthlyIncome').val(member.monthly_income);
-                    $('#editCreditLimit').val(member.credit_limit || '0.00');
-                    $('#editModal').addClass('show');
-                },
-                error: function(xhr, status, error) {
-                    alert('Error loading member data: ' + error);
-                    console.error(xhr.responseText);
-                }
-            });
-        });
+    const memberId = $(this).data('id');
+    
+    // Clear previous form data to avoid data mixup
+    $('#editMemberForm')[0].reset();
+    
+    $.ajax({
+        url: window.location.href,
+        method: 'GET',
+        data: { 
+            action: 'get_member',
+            id: memberId
+        },
+        dataType: 'json',
+        success: function(member) {
+            if (member.error) {
+                alert(member.error);
+                return;
+            }
+            
+            // Set form values from member data
+            $('#editMemberId').val(member.id);
+            $('#editFullName').val(member.full_name);
+            $('#editBankMembershipNumber').val(member.bank_membership_number);
+            $('#editAddress').val(member.address);
+            $('#editNic').val(member.nic);
+            $('#editDateOfBirth').val(member.date_of_birth);
+            $('#editTelephoneNumber').val(member.telephone_number);
+            $('#editOccupation').val(member.occupation);
+            $('#editMonthlyIncome').val(member.monthly_income);
+            $('#editCreditLimit').val(member.credit_limit || '0.00');
+            
+            // Show the modal
+            $('#editModal').addClass('show');
+        },
+        error: function(xhr, status, error) {
+            console.error('Error details:', xhr.responseText);
+            alert('Error loading member data: ' + error);
+        }
+    });
+});
 
         // Save Edited Member
         $('#editMemberForm').submit(function(e) {
-            e.preventDefault();
-            const formData = $(this).serialize() + '&action=edit';
-            $.ajax({
-                url: '',
-                method: 'POST',
-                data: formData,
-                dataType: 'json',
-                success: function(response) {
-                    if (response.success) {
-                        $('#editModal').removeClass('show');
-                        loadMembers(currentPage, $('#searchForm [name="search"]').val(),
-                            $('#searchForm [name="filter_column"]').val(),
-                            $('#searchForm [name="filter_value"]').val());
-                    } else {
-                        alert('Failed to update member');
-                    }
-                },
-                error: function() {
-                    alert('Failed to update member');
-                }
-            });
-        });
+    e.preventDefault();
+    const formData = $(this).serialize() + '&action=edit';
+    
+    $.ajax({
+        url: window.location.href,
+        method: 'POST',
+        data: formData,
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                $('#editModal').removeClass('show');
+                // Reload the current page of members
+                loadMembers(currentPage, 
+                    $('#searchForm [name="search"]').val(),
+                    $('#searchForm [name="filter_column"]').val(),
+                    $('#searchForm [name="filter_value"]').val());
+            } else {
+                alert('Failed to update member');
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('Error details:', xhr.responseText);
+            alert('Failed to update member: ' + error);
+        }
+    });
+});
 
         // Delete Member
         $(document).on('click', '.delete-btn', function() {
-            const memberId = $(this).data('id');
-            if (confirm('Are you sure you want to delete this member?')) {
-                $.ajax({
-                    url: '',
-                    method: 'POST',
-                    data: { id: memberId, action: 'delete' },
-                    dataType: 'json',
-                    success: function(response) {
-                        if (response.success) {
-                            loadMembers(currentPage, $('#searchForm [name="search"]').val(),
-                                $('#searchForm [name="filter_column"]').val(),
-                                $('#searchForm [name="filter_value"]').val());
-                        } else {
-                            alert('Failed to delete member');
-                        }
-                    },
-                    error: function() {
-                        alert('Failed to delete member');
-                    }
-                });
+    const memberId = $(this).data('id');
+    
+    if (confirm('Are you sure you want to delete this member?')) {
+        $.ajax({
+            url: window.location.href,
+            method: 'POST',
+            data: { 
+                action: 'delete',
+                id: memberId 
+            },
+            dataType: 'json',
+            success: function(response) {
+                if (response.success) {
+                    // Reload the current page of members
+                    loadMembers(currentPage, 
+                        $('#searchForm [name="search"]').val(),
+                        $('#searchForm [name="filter_column"]').val(),
+                        $('#searchForm [name="filter_value"]').val());
+                } else {
+                    alert('Failed to delete member');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error details:', xhr.responseText);
+                alert('Failed to delete member: ' + error);
             }
         });
+    }
+});
 
         // Close Edit Modal
         $('#closeEditModal').click(function() {
