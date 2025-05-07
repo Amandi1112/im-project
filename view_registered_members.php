@@ -830,6 +830,9 @@ ob_end_flush();
                     <input type="text" id="editFullName" name="full_name" required class="form-control">
                 </div>
                 <div class="form-group">
+    <input type="text" name="filter_value" placeholder="Filter Value" class="form-control">
+</div>
+                <div class="form-group">
                     <label for="editBankMembershipNumber" class="form-label">Bank Membership Number</label>
                     <input type="text" id="editBankMembershipNumber" name="bank_membership_number" required class="form-control">
                 </div>
@@ -954,13 +957,20 @@ ob_end_flush();
         });
 
         // PDF Export
-        $('#exportPdfBtn').click(function() {
-            const search = $('[name="search"]').val();
-            const filterColumn = $('[name="filter_column"]').val();
-            const filterValue = $('[name="filter_value"]').val();
-
-            window.location.href = `?export=pdf&search=${search}&filter_column=${filterColumn}&filter_value=${filterValue}`;
-        });
+$('#exportPdfBtn').click(function() {
+    const search = $('[name="search"]').val();
+    const filterColumn = $('[name="filter_column"]').val();
+    const filterValue = $('[name="filter_value"]').val();
+    
+    // Create URL parameters
+    let params = new URLSearchParams();
+    params.append('export', 'pdf');
+    if (search) params.append('search', search);
+    if (filterColumn) params.append('filter_column', filterColumn);
+    if (filterValue) params.append('filter_value', filterValue);
+    
+    window.location.href = `?${params.toString()}`;
+});
 
         // Edit Member
         $(document).on('click', '.edit-btn', function() {
