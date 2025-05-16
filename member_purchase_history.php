@@ -15,7 +15,8 @@ if ($conn->connect_error) {
 
 // Function to get top customers by purchase amount
 function getTopCustomers($conn, $limit = 5) {
-    $sql = "SELECT m.id, m.full_name, m.id, SUM(p.total_price) as total_spent, 
+    $sql = "SELECT m.id, m.full_name, m.bank_membership_number, 
+                   SUM(p.total_price) as total_spent, 
                    COUNT(p.purchase_id) as purchase_count 
             FROM members m 
             JOIN purchases p ON m.id = p.member_id 
@@ -59,7 +60,7 @@ function getCreditLimitHistory($conn) {
 
 // Function to get top selling items
 function getTopSellingItems($conn, $limit = 5) {
-    $sql = "SELECT i.item_id, i.item_name, i.item_code, 
+    $sql = "SELECT i.item_id, i.item_name, 
                    SUM(p.quantity) as total_quantity, 
                    SUM(p.total_price) as total_revenue
             FROM items i 
@@ -116,7 +117,7 @@ function getTotalSales($conn) {
     $sql = "SELECT SUM(total_price) as total FROM purchases";
     $result = $conn->query($sql);
     $row = $result->fetch_assoc();
-    return $row['total'];
+    return $row['total'] ?? 0; // Return 0 if null
 }
 
 // Function to get average credit utilization
@@ -126,7 +127,7 @@ function getAvgCreditUtilization($conn) {
             WHERE credit_limit > 0";
     $result = $conn->query($sql);
     $row = $result->fetch_assoc();
-    return $row['avg_utilization'];
+    return $row['avg_utilization'] ?? 0; // Return 0 if null
 }
 
 // Get all the required data
@@ -184,7 +185,7 @@ $conn->close();
         :root {
             --primary: #667eea;
             --primary-dark: #5a67d8;
-            --secondary: #edf2f7;
+            --secondary: #48bb78;
             --danger: #e53e3e;
             --danger-dark: #c53030;
             --success: #48bb78;
@@ -225,7 +226,7 @@ $conn->close();
             align-items: center;
             margin-bottom: 30px;
             padding-bottom: 15px;
-            border-bottom: 1px solid var(--border);
+            border-bottom: 1px solid var(--gray-light);
         }
         
         .dashboard-title {
@@ -315,7 +316,7 @@ $conn->close();
         th, td {
             padding: 12px 15px;
             text-align: left;
-            border-bottom: 1px solid var(--border);
+            border-bottom: 1px solid var(--gray-light);
         }
         
         th {
@@ -365,7 +366,7 @@ $conn->close();
 <body>
     <div class="container">
         <div class="dashboard-header">
-            <h1 class="dashboard-title">Member Purchase summary</h1>
+            <h1 class="dashboard-title">Member Purchase Summary</h1>
             <div class="date"><?php echo date('F d, Y'); ?></div>
         </div>
         
@@ -378,7 +379,7 @@ $conn->close();
             
             <div class="stat-card">
                 <div class="stat-title">Total Sales</div>
-                <div class="stat-value">$<?php echo number_format($totalSales, 2); ?></div>
+                <div class="stat-value">Rs.<?php echo number_format($totalSales, 2); ?></div>
                 <div class="stat-icon"><i class="fas fa-dollar-sign"></i></div>
             </div>
             
@@ -400,7 +401,7 @@ $conn->close();
                         }
                     }
                 ?>
-                <div class="stat-value" style="color: <?php echo $growth >= 0 ? 'var(--secondary)' : 'var(--danger)'; ?>">
+                <div class="stat-value" style="color: <?php echo $growth >= 0 ? 'var(--success)' : 'var(--danger)'; ?>">
                     <?php echo $growth >= 0 ? '+' : ''; ?><?php echo number_format($growth, 1); ?>%
                 </div>
                 <div class="stat-icon">
@@ -440,7 +441,7 @@ $conn->close();
                     <tr>
                         <th>Member ID</th>
                         <th>Full Name</th>
-                        <th>Coop Number</th>
+                        <th>Membership Number</th>
                         <th>Total Spent</th>
                         <th>Purchase Count</th>
                     </tr>
@@ -450,8 +451,8 @@ $conn->close();
                     <tr>
                         <td><?php echo $customer['id']; ?></td>
                         <td><?php echo $customer['full_name']; ?></td>
-                        <td><span class="badge badge-primary"><?php echo $customer['member_id']; ?></span></td>
-                        <td>$<?php echo number_format($customer['total_spent'], 2); ?></td>
+                        <td><span class="badge badge-primary"><?php echo $customer['bank_membership_number']; ?></span></td>
+                        <td>Rs.<?php echo number_format($customer['total_spent'], 2); ?></td>
                         <td><?php echo number_format($customer['purchase_count']); ?></td>
                     </tr>
                     <?php endforeach; ?>
@@ -466,7 +467,6 @@ $conn->close();
                     <tr>
                         <th>Item ID</th>
                         <th>Item Name</th>
-                        
                         <th>Total Quantity Sold</th>
                         <th>Total Revenue</th>
                     </tr>
@@ -476,9 +476,8 @@ $conn->close();
                     <tr>
                         <td><?php echo $item['item_id']; ?></td>
                         <td><?php echo $item['item_name']; ?></td>
-                       
                         <td><?php echo number_format($item['total_quantity']); ?></td>
-                        <td>$<?php echo number_format($item['total_revenue'], 2); ?></td>
+                        <td>Rs.<?php echo number_format($item['total_revenue'], 2); ?></td>
                     </tr>
                     <?php endforeach; ?>
                 </tbody>
@@ -498,7 +497,7 @@ $conn->close();
             data: {
                 labels: <?php echo json_encode($monthLabels); ?>,
                 datasets: [{
-                    label: 'Monthly Sales ($)',
+                    label: 'Monthly Sales (Rs.)',
                     data: <?php echo json_encode($salesData); ?>,
                     backgroundColor: 'rgba(52, 152, 219, 0.1)',
                     borderColor: 'rgba(52, 152, 219, 1)',
@@ -519,7 +518,7 @@ $conn->close();
                         beginAtZero: true,
                         ticks: {
                             callback: function(value) {
-                                return '$' + value.toLocaleString();
+                                return 'Rs.' + value.toLocaleString();
                             }
                         }
                     }
@@ -534,7 +533,7 @@ $conn->close();
             data: {
                 labels: <?php echo json_encode($creditMonths); ?>,
                 datasets: [{
-                    label: 'Average Credit Limit ($)',
+                    label: 'Average Credit Limit (Rs.)',
                     data: <?php echo json_encode($creditData); ?>,
                     backgroundColor: 'rgba(46, 204, 113, 0.1)',
                     borderColor: 'rgba(46, 204, 113, 1)',
@@ -555,7 +554,7 @@ $conn->close();
                         beginAtZero: true,
                         ticks: {
                             callback: function(value) {
-                                return '$' + value.toLocaleString();
+                                return 'Rs.' + value.toLocaleString();
                             }
                         }
                     }
@@ -570,7 +569,7 @@ $conn->close();
             data: {
                 labels: <?php echo json_encode($customerNames); ?>,
                 datasets: [{
-                    label: 'Total Spent ($)',
+                    label: 'Total Spent (Rs.)',
                     data: <?php echo json_encode($customerSpending); ?>,
                     backgroundColor: [
                         'rgba(52, 152, 219, 0.7)',
@@ -601,7 +600,7 @@ $conn->close();
                         beginAtZero: true,
                         ticks: {
                             callback: function(value) {
-                                return '$' + value.toLocaleString();
+                                return 'Rs.' + value.toLocaleString();
                             }
                         }
                     }

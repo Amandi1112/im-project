@@ -1,6 +1,4 @@
 <?php
-
-
 // Database connection
 $servername = "localhost";
 $username = "root";
@@ -34,7 +32,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $start_date = sanitize_input($_POST["start_date"]);
     $end_date = sanitize_input($_POST["end_date"]);
     
-    // Fix this condition (was checking $error_messageid which doesn't exist)
     if (empty($id) || empty($start_date) || empty($end_date)) {
         $error_message = "All fields are required";
     } else {
@@ -70,17 +67,17 @@ function generateReport($conn, $id, $start_date, $end_date) {
             $this->Rect(0, 0, $this->GetPageWidth(), 50, 'F');
             
             // Add logo if exists
-            if (file_exists('images/logo.jpeg')) {
-                $this->Image('images/logo.jpeg', 10, 5, 30);
+            if (file_exists('C:/xampp/htdocs/project/images/logo.jpeg')) {
+                $this->Image('C:/xampp/htdocs/project/images/logo.jpeg', 10, 5, 30);
             }
             
             // Company information
             $this->SetTextColor(255, 255, 255);
             $this->SetFont('Arial', 'B', 18);
-            $this->Cell(0, 8, 'T&C CO-OP CITY SHOP', 0, 1, 'C');
+            $this->Cell(0, 8, 'T&C co-op City shop', 0, 1, 'C');
             $this->SetFont('Arial', '', 11);
-            $this->Cell(0, 6, 'Karawita', 0, 1, 'C');
-            $this->Cell(0, 6, 'Phone: +94 11 2345678 | Email: accounts@coopshop.lk', 0, 1, 'C');
+            $this->Cell(0, 6, 'Pahala Karawita, Karawita, Ratnapura, Sri Lanka', 0, 1, 'C');
+            $this->Cell(0, 6, 'Phone: +94 11 2345678 | Email: co_op@sanasa.com', 0, 1, 'C');
             
             // Report title
             $this->SetFont('Arial','B',16);
@@ -128,7 +125,7 @@ function generateReport($conn, $id, $start_date, $end_date) {
             $this->Ln(10);
         }
         
-        function CreditSummary($credit_limit, $total_spent, $available_credit, $start_date, $end_date) {
+        function CreditSummary($credit_limit, $total_spent, $available_credit) {
             $this->SetFont('Arial','B',12);
             $this->Cell(0,8,'CREDIT SUMMARY',0,1,'L');
             $this->SetFont('Arial','',10);
@@ -231,40 +228,40 @@ function generateReport($conn, $id, $start_date, $end_date) {
             
             $this->Cell($panelWidth, 6, 'Date: ___________________', 0, 1, 'L');
             
-             // Bank Manager section (RIGHT) - moved further right
-    $rightPanelX = 130; // Increased from previous value (was ~100) to move right
-    $this->SetY($startY);
-    $this->SetX($rightPanelX);
-    
-    $this->SetFont('Arial','B',10);
-    $this->Cell($panelWidth, 6, 'Bank Manager:', 0, 1, 'L');
-    $this->SetX($rightPanelX);
-    $this->Ln($afterTitle);
-    
-    // Signature line
-    $this->SetX($rightPanelX);
-    $this->Cell($lineLength, 2, '', 'B', 1, 'L');
-    $this->SetX($rightPanelX);
-    $this->Ln($afterLine);
-    
-    // Signature label
-    $this->SetX($rightPanelX);
-    $this->Cell($panelWidth, 6, 'Signature', 0, 1, 'L');
-    $this->SetX($rightPanelX);
-    $this->Ln($afterSignature);
-    
-    // Name field
-    $this->SetFont('Arial','I',9);
-    $this->SetX($rightPanelX);
-    $this->Cell($panelWidth, 6, 'Name: ___________________', 0, 1, 'L');
-    $this->SetX($rightPanelX);
-    $this->Ln($afterName);
-    
-    // Date field
-    $this->SetX($rightPanelX);
-    $this->Cell($panelWidth, 6, 'Date: ___________________', 0, 1, 'L');
-    
-    $this->Ln(10); // Final document spacing
+            // Bank Manager section (RIGHT) - moved further right
+            $rightPanelX = 130; // Increased from previous value to move right
+            $this->SetY($startY);
+            $this->SetX($rightPanelX);
+            
+            $this->SetFont('Arial','B',10);
+            $this->Cell($panelWidth, 6, 'Bank Manager:', 0, 1, 'L');
+            $this->SetX($rightPanelX);
+            $this->Ln($afterTitle);
+            
+            // Signature line
+            $this->SetX($rightPanelX);
+            $this->Cell($lineLength, 2, '', 'B', 1, 'L');
+            $this->SetX($rightPanelX);
+            $this->Ln($afterLine);
+            
+            // Signature label
+            $this->SetX($rightPanelX);
+            $this->Cell($panelWidth, 6, 'Signature', 0, 1, 'L');
+            $this->SetX($rightPanelX);
+            $this->Ln($afterSignature);
+            
+            // Name field
+            $this->SetFont('Arial','I',9);
+            $this->SetX($rightPanelX);
+            $this->Cell($panelWidth, 6, 'Name: ___________________', 0, 1, 'L');
+            $this->SetX($rightPanelX);
+            $this->Ln($afterName);
+            
+            // Date field
+            $this->SetX($rightPanelX);
+            $this->Cell($panelWidth, 6, 'Date: ___________________', 0, 1, 'L');
+            
+            $this->Ln(10); // Final document spacing
         }
         
         // Helper function to fit text in cells
@@ -298,26 +295,29 @@ function generateReport($conn, $id, $start_date, $end_date) {
     
     $member = $member_result->fetch_assoc();
     
-    // Fetch purchases within date range
+    // FIX: Ensure we're getting only purchases for the selected member
+    // Make sure we're explicitly checking for the member_id match
     $purchases_sql = "SELECT p.*, i.item_name, i.item_code 
-                 FROM purchases p 
-                 JOIN items i ON p.item_id = i.item_id 
-                 WHERE p.member_id = ? AND p.purchase_date BETWEEN ? AND ?
-                 ORDER BY p.purchase_date DESC";
+                     FROM purchases p 
+                     JOIN items i ON p.item_id = i.item_id 
+                     WHERE p.member_id = ? 
+                     AND p.purchase_date BETWEEN ? AND ?
+                     ORDER BY p.purchase_date DESC";
     
     $stmt = $conn->prepare($purchases_sql);
-    $stmt->bind_param("iss", $id, $start_date, $end_date);
+    $stmt->bind_param("sss", $id, $start_date, $end_date);
     $stmt->execute();
     $purchases_result = $stmt->get_result();
     $purchases = $purchases_result->fetch_all(MYSQLI_ASSOC);
     
-    // Calculate total purchases amount
+    // FIX: Calculate total purchases amount only for this member
     $total_sql = "SELECT SUM(total_price) as total_spent
-    FROM purchases 
-    WHERE member_id = ? AND purchase_date BETWEEN ? AND ?";
+                 FROM purchases 
+                 WHERE member_id = ? 
+                 AND purchase_date BETWEEN ? AND ?";
     
     $stmt = $conn->prepare($total_sql);
-    $stmt->bind_param("iss", $id, $start_date, $end_date);
+    $stmt->bind_param("sss", $id, $start_date, $end_date);
     $stmt->execute();
     $total_result = $stmt->get_result();
     $total_row = $total_result->fetch_assoc();
@@ -326,14 +326,14 @@ function generateReport($conn, $id, $start_date, $end_date) {
     // Calculate available credit
     $available_credit = $member['credit_limit'] - $total_spent;
     
-    // Generate PDF - now passing dates to constructor
+    // Generate PDF
     $pdf = new CreditPDF($start_date, $end_date, 'P');
     $pdf->AliasNbPages();
     $pdf->AddPage();
     
     // Add content sections
     $pdf->MemberDetails($member);
-    $pdf->CreditSummary($member['credit_limit'], $total_spent, $available_credit, $start_date, $end_date);
+    $pdf->CreditSummary($member['credit_limit'], $total_spent, $available_credit);
     $pdf->PurchaseTable($purchases, $total_spent);
     $pdf->SignatureSection();
     
@@ -412,6 +412,7 @@ function generateReport($conn, $id, $start_date, $end_date) {
         .form-group {
             margin-bottom: 20px;
         }
+        
         button {
             background: linear-gradient(to right, #28a745, #218838);
             box-shadow: 0 4px 10px rgba(40, 167, 69, 0.3);
@@ -477,19 +478,20 @@ function generateReport($conn, $id, $start_date, $end_date) {
             border-radius: 6px;
             border-left: 4px solid var(--danger);
         }
+        
         .loading {
-    display: inline-block;
-    width: 20px;
-    height: 20px;
-    border: 3px solid rgba(0,0,0,.3);
-    border-radius: 50%;
-    border-top-color: var(--primary);
-    animation: spin 1s ease-in-out infinite;
-}
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(0,0,0,.3);
+            border-radius: 50%;
+            border-top-color: var(--primary);
+            animation: spin 1s ease-in-out infinite;
+        }
 
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
         
         .member-select-container {
             position: relative;
@@ -543,17 +545,17 @@ function generateReport($conn, $id, $start_date, $end_date) {
         <?php endif; ?>
         
         <form method="post" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>">
-        <div class="form-group member-select-container">
-    <label for="id">Select Member:</label>
-    <div style="position: relative;">
-        <input type="text" id="member_search" placeholder="Search by name or member ID" autocomplete="off">
-        <div id="memberResults"></div>
-        <div id="loadingIndicator" style="position: absolute; right: 10px; top: 10px; display: none;">
-            <div class="loading"></div>
-        </div>
-    </div>
-    <input type="hidden" id="id" name="id" value="<?php echo $id; ?>" required>
-</div>
+            <div class="form-group member-select-container">
+                <label for="id">Select Member:</label>
+                <div style="position: relative;">
+                    <input type="text" id="member_search" placeholder="Search by name or member ID" autocomplete="off">
+                    <div id="memberResults"></div>
+                    <div id="loadingIndicator" style="position: absolute; right: 10px; top: 10px; display: none;">
+                        <div class="loading"></div>
+                    </div>
+                </div>
+                <input type="hidden" id="id" name="id" value="<?php echo $id; ?>" required>
+            </div>
             
             <div class="form-group">
                 <label for="start_date">Start Date:</label>
@@ -572,83 +574,83 @@ function generateReport($conn, $id, $start_date, $end_date) {
     
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-    const memberSearch = document.getElementById('member_search');
-    const memberIdInput = document.getElementById('id');
-    const memberResults = document.getElementById('memberResults');
-    const loadingIndicator = document.getElementById('loadingIndicator');
-    
-    // Set default dates (current month)
-    const today = new Date();
-    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-    const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-    
-    document.getElementById('start_date').valueAsDate = firstDay;
-    document.getElementById('end_date').valueAsDate = lastDay;
-    
-    // Member search functionality
-    memberSearch.addEventListener('input', function() {
-        const query = this.value.trim();
-        
-        if (query.length < 2) {
-            memberResults.style.display = 'none';
-            return;
-        }
-        
-        // Show loading indicator
-        loadingIndicator.style.display = 'block';
-        
-        fetch('get_members.php?q=' + encodeURIComponent(query))
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            })
-            .then(data => {
-                memberResults.innerHTML = '';
+            const memberSearch = document.getElementById('member_search');
+            const memberIdInput = document.getElementById('id');
+            const memberResults = document.getElementById('memberResults');
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            
+            // Set default dates (current month)
+            const today = new Date();
+            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+            const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+            
+            document.getElementById('start_date').valueAsDate = firstDay;
+            document.getElementById('end_date').valueAsDate = lastDay;
+            
+            // Member search functionality
+            memberSearch.addEventListener('input', function() {
+                const query = this.value.trim();
                 
-                if (data.length > 0) {
-                    data.forEach(member => {
-                        const div = document.createElement('div');
-                        div.className = 'member-item';
-                        div.textContent = `${member.full_name} (ID: ${member.id})`;
-                        div.dataset.id = member.id;
-                        div.dataset.name = member.full_name;
-                        
-                        div.addEventListener('click', function() {
-                            memberIdInput.value = this.dataset.id;
-                            memberSearch.value = this.dataset.name;
-                            memberResults.style.display = 'none';
-                        });
-                        
-                        memberResults.appendChild(div);
-                    });
-                    
-                    memberResults.style.display = 'block';
-                } else {
-                    const div = document.createElement('div');
-                    div.className = 'member-item';
-                    div.textContent = 'No members found';
-                    memberResults.appendChild(div);
-                    memberResults.style.display = 'block';
+                if (query.length < 2) {
+                    memberResults.style.display = 'none';
+                    return;
                 }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                memberResults.style.display = 'none';
-            })
-            .finally(() => {
-                loadingIndicator.style.display = 'none';
+                
+                // Show loading indicator
+                loadingIndicator.style.display = 'block';
+                
+                fetch('get_members.php?q=' + encodeURIComponent(query))
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        memberResults.innerHTML = '';
+                        
+                        if (data.length > 0) {
+                            data.forEach(member => {
+                                const div = document.createElement('div');
+                                div.className = 'member-item';
+                                div.textContent = `${member.full_name} (ID: ${member.id})`;
+                                div.dataset.id = member.id;
+                                div.dataset.name = member.full_name;
+                                
+                                div.addEventListener('click', function() {
+                                    memberIdInput.value = this.dataset.id;
+                                    memberSearch.value = this.dataset.name;
+                                    memberResults.style.display = 'none';
+                                });
+                                
+                                memberResults.appendChild(div);
+                            });
+                            
+                            memberResults.style.display = 'block';
+                        } else {
+                            const div = document.createElement('div');
+                            div.className = 'member-item';
+                            div.textContent = 'No members found';
+                            memberResults.appendChild(div);
+                            memberResults.style.display = 'block';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        memberResults.style.display = 'none';
+                    })
+                    .finally(() => {
+                        loadingIndicator.style.display = 'none';
+                    });
             });
-    });
-    
-    // Close dropdown when clicking outside
-    document.addEventListener('click', function(e) {
-        if (!memberSearch.contains(e.target) && !memberResults.contains(e.target)) {
-            memberResults.style.display = 'none';
-        }
-    });
-});
+            
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!memberSearch.contains(e.target) && !memberResults.contains(e.target)) {
+                    memberResults.style.display = 'none';
+                }
+            });
+        });
     </script>
 </body>
 </html>

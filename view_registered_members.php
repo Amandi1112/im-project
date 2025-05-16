@@ -240,7 +240,7 @@ $pdf->Rect(10, 10, 277, 20, 'F');
 $pdf->SetTextColor(255);
 $pdf->SetFont('Helvetica','B',16);
 $pdf->SetXY(15, 12);
-$pdf->Cell(0,8,'T&C CO-OP CITY SHOP - KARAWITA',0,1,'L');
+$pdf->Cell(0,8,'Pahala Karawita, Karawita, Ratnapura, Sri Lanka',0,1,'L');
 
 // Report info box
 $pdf->SetFillColor($primaryDark[0], $primaryDark[1], $primaryDark[2]);
@@ -256,7 +256,7 @@ $pdf->Cell(80,6,date('F j, Y'),0,1,'C');
 $pdf->SetTextColor(255);
 $pdf->SetFont('Helvetica','',9);
 $pdf->SetXY(15, 22);
-$pdf->Cell(0,5,'Karawita | Tel: +94 11 2345678 | Email: info@tccoop.lk',0,1,'L');
+$pdf->Cell(0,5,'Karawita | Tel: +94 11 2345678 | Email:  co_op@sanasa.com',0,1,'L');
 
 // ========== TABLE SECTION ========== //
 $pdf->SetY(40);

@@ -5,16 +5,16 @@ class PDF extends FPDF {
     // Company header with logo
     function Header() {
         // Add logo (replace with your actual logo path)
-        if (file_exists('image.png')) {
-            $this->Image('logo.png', 10, 8, 30);
+        if (file_exists('C:/xampp/htdocs/project/images/logo.jpeg')) {
+            $this->Image('C:/xampp/htdocs/project/images/logo.jpeg', 10, 8, 30);
         }
         
         // Company information
         $this->SetFont('Arial','B',14);
         $this->Cell(0,10,'T&C co-op City shop',0,1,'C');
         $this->SetFont('Arial','',10);
-        $this->Cell(0,5,'Karawita',0,1,'C');
-        $this->Cell(0,5,'Phone: +94 11 2345678 | Email: accounts@coopshop.lk',0,1,'C');
+        $this->Cell(0,5,'Pahala Karawita, Karawita, Ratnapura, Sri Lanka',0,1,'C');
+        $this->Cell(0,5,'Phone: +94 11 2345678 | Email: co_op@sanasa.com',0,1,'C');
         
         // Report title
         $this->SetFont('Arial','B',16);

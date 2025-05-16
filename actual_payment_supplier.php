@@ -189,7 +189,7 @@ if (isset($_GET['generate_invoice'])) {
    $pdf->Cell(70, 5, 'Date: ' . date('d/m/Y'), 0, 1, 'R');
 
    // Phone and email
-   $pdf->Cell(120, 5, 'Phone: (123) 456-7890 | Email: co_op@sanasa.com', 0, 0, 'L');
+   $pdf->Cell(120, 5, 'Phone: +94 11 2345678 | Email: co_op@sanasa.com', 0, 0, 'L');
    
    // Period
    $pdf->Cell(70, 5, 'Period: ' . date('d/m/Y', strtotime($start_date)) . ' - ' . date('d/m/Y', strtotime($end_date)), 0, 1, 'R');

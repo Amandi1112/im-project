@@ -328,7 +328,7 @@ if (isset($_SESSION['success'])) {
         
         <div class="btn-group">
             <a href="supplier.php" class="btn btn-primary">Supplier Registration</a>
-            <a href="Supplier_purchases.php" class="btn btn-secondary">Item Purchases</a>
+            <a href="purchase2.php" class="btn btn-secondary">Item Purchases</a>
         </div>
     </div>
 

@@ -148,7 +148,7 @@ $pdf->Rect(10, 10, 277, 20, 'F');
 $pdf->SetTextColor(255);
 $pdf->SetFont('Helvetica','B',16);
 $pdf->SetXY(15, 12);
-$pdf->Cell(0,8,'COOPERATIVE SHOP',0,1,'L');
+$pdf->Cell(0,8,'T&C co-op City shop',0,1,'L');
 
 // Invoice info box (position adjusted for landscape)
 $pdf->SetFillColor($primaryDark[0], $primaryDark[1], $primaryDark[2]);
@@ -164,7 +164,7 @@ $pdf->Cell(80,6,'#INV-'.str_pad($purchaseId, 5, '0', STR_PAD_LEFT),0,1,'C');
 $pdf->SetTextColor(255);
 $pdf->SetFont('Helvetica','',9);
 $pdf->SetXY(15, 22);
-$pdf->Cell(0,5,'123 Business Avenue, Colombo 01 | Tel: +94 11 2345678 | Email: accounts@coopshop.lk',0,1,'L');
+$pdf->Cell(0,5,'Pahala Karawita, Karawita, Ratnapura, Sri Lanka | Tel: +94 11 2345678 | Email: co_op@sanasa.com',0,1,'L');
 
 // Invoice date and payment terms
 $pdf->SetTextColor($darkColor[0], $darkColor[1], $darkColor[2]);
