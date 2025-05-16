@@ -209,13 +209,13 @@ $result = $conn->query($sql);
         <table>
             <thead>
                 <tr>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Position</th>
-                    <th>Actions</th>
+                    <th style="font-weight: bold; color: black; font-size: 15px;">Name</th>
+                    <th style="font-weight: bold; color: black; font-size: 15px;">Email</th>
+                    <th style="font-weight: bold; color: black; font-size: 15px;">Position</th>
+                    <th style="font-weight: bold; color: black; font-size: 15px;">Actions</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody style="font-weight: bold; color: black; font-size: 15px;">
                 <?php if ($result->num_rows > 0): ?>
                     <?php while ($row = $result->fetch_assoc()): ?>
                     <tr>
