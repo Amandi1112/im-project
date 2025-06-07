@@ -209,31 +209,31 @@ $result = $conn->query($sql);
         <table>
             <thead>
                 <tr>
-                    <th style="font-weight: bold; color: black; font-size: 15px;">Name</th>
-                    <th style="font-weight: bold; color: black; font-size: 15px;">Email</th>
-                    <th style="font-weight: bold; color: black; font-size: 15px;">Position</th>
-                    <th style="font-weight: bold; color: black; font-size: 15px;">Actions</th>
+                    <th style="font-weight: bold; color: black; font-size: 20px;">Name</th>
+                    <th style="font-weight: bold; color: black; font-size: 20px;">Email</th>
+                    <th style="font-weight: bold; color: black; font-size: 20px;">Position</th>
+                    <th style="font-weight: bold; color: black; font-size: 20px;">Actions</th>
                 </tr>
             </thead>
-            <tbody style="font-weight: bold; color: black; font-size: 15px;">
+            <tbody style="font-weight: bold; color: black; font-size: 17px;">
                 <?php if ($result->num_rows > 0): ?>
                     <?php while ($row = $result->fetch_assoc()): ?>
                     <tr>
                         <form method="POST">
-                            <td><?php echo htmlspecialchars($row['name']); ?></td>
-                            <td>
-                                <input type="email" name="email" value="<?php echo htmlspecialchars($row['email']); ?>" required>
+                            <td style="font-size: 17px; color:black;"><?php echo htmlspecialchars($row['name']); ?></td>
+                            <td style="font-size: 17px; color:black;">
+                                <input type="email" name="email" value="<?php echo htmlspecialchars($row['email']); ?>" required style="font-size: 17px; color:black;">
                             </td>
                             <td>
-                                <select name="position" required>
-                                    <option value="clerk" <?php echo $row['position'] === 'clerk' ? 'selected' : ''; ?>>Clerk</option>
-                                    <option value="accountant" <?php echo $row['position'] === 'accountant' ? 'selected' : ''; ?>>Accountant</option>
-                                    <option value="admin" <?php echo $row['position'] === 'admin' ? 'selected' : ''; ?>>Admin</option>
+                                <select name="position" required style="font-size: 17px; color:black;">
+                                    <option value="clerk" <?php echo $row['position'] === 'clerk' ? 'selected' : ''; ?> style="font-size: 17px; color:black;">Clerk</option>
+                                    <option value="accountant" <?php echo $row['position'] === 'accountant' ? 'selected' : ''; ?> style="font-size: 17px; color:black;">Accountant</option>
+                                    <option value="admin" <?php echo $row['position'] === 'admin' ? 'selected' : ''; ?> style="font-size: 17px; color:black;">Admin</option>
                                 </select>
                             </td>
                             <td>
                                 <input type="hidden" name="id" value="<?php echo $row['id']; ?>">
-                                <button type="submit" name="update" class="button">Update</button>
+                                <button type="submit" name="update" class="button" style="font-size: 17px; color:black;">Update</button>
                             </td>
                         </form>
                     </tr>

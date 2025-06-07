@@ -155,21 +155,21 @@
             <h2>Welcome Back</h2>
             <form action="login_process.php" method="post">
                 <div class="form-group">
-                    <label for="email">Email</label>
+                    <label for="email" style="font-weight: bold; color:black;">Email</label>
                     <input type="email" id="email" name="email" required placeholder="Enter your email">
                 </div>
                 <div class="form-group">
-                    <label for="password">Password</label>
+                    <label for="password" style="font-weight: bold; color:black;">Password</label>
                     <input type="password" id="password" name="password" required placeholder="Enter your password">
                 </div>
                 <div class="form-button">
                     <button type="submit" name="login">Login</button>
                 </div>
                 <div class="form-footer">
-                    <p>Don't have an account? <a href="signup.php">Sign up</a></p>
+                    <p style="font-weight: bold; color:black;">Don't have an account? <a href="signup.php" style="font-weight: bold;">Sign up</a></p>
                 </div>
                 <div class="form-footer">
-                    <p>Forgot your password? <a href="reset_password.php">Reset password</a></p>
+                    <p style="font-weight: bold; color:black;">Forgot your password? <a href="reset_password.php" style="font-weight: bold;">Reset password</a></p>
                 </div>
             </form>
         </div>

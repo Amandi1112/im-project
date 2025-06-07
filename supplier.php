@@ -291,26 +291,27 @@ $conn->close();
         <div class="form-container">
             <img src="images/logo.jpeg" alt="Logo" class="form-logo" id="logo">
             <h2>Supplier Registration</h2>
+            <br>
             <form method="post" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>">
                 <div class="form-group">
-                    <label for="supplier_name">Supplier Name</label>
+                    <label for="supplier_name" style="font-size: 17px; color:black;">Supplier Name</label>
                     <input type="text" id="supplier_name" name="supplier_name" required>
-                    <p class="note">Format: company name - agent's name</p>
+                    <p class="note" style="font-weight: bold;">Format: company name - agent's name</p>
                 </div>
                 
                 <div class="form-group">
-                    <label for="nic">NIC Number</label>
+                    <label for="nic" style="font-size: 17px; color:black;">NIC Number</label>
                     <input type="text" id="nic" name="nic" required>
-                    <p class="note">Format: 123456789V or 123456789012</p>
+                    <p class="note" style="font-weight: bold;">Format: 123456789V or 123456789012</p>
                 </div>
                 
                 <div class="form-group">
-                    <label for="address">Company Address</label>
+                    <label for="address" style="font-size: 17px; color:black;">Company Address</label>
                     <input type="text" id="address" name="address" required>
                 </div>
                 
                 <div class="form-group">
-                    <label for="contact_number">Contact Number</label>
+                    <label for="contact_number" style="font-size: 17px; color:black;">Contact Number</label>
                     <input type="text" id="contact_number" name="contact_number" 
                         pattern="0[0-9]{9}" maxlength="10" required
                         title="Contact number must start with 0 and be exactly 10 digits">

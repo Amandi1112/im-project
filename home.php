@@ -739,8 +739,8 @@ $recentActivities = [
                         <i class="fas fa-user-shield"></i>
                     </div>
                     <div>
-                        <div>Welcome, <?php echo $_SESSION['user_name']; ?></div>
-                        <small>Administrator</small>
+                        <div style="font-weight: bold; color: black;">Welcome, <?php echo $_SESSION['user_name']; ?></div>
+                        <small  style="font-weight: bold; color:black;">Administrator</small>
                     </div>
                 </div>
                 <a href="logout.php" class="logout-btn">
@@ -780,7 +780,7 @@ $recentActivities = [
                                 <i class="fas fa-user-tie"></i> Employee
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="employeeDropdown">
-                                <li><a class="dropdown-item" href="current_employee.php"><i class="fas fa-id-card"></i> User Details Update</a></li>
+                                <li><a class="dropdown-item" href="current_employee.php" style="font-size: 17px; color:black;"><i class="fas fa-id-card"></i> User Details Update</a></li>
                             </ul>
                         </li>
                         <li class="nav-item dropdown">
@@ -788,10 +788,10 @@ $recentActivities = [
                                 <i class="fas fa-truck"></i> Suppliers
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="suppliersDropdown">
-                                <li><a class="dropdown-item" href="supplier.php"><i class="fas fa-user-plus"></i> Registration</a></li>
-                                <li><a class="dropdown-item" href="purchase2.php"><i class="fas fa-shopping-basket"></i> Item Purchases</a></li>
-                                <li><a class="dropdown-item" href="supplier_payments.php"><i class="fas fa-file-invoice-dollar"></i> Purchase Amount Details</a></li>
-                                <li><a class="dropdown-item" href="actual_payment_supplier.php"><i class="fas fa-money-bill-wave"></i> Payment Handling</a></li>
+                                <li><a class="dropdown-item" href="supplier.php" style="font-size: 17px; color:black;"><i class="fas fa-user-plus"></i> Registration</a></li>
+                                <li><a class="dropdown-item" href="purchase2.php" style="font-size: 17px; color:black;"><i class="fas fa-shopping-basket"></i> Item Purchases</a></li>
+                                <li><a class="dropdown-item" href="supplier_payments.php" style="font-size: 17px; color:black;"><i class="fas fa-file-invoice-dollar"></i> Purchase Amount Details</a></li>
+                                <li><a class="dropdown-item" href="actual_payment_supplier.php" style="font-size: 17px; color:black;"><i class="fas fa-money-bill-wave"></i> Payment Handling</a></li>
                             </ul>
                         </li>
                         <li class="nav-item dropdown">
@@ -799,8 +799,8 @@ $recentActivities = [
                                 <i class="fas fa-box-open"></i> Inventory
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="inventoryDropdown">
-                                <li><a class="dropdown-item" href="display_purchase_details.php"><i class="fas fa-boxes"></i> Current Stock</a></li>
-                                <li><a class="dropdown-item" href="inventory.php"><i class="fas fa-exchange-alt"></i> Safety Stock</a></li>
+                                <li><a class="dropdown-item" href="display_purchase_details.php" style="font-size: 17px; color:black;"><i class="fas fa-boxes"></i> Current Stock</a></li>
+                                <li><a class="dropdown-item" href="inventory.php" style="font-size: 17px; color:black;"><i class="fas fa-exchange-alt"></i> Safety Stock</a></li>
                             </ul>
                         </li>
                         <li class="nav-item dropdown">
@@ -808,9 +808,9 @@ $recentActivities = [
                                 <i class="fas fa-users"></i> Members
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="membersDropdown">
-                                <li><a class="dropdown-item" href="member.php"><i class="fas fa-user-plus"></i> Member Registration</a></li>
-                                <li><a class="dropdown-item" href="view_registered_members.php"><i class="fas fa-id-badge"></i> Membership Numbers</a></li>
-                                <li><a class="dropdown-item" href="purchase.php"><i class="fas fa-shopping-cart"></i> Member Purchases</a></li>
+                                <li><a class="dropdown-item" href="member.php" style="font-size: 17px; color:black;"><i class="fas fa-user-plus"></i> Member Registration</a></li>
+                                <li><a class="dropdown-item" href="view_registered_members.php" style="font-size: 17px; color:black;"><i class="fas fa-id-badge"></i> Membership Numbers</a></li>
+                                <li><a class="dropdown-item" href="purchase.php" style="font-size: 17px; color:black;"><i class="fas fa-shopping-cart"></i> Member Purchases</a></li>
                             </ul>
                         </li>
                         <li class="nav-item dropdown">
@@ -818,11 +818,11 @@ $recentActivities = [
                                 <i class="fas fa-chart-line"></i> Reports
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="reportsDropdown">
-                                <li><a class="dropdown-item" href="member_credit_report.php"><i class="fas fa-credit-card"></i> Credit Balance Reports</a></li>
-                                <li><a class="dropdown-item" href="member_purchase_history.php"><i class="fas fa-star"></i>Purchase history of members</a></li>
-                                <li><a class="dropdown-item" href="display_purchase_details.php"><i class="fas fa-file-alt"></i> Purchase Details Report</a></li>
-                                <li><a class="dropdown-item" href="supplier_performance_report.php"><i class="fas fa-star"></i> Supplier Performance Report</a></li>
-                                <li><a class="dropdown-item" href="profit.php"><i class="fas fa-star"></i> Sales vs Purchases</a></li>
+                                <li><a class="dropdown-item" href="member_credit_report.php" style="font-size: 17px; color:black;"><i class="fas fa-credit-card"></i> Credit Balance Reports</a></li>
+                                <li><a class="dropdown-item" href="member_purchase_history.php" style="font-size: 17px; color:black;"><i class="fas fa-star"></i>Purchase history of members</a></li>
+                                <li><a class="dropdown-item" href="display_purchase_details.php" style="font-size: 17px; color:black;"><i class="fas fa-file-alt"></i> Purchase Details Report</a></li>
+                                <li><a class="dropdown-item" href="supplier_performance_report.php" style="font-size: 17px; color:black;"><i class="fas fa-star"></i> Supplier Performance Report</a></li>
+                                <li><a class="dropdown-item" href="profit.php" style="font-size: 17px; color:black;"><i class="fas fa-star"></i> Sales vs Purchases</a></li>
                             </ul>
                         </li>
                     </ul>
@@ -841,7 +841,7 @@ $recentActivities = [
                             <i class="fas fa-users"></i>
                         </div>
                         <div class="metric-value" id="totalMembers"><?php echo $totalMembers; ?></div>
-                        <div class="metric-label" style="font-size: 20px;">Active Members</div>
+                        <div class="metric-label" style="font-size: 20px; font-weight: bold; color:black;">Active Members</div>
                     </div>
 
                     <div class="metric-card">
@@ -849,7 +849,7 @@ $recentActivities = [
                             <i class="fas fa-handshake"></i>
                         </div>
                         <div class="metric-value" id="totalSuppliers"><?php echo $totalSuppliers; ?></div>
-                        <div class="metric-label" style="font-size: 20px;">Active Suppliers</div>
+                        <div class="metric-label" style="font-size: 20px; font-weight: bold; color:black;">Active Suppliers</div>
                     </div>
 
                     <div class="metric-card">
@@ -857,7 +857,7 @@ $recentActivities = [
                             <i class="fas fa-boxes"></i>
                         </div>
                         <div class="metric-value" id="totalInventoryLevel"><?php echo $totalInventoryLevel; ?></div>
-                        <div class="metric-label" style="font-size: 20px;">Inventory Items</div>
+                        <div class="metric-label" style="font-size: 20px; font-weight: bold; color:black;">Inventory Items</div>
                     </div>
 
                     <div class="metric-card">
@@ -865,7 +865,7 @@ $recentActivities = [
                             <i class="fas fa-chart-line"></i>
                         </div>
                         <div class="metric-value">+0%</div>
-                        <div class="metric-label">Monthly Growth</div>
+                        <div class="metric-label" style="font-size: 20px; font-weight: bold; color:black;">Monthly Growth</div>
                     </div>
                 </div>
 
