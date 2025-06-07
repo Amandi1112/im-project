@@ -621,28 +621,42 @@ $transactions = $pdo->query("
         }
         
         .item-row input[type="text"], 
-        .item-row input[type="number"] {
+        .item-row input[type="number"],
+        .item-row select {
             flex: 1;
+            min-width: 0;
         }
-        
-        .item-row .item-name {
-            flex: 2;
+        .item-row .item-search {
+            flex: 2.5;
+            min-width: 180px;
+            max-width: 350px;
         }
-        
         .item-row .item-quantity {
             flex: 1;
-            max-width: 100px;
+            max-width: 90px;
         }
-        
+        .item-row .item-unit {
+            flex: 1.2;
+            max-width: 120px;
+        }
         .item-row .item-price {
             flex: 1;
             max-width: 100px;
         }
-        
         .item-row .item-total {
             flex: 1;
             max-width: 100px;
             font-weight: bold;
+        }
+        .item-row .remove-item-btn {
+            flex: 0 0 40px;
+            min-width: 40px;
+            max-width: 40px;
+            height: 40px;
+            font-size: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
         .total-section {
@@ -707,10 +721,13 @@ $transactions = $pdo->query("
             
             .item-row {
                 flex-direction: column;
+                align-items: stretch;
             }
-            
-            .item-row input {
-                width: 100%;
+            .item-row input,
+            .item-row select,
+            .item-row .item-price,
+            .item-row .item-total {
+                width: 100% !important;
                 max-width: none !important;
             }
         }
@@ -828,6 +845,13 @@ $transactions = $pdo->query("
             <input type="text" class="item-search" placeholder="Search item..." list="item_list" autocomplete="off">
             <input type="hidden" class="item-id" name="">
             <input type="number" class="item-quantity" name="" min="1" value="1" placeholder="Qty">
+            <select class="item-unit" name="">
+                <option value="g">Grams (g)</option>
+                <option value="kg">Kilograms (kg)</option>
+                <option value="packets">Packets</option>
+                <option value="bottles">Bottles</option>
+                <option value="other">Other</option>
+            </select>
             <span class="item-price">Rs. 0.00</span>
             <span class="item-total">Rs. 0.00</span>
             <button type="button" class="btn-danger remove-item-btn">×</button>
@@ -941,9 +965,11 @@ $transactions = $pdo->query("
             const index = document.querySelectorAll('.item-row').length;
             const itemIdInput = newRow.querySelector('.item-id');
             const quantityInput = newRow.querySelector('.item-quantity');
+            const unitSelect = newRow.querySelector('.item-unit');
             
             itemIdInput.name = `items[${index}][item_id]`;
             quantityInput.name = `items[${index}][quantity]`;
+            unitSelect.name = `items[${index}][unit]`;
             
             container.appendChild(clone);
             
@@ -956,6 +982,7 @@ $transactions = $pdo->query("
             const itemSearch = row.querySelector('.item-search');
             const itemIdInput = row.querySelector('.item-id');
             const quantityInput = row.querySelector('.item-quantity');
+            const unitSelect = row.querySelector('.item-unit');
             const priceDisplay = row.querySelector('.item-price');
             const totalDisplay = row.querySelector('.item-total');
             const removeBtn = row.querySelector('.remove-item-btn');
@@ -983,18 +1010,20 @@ $transactions = $pdo->query("
             // Handle item selection
             itemSearch.addEventListener('change', function() {
                 const options = datalist.querySelectorAll('option');
-                
                 for (let option of options) {
                     if (option.value === this.value) {
                         const itemId = option.getAttribute('data-id');
                         itemIdInput.value = itemId;
-                        
                         // Get item details
                         fetch('?action=get_item_info&id=' + itemId)
                             .then(response => response.json())
                             .then(data => {
                                 if (data) {
                                     priceDisplay.textContent = 'Rs. ' + data.price_per_unit.toLocaleString();
+                                    // Set unit if available
+                                    if (data.unit) {
+                                        unitSelect.value = data.unit;
+                                    }
                                     
                                     // Create a tooltip with additional info
                                     let tooltipText = `Available Quantity: ${data.current_quantity}`;
@@ -1028,6 +1057,7 @@ $transactions = $pdo->query("
                 itemSearch.title = '';
                 quantityInput.max = '';
                 quantityInput.placeholder = 'Qty';
+                unitSelect.value = 'other';
                 calculateRowTotal(row);
             });
             
@@ -1050,9 +1080,10 @@ $transactions = $pdo->query("
             rows.forEach((row, index) => {
                 const itemIdInput = row.querySelector('.item-id');
                 const quantityInput = row.querySelector('.item-quantity');
-                
+                const unitSelect = row.querySelector('.item-unit');
                 itemIdInput.name = `items[${index}][item_id]`;
                 quantityInput.name = `items[${index}][quantity]`;
+                unitSelect.name = `items[${index}][unit]`;
             });
         }
         

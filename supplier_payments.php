@@ -200,218 +200,246 @@ $data = array_column($supplierTotals, 'supplier_total');
         }
         
         body {
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            background: linear-gradient(120deg, #e0eafc 0%, #cfdef3 100%);
             min-height: 100vh;
             color: #333;
+            margin: 0;
+            padding: 0;
+            position: relative;
+            overflow-x: hidden;
+        }
+        body::before, body::after {
+            content: '';
+            position: fixed;
+            z-index: 0;
+            border-radius: 50%;
+            filter: blur(8px);
+        }
+        body::before {
+            top: -120px;
+            left: -120px;
+            width: 420px;
+            height: 420px;
+            background: radial-gradient(circle, #667eea 0%, #fff 80%);
+            opacity: 0.13;
+        }
+        body::after {
+            bottom: -120px;
+            right: -120px;
+            width: 420px;
+            height: 420px;
+            background: radial-gradient(circle, #ed8936 0%, #fff 80%);
+            opacity: 0.11;
         }
 
         .container {
             max-width: 1200px;
-            margin: 20px auto;
-            padding: 20px;
-            background-color: rgba(255, 255, 255, 0.95);
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            margin: 32px auto;
+            padding: 32px 16px 32px 16px;
+            background: rgba(255,255,255,0.85);
+            border-radius: 18px;
+            box-shadow: 0 8px 32px rgba(102,126,234,0.10), 0 1.5px 8px rgba(90,103,216,0.07);
+            position: relative;
+            z-index: 1;
         }
 
         h1 {
-            color: #2c3e50;
+            color: #2d3748;
             text-align: center;
-            margin-bottom: 30px;
-            font-weight: 600;
-            font-size: 28px;
-            position: relative;
-            padding-bottom: 10px;
+            margin-bottom: 36px;
+            font-weight: 800;
+            font-size: 2.3rem;
+            letter-spacing: 1.2px;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.07);
+            background: linear-gradient(90deg, #667eea 0%, #5a67d8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
         h1::after {
             content: '';
-            position: absolute;
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 100px;
-            height: 3px;
+            display: block;
+            margin: 18px auto 0 auto;
+            width: 90px;
+            height: 4px;
+            border-radius: 2px;
             background: linear-gradient(to right, #667eea, #764ba2);
-            border-radius: 3px;
         }
 
         .filter-section {
-            background-color: rgba(236, 240, 241, 0.7);
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            transition: all 0.3s ease;
+            background: rgba(255,255,255,0.65);
+            padding: 24px 28px;
+            border-radius: 16px;
+            box-shadow: 0 4px 18px rgba(102,126,234,0.07);
+            border: 1.5px solid #e0eafc;
+            margin-bottom: 36px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 18px;
+            align-items: center;
+            justify-content: center;
         }
 
         .filter-section:hover {
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 10px 20px rgba(102,126,234,0.13);
         }
 
         .form-label {
-            color: #34495e;
+            color: #5a67d8;
             margin-bottom: 5px;
-            font-weight: 500;
-            font-size: 14px;
+            font-weight: 600;
+            font-size: 1.08rem;
         }
 
         .form-control {
-            border-radius: 6px;
-            border: 1px solid #bdc3c7;
-            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1.5px solid #e2e8f0;
+            padding: 10px 14px;
             margin-bottom: 15px;
             width: 100%;
-            box-sizing: border-box;
-            font-size: 14px;
+            font-size: 1rem;
+            background: #f7fafc;
             transition: all 0.2s;
         }
 
         .form-control:focus {
             border-color: #667eea;
             outline: none;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.13);
         }
 
         .btn-primary,
         .btn-secondary {
             color: #fff;
             border: none;
-            padding: 10px 15px;
-            border-radius: 6px;
+            padding: 10px 18px;
+            border-radius: 8px;
             cursor: pointer;
-            transition: all 0.3s ease;
-            font-weight: 500;
+            font-weight: 600;
+            font-size: 1.08rem;
+            letter-spacing: 0.5px;
+            box-shadow: 0 2px 8px rgba(102,126,234,0.10);
+            transition: all 0.2s;
         }
 
         .btn-primary {
-            background: linear-gradient(to right, #667eea, #764ba2);
-            box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+            background: linear-gradient(90deg, #667eea 0%, #5a67d8 100%);
         }
 
         .btn-primary:hover {
-            background: linear-gradient(to right, #5a6fd1, #6a4299);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 15px rgba(102, 126, 234, 0.4);
+            background: linear-gradient(90deg, #5a67d8 0%, #667eea 100%);
+            transform: translateY(-2px) scale(1.04);
         }
 
         .btn-secondary {
-            background: linear-gradient(to right, #95a5a6, #7f8c8d);
-            box-shadow: 0 4px 10px rgba(149, 165, 166, 0.3);
+            background: linear-gradient(90deg, #95a5a6 0%, #7f8c8d 100%);
         }
 
         .btn-secondary:hover {
-            background: linear-gradient(to right, #7f8c8d, #6c7a7b);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 15px rgba(149, 165, 166, 0.4);
+            background: linear-gradient(90deg, #7f8c8d 0%, #95a5a6 100%);
+            transform: translateY(-2px) scale(1.04);
         }
 
         .floating-btn {
             position: fixed;
             bottom: 30px;
             right: 30px;
-            width: 50px;
-            height: 50px;
+            width: 54px;
+            height: 54px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.18);
             transition: all 0.3s;
             z-index: 1000;
+            background: linear-gradient(135deg, #667eea 60%, #5a67d8 100%);
+            color: #fff;
+            font-size: 2rem;
+            border: none;
         }
-        
         .floating-btn:hover {
-            transform: translateY(-3px) scale(1.1);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-        }
-
-        .supplier-search-container {
-            position: relative;
-        }
-
-        .ui-autocomplete {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            z-index: 1000;
-            background-color: #fff;
-            border: 1px solid #bdc3c7;
-            border-radius: 6px;
-            margin-top: 2px;
-            padding: 0;
-            list-style: none;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-            font-family: 'Poppins', sans-serif;
-        }
-
-        .ui-autocomplete li {
-            padding: 8px 12px;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-size: 14px;
-        }
-
-        .ui-autocomplete li:hover {
-            background-color: #f0f3f4;
+            transform: translateY(-3px) scale(1.09);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.23);
+            background: linear-gradient(135deg, #5a67d8 60%, #667eea 100%);
+            color: #fff;
         }
 
         .supplier-totals {
-            margin-bottom: 30px;
+            margin-bottom: 36px;
         }
 
         .supplier-totals h4 {
-            color: #2c3e50;
+            color: #2d3748;
             margin-bottom: 20px;
-            font-weight: 600;
-            font-size: 20px;
+            font-weight: 800;
+            font-size: 1.25rem;
+            letter-spacing: 0.5px;
         }
 
         .card {
-            border-radius: 8px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-            margin-bottom: 15px;
-            border: none;
-            transition: all 0.3s ease;
+            border-radius: 14px;
+            box-shadow: 0 5px 15px rgba(102,126,234,0.10);
+            margin-bottom: 18px;
+            border: 1.5px solid #e0eafc;
+            background: rgba(255,255,255,0.92);
+            transition: all 0.3s;
             overflow: hidden;
         }
 
         .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+            transform: translateY(-5px) scale(1.03);
+            box-shadow: 0 10px 20px rgba(102,126,234,0.13);
+            border-color: #667eea33;
         }
 
         .card-body {
-            padding: 15px;
+            padding: 18px 16px 12px 16px;
         }
 
         .card-title {
-            color: #34495e;
+            color: #5a67d8;
             margin-bottom: 10px;
-            font-weight: 600;
-            font-size: 16px;
+            font-weight: 700;
+            font-size: 1.13rem;
         }
 
         .card-text {
-            color: #7f8c8d;
-            font-size: 14px;
+            color: #2d3748;
+            font-size: 1.08rem;
+            font-weight: 600;
+        }
+
+        .chart-container {
+            width: 100%;
+            margin: 36px 0;
+            padding: 24px 18px 18px 18px;
+            background: rgba(255,255,255,0.82);
+            border-radius: 14px;
+            box-shadow: 0 5px 15px rgba(102,126,234,0.10);
+            border: 1.5px solid #e0eafc;
         }
 
         .table-responsive {
             overflow-x: auto;
-            border-radius: 8px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(102,126,234,0.10);
+            background: rgba(255,255,255,0.92);
+            margin-bottom: 24px;
         }
 
         .table {
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 20px;
-            font-size: 14px;
+            font-size: 1rem;
+            background: transparent;
         }
 
         .table th,
         .table td {
-            padding: 12px 15px;
+            padding: 14px 16px;
             text-align: left;
             border-bottom: 1px solid #ecf0f1;
         }
@@ -419,7 +447,8 @@ $data = array_column($supplierTotals, 'supplier_total');
         .table th {
             background: linear-gradient(to right, #667eea, #764ba2);
             color: white;
-            font-weight: 500;
+            font-weight: 600;
+            font-size: 1.08rem;
         }
 
         .table tbody tr {
@@ -427,32 +456,32 @@ $data = array_column($supplierTotals, 'supplier_total');
         }
 
         .table tbody tr:hover {
-            background-color: rgba(102, 126, 234, 0.05);
+            background-color: rgba(102, 126, 234, 0.07);
         }
 
         .total-row {
-            font-weight: 600;
-            background-color: rgba(102, 126, 234, 0.1);
+            font-weight: 700;
+            background-color: rgba(102, 126, 234, 0.13);
         }
 
         .expired {
-            background-color: rgba(255, 99, 71, 0.1);
+            background-color: rgba(255, 99, 71, 0.13);
             color: #c0392b;
         }
 
         .expiring-soon {
-            background-color: rgba(255, 193, 7, 0.1);
+            background-color: rgba(255, 193, 7, 0.13);
             color: #d35400;
         }
 
         .alert-info {
-            background-color: rgba(52, 152, 219, 0.1);
+            background-color: rgba(52, 152, 219, 0.13);
             color: #3498db;
             padding: 15px;
-            border-radius: 6px;
+            border-radius: 8px;
             margin-bottom: 20px;
             border-left: 4px solid #3498db;
-            font-size: 14px;
+            font-size: 1.08rem;
         }
 
         .text-end {
@@ -462,40 +491,50 @@ $data = array_column($supplierTotals, 'supplier_total');
         /* Styles for chart container */
         .chart-container {
             width: 100%;
-            margin: 30px 0;
-            padding: 20px;
-            background-color: rgba(255, 255, 255, 0.8);
-            border-radius: 8px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            margin: 36px 0;
+            padding: 24px 18px 18px 18px;
+            background: rgba(255,255,255,0.82);
+            border-radius: 14px;
+            box-shadow: 0 5px 15px rgba(102,126,234,0.10);
+            border: 1.5px solid #e0eafc;
         }
 
-        @media (max-width: 768px) {
+        @media (max-width: 900px) {
             .container {
-                padding: 15px;
+                padding: 12px 2px 12px 2px;
             }
-            
-            h1 {
-                font-size: 24px;
-                margin-bottom: 20px;
+            .filter-section {
+                padding: 12px 6px;
             }
-            
-            .card {
-                margin-bottom: 10px;
+            .supplier-totals h4 {
+                font-size: 1.08rem;
             }
-            
+            .card-body {
+                padding: 10px 6px 8px 6px;
+            }
             .table th,
             .table td {
-                padding: 8px 10px;
-                font-size: 13px;
+                padding: 8px 8px;
+                font-size: 0.98rem;
             }
-            
-            .btn-group {
-                flex-direction: column;
+        }
+        @media (max-width: 600px) {
+            .container {
+                padding: 4px 1px 4px 1px;
             }
-            
-            .btn {
-                width: 100%;
-                margin-bottom: 10px;
+            .filter-section {
+                padding: 6px 2px;
+            }
+            .card-body {
+                padding: 6px 2px 4px 2px;
+            }
+            .chart-container {
+                padding: 8px 2px 6px 2px;
+            }
+            .table th,
+            .table td {
+                padding: 6px 4px;
+                font-size: 0.95rem;
             }
         }
     </style>

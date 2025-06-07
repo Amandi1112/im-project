@@ -122,18 +122,28 @@ if (isset($_GET['generate_invoice'])) {
     $supplier_result = $supplier_query->get_result();
     $supplier        = $supplier_result->fetch_assoc();
 
-    // Get purchases for the supplier within date range
+    // Get purchases for the supplier within date range (use ip.supplier_id for accuracy)
     $purchase_query = $conn->prepare("
-        SELECT ip.*, i.item_name
+        SELECT ip.purchase_date, i.item_name, ip.quantity, ip.price_per_unit, ip.total_price
         FROM item_purchases ip
         JOIN items i ON ip.item_id = i.item_id
-        WHERE i.supplier_id = ? AND ip.purchase_date BETWEEN ? AND ?
+        WHERE ip.supplier_id = ? AND ip.purchase_date BETWEEN ? AND ?
         ORDER BY ip.purchase_date
     ");
     $purchase_query->bind_param("sss", $supplier_id, $start_date, $end_date);
     $purchase_query->execute();
-    $purchases      = $purchase_query->get_result()->fetch_all(MYSQLI_ASSOC);
-    $total_amount   = array_sum(array_column($purchases, 'total_price'));
+    $purchases = $purchase_query->get_result()->fetch_all(MYSQLI_ASSOC);
+
+    // Correctly calculate total purchases for this supplier in the date range
+    $total_purchases_query = $conn->prepare("
+        SELECT COALESCE(SUM(ip.total_price), 0) AS total_purchases
+        FROM item_purchases ip
+        WHERE ip.supplier_id = ? AND ip.purchase_date BETWEEN ? AND ?
+    ");
+    $total_purchases_query->bind_param("sss", $supplier_id, $start_date, $end_date);
+    $total_purchases_query->execute();
+    $total_purchases_result = $total_purchases_query->get_result()->fetch_assoc();
+    $total_amount = $total_purchases_result['total_purchases'];
 
     // Get payments made to this supplier
     $payment_query = $conn->prepare("
@@ -189,7 +199,13 @@ if (isset($_GET['generate_invoice'])) {
    $pdf->Cell(70, 5, 'Date: ' . date('d/m/Y'), 0, 1, 'R');
 
    // Phone and email
-   $pdf->Cell(120, 5, 'Phone: +94 11 2345678 | Email: co_op@sanasa.com', 0, 0, 'L');
+   $pdf->Cell(120, 5, 'Phone: +94 11 2345678 | Email: ', 0, 0, 'L');
+   // Add a more attractive email display with a mailto link and icon
+   $pdf->SetFont('Arial', 'B', 10);
+   $pdf->SetTextColor(41, 128, 185); // Vibrant blue for email
+   $pdf->Cell(0, 5, chr(64) . ' co_op@sanasa.com', 0, 0, 'L', false, 'mailto:co_op@sanasa.com');
+   $pdf->SetFont('Arial', '', 10);
+   $pdf->SetTextColor($darkText[0], $darkText[1], $darkText[2]);
    
    // Period
    $pdf->Cell(70, 5, 'Period: ' . date('d/m/Y', strtotime($start_date)) . ' - ' . date('d/m/Y', strtotime($end_date)), 0, 1, 'R');
@@ -580,7 +596,8 @@ $items = $conn->query("SELECT * FROM items ORDER BY item_name");
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 0 0 0 rgba(102,126,234,0.5), 0 5px 20px rgba(0,0,0,0.2);
+            animation: glowPulse 2s infinite alternate;
             transition: all 0.3s;
             z-index: 1000;
         }
@@ -590,65 +607,167 @@ $items = $conn->query("SELECT * FROM items ORDER BY item_name");
             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
         }
 
+        @keyframes glowPulse {
+            from { box-shadow: 0 0 0 0 rgba(102,126,234,0.5), 0 5px 20px rgba(0,0,0,0.2); }
+            to { box-shadow: 0 0 16px 8px rgba(102,126,234,0.18), 0 5px 20px rgba(0,0,0,0.2); }
+        }
+
         .nav-tabs {
-            border-bottom: 2px solid #dee2e6;
-            margin-bottom: 20px;
+            border-bottom: none;
+            background: rgba(102,126,234,0.08);
+            border-radius: 10px 10px 0 0;
+            overflow: hidden;
         }
 
         .nav-tabs .nav-link {
             border: none;
-            color: #6c757d;
-            font-weight: 500;
-            padding: 10px 20px;
-            border-radius: 6px 6px 0 0;
+            color: #667eea;
+            font-weight: 600;
+            padding: 12px 28px;
+            border-radius: 10px 10px 0 0;
             margin-right: 5px;
+            background: none;
+            transition: background 0.2s, color 0.2s;
         }
 
         .nav-tabs .nav-link.active {
-            color: #667eea;
-            background-color: rgba(102, 126, 234, 0.1);
-            border-bottom: 2px solid #667eea;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            box-shadow: 0 2px 8px rgba(102,126,234,0.09);
         }
 
         .nav-tabs .nav-link:hover {
-            border-color: transparent;
+            background: linear-gradient(90deg, #e0e7ff 0%, #f3e8ff 100%);
             color: #667eea;
         }
 
-        .tab-content {
-            padding: 20px 0;
+        /* --- Glassmorphism Modal --- */
+        #purchasesModal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(120deg, rgba(102,126,234,0.25) 0%, rgba(118,75,162,0.18) 100%);
+            backdrop-filter: blur(6px);
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.3s;
+            opacity: 0;
+            pointer-events: none;
         }
-
-        note {
-            font-style: italic;
-            color: #6c757d;
-            font-size: 14px;
+        #purchasesModal.show {
+            display: flex;
+            opacity: 1;
+            pointer-events: auto;
+            animation: fadeInModal 0.4s;
         }
-
-        @media (max-width: 768px) {
-            .container {
-                padding: 15px;
+        @keyframes fadeInModal {
+            from { opacity: 0; transform: scale(0.98); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        #purchasesModal .modal-content {
+            background: rgba(255,255,255,0.85);
+            border-radius: 18px;
+            box-shadow: 0 8px 32px 0 rgba(31,38,135,0.18);
+            padding: 30px 25px 20px 25px;
+            min-width: 340px;
+            max-width: 600px;
+            width: 95vw;
+            position: relative;
+            border: 1.5px solid rgba(102,126,234,0.13);
+            animation: popIn 0.5s;
+        }
+        @keyframes popIn {
+            from { transform: translateY(30px) scale(0.97); opacity: 0.7; }
+            to { transform: translateY(0) scale(1); opacity: 1; }
+        }
+        #purchasesModal .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #e3e6f0;
+            margin-bottom: 18px;
+        }
+        #purchasesModal .modal-header h3 {
+            font-size: 1.4rem;
+            color: #667eea;
+            font-weight: 600;
+            margin: 0;
+        }
+        #purchasesModal .close-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            font-size: 1.3rem;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.2s;
+        }
+        #purchasesModal .close-btn:hover {
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+            transform: scale(1.1);
+        }
+        #purchasesModal .modal-body {
+            max-height: 55vh;
+            overflow-y: auto;
+        }
+        /* --- Table Card Style --- */
+        .table-responsive {
+            background: rgba(255,255,255,0.85);
+            border-radius: 14px;
+            box-shadow: 0 4px 18px rgba(102,126,234,0.08);
+            padding: 10px 0 0 0;
+            margin-bottom: 24px;
+            border: 1.5px solid rgba(102,126,234,0.09);
+        }
+        .table th, .table td {
+            border-bottom: 1px solid #e3e6f0;
+        }
+        .table tbody tr {
+            transition: background 0.18s, box-shadow 0.18s;
+        }
+        .table tbody tr:hover, .table tbody tr.highlight {
+            background: linear-gradient(90deg, #e0e7ff 0%, #f3e8ff 100%);
+            box-shadow: 0 2px 8px rgba(102,126,234,0.07);
+        }
+        /* --- Datalist/Autocomplete Dropdown --- */
+        .ui-autocomplete, #supplierSuggestions {
+            border: 1.5px solid #667eea;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(102,126,234,0.13);
+            background: rgba(255,255,255,0.98);
+        }
+        /* --- Responsive Modal --- */
+        @media (max-width: 600px) {
+            #purchasesModal .modal-content {
+                min-width: 0;
+                max-width: 98vw;
+                padding: 18px 6px 10px 6px;
             }
-
-            h2 {
-                font-size: 24px;
-                margin-bottom: 20px;
-            }
-
-            .table th,
-            .table td {
-                padding: 8px 10px;
-                font-size: 13px;
-            }
-
-            .btn-group {
-                flex-direction: column;
-            }
-
-            .btn {
-                width: 100%;
-                margin-bottom: 10px;
-            }
+        }
+        /* --- Card-like Section for Form --- */
+        .form-section {
+            box-shadow: 0 2px 12px rgba(102,126,234,0.07);
+            border: 1.5px solid rgba(102,126,234,0.09);
+            background: rgba(255,255,255,0.92);
+        }
+        .form-section h4 {
+            color: #764ba2;
+            font-weight: 600;
+            margin-bottom: 18px;
+        }
+        /* --- Animated Button on Hover --- */
+        .btn {
+            transition: transform 0.18s, box-shadow 0.18s;
+        }
+        .btn:hover {
+            transform: translateY(-2px) scale(1.04);
+            box-shadow: 0 6px 18px rgba(102,126,234,0.13);
         }
     </style>
 </head>

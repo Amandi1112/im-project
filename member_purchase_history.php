@@ -180,6 +180,11 @@ $conn->close();
     <title>Cooperative Store Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.13.2/themes/base/jquery-ui.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
     <style>
         :root {
@@ -208,109 +213,209 @@ $conn->close();
         }
         
         body {
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            color: var(--text);
+            background: linear-gradient(120deg, #e0eafc 0%, #cfdef3 100%);
+            color: var(--dark);
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+            position: relative;
+            overflow-x: hidden;
+        }
+        body::before, body::after {
+            content: '';
+            position: fixed;
+            z-index: 0;
+            border-radius: 50%;
+            filter: blur(8px);
+        }
+        body::before {
+            top: -120px;
+            left: -120px;
+            width: 420px;
+            height: 420px;
+            background: radial-gradient(circle, #667eea 0%, #fff 80%);
+            opacity: 0.13;
+        }
+        body::after {
+            bottom: -120px;
+            right: -120px;
+            width: 420px;
+            height: 420px;
+            background: radial-gradient(circle, #ed8936 0%, #fff 80%);
+            opacity: 0.11;
+        }
+                .floating-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s;
+            z-index: 1000;
         }
         
+        .floating-btn:hover {
+            transform: translateY(-3px) scale(1.1);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+
         .container {
             width: 100%;
-            max-width: 1400px;
+            max-width: 1200px;
             margin: 0 auto;
-            padding: 20px;
-            font-family:'Poppins','sans-serif';
+            padding: 32px 16px 32px 16px;
+            position: relative;
+            z-index: 1;
         }
         
         .dashboard-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 30px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid var(--gray-light);
+            margin-bottom: 36px;
+            padding-bottom: 18px;
+            border-bottom: 1.5px solid var(--gray-light);
+            background: rgba(255,255,255,0.55);
+            border-radius: 18px;
+            box-shadow: 0 8px 32px rgba(102,126,234,0.10), 0 1.5px 8px rgba(90,103,216,0.07);
+            padding: 28px 32px 18px 32px;
+            gap: 18px;
+            position: relative;
+            overflow: hidden;
+            border: 1.5px solid #e0eafc;
         }
         
         .dashboard-title {
-            font-size: 24px;
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: #2d3748;
+            letter-spacing: 1.2px;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.07);
+        }
+        
+        .date {
+            font-size: 1.1rem;
+            color: #5a67d8;
             font-weight: 600;
-            color: var(--dark);
+            background: #f7fafc;
+            padding: 8px 18px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(102,126,234,0.07);
         }
         
         .stats-container {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
+            gap: 24px;
+            margin-bottom: 36px;
         }
         
         .stat-card {
-            background-color: white;
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            background: rgba(255,255,255,0.75);
+            border-radius: 16px;
+            padding: 28px 24px 22px 24px;
+            box-shadow: 0 6px 24px rgba(102,126,234,0.10);
             display: flex;
             flex-direction: column;
+            position: relative;
+            overflow: hidden;
+            border: 2px solid #e0eafc;
+            backdrop-filter: blur(6px);
+            transition: all 0.3s cubic-bezier(.4,2,.6,1);
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-7px) scale(1.04);
+            box-shadow: 0 16px 32px rgba(102,126,234,0.15);
+            border-color: #667eea33;
         }
         
         .stat-title {
-            font-size: 14px;
-            color: #7f8c8d;
+            font-size: 1.08rem;
+            color: #5a67d8;
             margin-bottom: 10px;
+            font-weight: 600;
         }
         
         .stat-value {
-            font-size: 28px;
-            font-weight: 600;
+            font-size: 2.1rem;
+            font-weight: 800;
             margin-bottom: 5px;
+            color: #2d3748;
+            letter-spacing: 1px;
         }
         
         .stat-icon {
             align-self: flex-end;
-            font-size: 32px;
-            margin-top: -50px;
-            color: var(--primary);
-            opacity: 0.2;
+            font-size: 2.7rem;
+            margin-top: -38px;
+            color: #667eea;
+            opacity: 0.18;
+            transition: color 0.3s;
+        }
+        
+        .stat-card:hover .stat-icon {
+            color: #ed8936;
+            opacity: 0.23;
         }
         
         .chart-container {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
+            grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+            gap: 28px;
+            margin-bottom: 36px;
         }
         
         .chart-card {
-            background-color: white;
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            background: rgba(255,255,255,0.82);
+            border-radius: 18px;
+            padding: 28px 18px 24px 18px;
+            box-shadow: 0 4px 18px rgba(102,126,234,0.08);
+            border: 1.5px solid #e0eafc;
+            backdrop-filter: blur(4px);
+            transition: all 0.3s;
+        }
+        
+        .chart-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 15px 28px rgba(102,126,234,0.13);
+            border-color: #667eea33;
         }
         
         .chart-title {
-            font-size: 18px;
-            font-weight: 600;
+            font-size: 1.18rem;
+            font-weight: 700;
             margin-bottom: 20px;
-            color: var(--dark);
+            color: #5a67d8;
+            letter-spacing: 0.5px;
         }
         
         .table-container {
-            background-color: white;
-            border-radius: 8px;
-            padding: 20px;
+            background: rgba(255,255,255,0.85);
+            border-radius: 14px;
+            padding: 24px 12px 18px 12px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
             margin-bottom: 30px;
             overflow-x: auto;
+            border: 1.5px solid #e0eafc;
         }
         
         .table-title {
-            font-size: 18px;
-            font-weight: 600;
+            font-size: 1.13rem;
+            font-weight: 700;
             margin-bottom: 20px;
-            color: var(--dark);
+            color: #5a67d8;
         }
         
         table {
             width: 100%;
             border-collapse: collapse;
+            background: transparent;
         }
         
         th, td {
@@ -321,7 +426,8 @@ $conn->close();
         
         th {
             background-color: #f8f9fa;
-            font-weight: 600;
+            font-weight: 700;
+            color: #2d3748;
         }
         
         tr:hover {
@@ -347,18 +453,37 @@ $conn->close();
         
         .footer {
             text-align: center;
-            padding: 20px 0;
+            padding: 20px 0 10px 0;
             color: #95a5a6;
-            font-size: 14px;
+            font-size: 15px;
+            background: transparent;
         }
         
-        @media (max-width: 768px) {
+        @media (max-width: 900px) {
             .chart-container {
                 grid-template-columns: 1fr;
+                gap: 18px;
             }
-            
             .stats-container {
-                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+                gap: 12px;
+            }
+            .dashboard-header {
+                flex-direction: column;
+                gap: 10px;
+                text-align: center;
+                padding: 18px 8px 14px 8px;
+            }
+        }
+        @media (max-width: 600px) {
+            .container {
+                padding: 8px 2px 8px 2px;
+            }
+            .table-container {
+                padding: 10px 2px 8px 2px;
+            }
+            .chart-card {
+                padding: 12px 4px 10px 4px;
             }
         }
     </style>
@@ -488,6 +613,9 @@ $conn->close();
             <p>© <?php echo date('Y'); ?> Cooperative Store Management System</p>
         </div>
     </div>
+       <a href="home.php" class="btn btn-primary floating-btn animate__animated animate__fadeInUp">
+        <i class="fas fa-home"></i>
+    </a>
     
     <script>
         // Monthly Sales Chart

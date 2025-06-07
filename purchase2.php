@@ -198,7 +198,27 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['item_name']) && isset(
     exit;
 }
 
-// Process form submission for adding purchases
+// Handle AJAX supplier search for autocomplete
+if (isset($_GET['search_supplier'])) {
+    $term = $_GET['search_supplier'];
+    $sql = "SELECT supplier_id, supplier_name FROM supplier WHERE supplier_name LIKE ? ORDER BY supplier_name LIMIT 10";
+    $stmt = $conn->prepare($sql);
+    $likeTerm = "%$term%";
+    $stmt->bind_param("s", $likeTerm);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $suppliers = [];
+    while ($row = $result->fetch_assoc()) {
+        $suppliers[] = $row;
+    }
+    header('Content-Type: application/json');
+    echo json_encode($suppliers);
+    exit;
+}
+
+/**
+ * Process form submission for adding purchases
+ */
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['submit_purchases'])) {
     $successCount = 0;
     $errorCount = 0;
@@ -274,6 +294,9 @@ $message = isset($_GET['message']) ? $_GET['message'] : '';
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap">
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
     <style>
         * {
             margin: 0;
@@ -651,16 +674,12 @@ $message = isset($_GET['message']) ? $_GET['message'] : '';
             
             <!-- Form for adding items by supplier -->
             <form method="post" action="" id="purchase-form">
-                <!-- Supplier selection dropdown -->
+                <!-- Supplier selection textbox with autocomplete -->
                 <div class="mb-3">
                     <label class="form-label" style="font-size: 17px; font-weight: bold;">Select Supplier</label>
                     <div style="display: flex; gap: 10px;">
-                        <select id="supplier-dropdown" class="form-select" style="flex: 1;">
-                            <option value="">-- Select a Supplier --</option>
-                            <?php foreach($suppliers as $supplier): ?>
-                            <option value="<?php echo $supplier['supplier_id']; ?>"><?php echo $supplier['supplier_name']; ?></option>
-                            <?php endforeach; ?>
-                        </select>
+                        <input type="text" id="supplier-name-input" class="form-control" placeholder="Start typing supplier name..." autocomplete="off" style="flex: 1;">
+                        <input type="hidden" id="supplier-id-input">
                         <button type="button" id="add-supplier" class="btn btn-secondary">
                             <i class="fas fa-plus"></i> Add Supplier
                         </button>
@@ -845,6 +864,8 @@ $message = isset($_GET['message']) ? $_GET['message'] : '';
     </a>
     <!-- jQuery -->
      <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
     <script>
         $(document).ready(function() {
             let supplierCounts = {}; // Track item count per supplier
@@ -856,39 +877,60 @@ $message = isset($_GET['message']) ? $_GET['message'] : '';
             supplierNames['<?php echo $supplier['supplier_id']; ?>'] = '<?php echo $supplier['supplier_name']; ?>';
             <?php endforeach; ?>
             
+            // Autocomplete for supplier name
+            $("#supplier-name-input").autocomplete({
+                source: function(request, response) {
+                    $.get(window.location.pathname, {
+                        search_supplier: request.term
+                    }, function(data) {
+                        response($.map(data, function(item) {
+                            return {
+                                label: item.supplier_name + ' (ID: ' + item.supplier_id + ')',
+                                value: item.supplier_name,
+                                id: item.supplier_id
+                            };
+                        }));
+                    }, 'json');
+                },
+                minLength: 2,
+                select: function(event, ui) {
+                    $("#supplier-id-input").val(ui.item.id);
+                    $("#supplier-name-input").val(ui.item.value);
+                    return false;
+                },
+                focus: function(event, ui) {
+                    $("#supplier-name-input").val(ui.item.label);
+                    return false;
+                }
+            });
+            
             // Add supplier section when button is clicked
             $('#add-supplier').click(function() {
-                const supplierId = $('#supplier-dropdown').val();
-                const supplierName = $('#supplier-dropdown option:selected').text();
-                
-                if (supplierId === '') {
-                    showAlert('Please select a supplier first', 'error');
+                const supplierId = $('#supplier-id-input').val();
+                const supplierName = $('#supplier-name-input').val();
+                if (supplierId === '' || supplierName === '') {
+                    showAlert('Please select a supplier from the suggestions', 'error');
                     return;
                 }
-                
                 // Check if supplier already added
                 if ($('.supplier-section[data-supplier-id="' + supplierId + '"]').length > 0) {
                     showAlert('This supplier is already added', 'error');
                     return;
                 }
-                
                 // Initialize item count for this supplier
                 if (!supplierCounts[supplierId]) {
                     supplierCounts[supplierId] = 0;
                 }
-                
                 // Clone supplier template
                 const template = document.getElementById('supplier-template').innerHTML;
                 let supplierSection = template
                     .replace(/{SUPPLIER_ID}/g, supplierId)
                     .replace(/{SUPPLIER_NAME}/g, supplierName);
-                
                 // Add to container
                 $('#suppliers-container').append(supplierSection);
-                
-                // Reset dropdown
-                $('#supplier-dropdown').val('');
-                
+                // Reset input fields
+                $('#supplier-name-input').val('');
+                $('#supplier-id-input').val('');
                 // Fetch existing items for this supplier
                 fetchSupplierItems(supplierId);
             });
