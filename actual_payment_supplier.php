@@ -330,7 +330,7 @@ if (isset($_GET['generate_invoice'])) {
    $pdf->Cell(90, 6, '__________________________', 0, 1, 'R');
    
    $pdf->Cell(90, 5, 'Supplier Authorization', 0, 0, 'L');
-   $pdf->Cell(90, 5, 'Company Representative', 0, 1, 'R');
+   $pdf->Cell(90, 5, 'Co-Op city staff', 0, 1, 'R');
 
    // Output the PDF
    $pdf->Output('I', $invoice_number . '_Statement.pdf');

@@ -276,8 +276,7 @@ $pdf->SetY($yPosition + 5); // Move 5mm below signature lines
 // Footer note
 $pdf->SetFont('Helvetica','I',8);
 $pdf->SetTextColor($grayColor[0], $grayColor[1], $grayColor[2]);
-$pdf->Cell(0,5,'This is a computer generated invoice. Thank you for your business!',0,1,'C');
-$pdf->Cell(0,5,'Generated on '.date('Y-m-d H:i:s'),0,1,'C');
+
 
 // Clear any output buffers before sending PDF
 while (ob_get_level()) {
