@@ -11,6 +11,71 @@ try {
 } catch (PDOException $e) {
     die("Database connection failed: " . $e->getMessage());
 }
+
+// At the top, after DB connection and before HTML output
+$reportData = [];
+$startDate = $_GET['start_date'] ?? '';
+$endDate = $_GET['end_date'] ?? '';
+$supplierId = $_GET['supplier_id'] ?? '';
+
+if (!empty($supplierId) && !empty($startDate) && !empty($endDate)) {
+    // Get supplier details
+    $supplierQuery = "SELECT * FROM supplier WHERE supplier_id = ?";
+    $supplierStmt = $pdo->prepare($supplierQuery);
+    $supplierStmt->execute([$supplierId]);
+    $supplier = $supplierStmt->fetch(PDO::FETCH_ASSOC);
+
+    if ($supplier) {
+        // Get items supplied by this supplier
+        $itemsQuery = "SELECT * FROM items WHERE supplier_id = ?";
+        $itemsStmt = $pdo->prepare($itemsQuery);
+        $itemsStmt->execute([$supplierId]);
+        $items = $itemsStmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Get purchases of these items within date range
+        $itemIds = array_column($items, 'item_id');
+        $purchases = [];
+        if (count($itemIds) > 0) {
+            $placeholders = str_repeat('?,', count($itemIds) - 1) . '?';
+            $purchasesQuery = "SELECT p.*, i.item_name 
+                               FROM item_purchases p
+                               JOIN items i ON p.item_id = i.item_id
+                               WHERE p.item_id IN ($placeholders)
+                               AND p.purchase_date BETWEEN ? AND ?";
+            $params = array_merge($itemIds, [$startDate, $endDate]);
+            $purchasesStmt = $pdo->prepare($purchasesQuery);
+            $purchasesStmt->execute($params);
+            $purchases = $purchasesStmt->fetchAll(PDO::FETCH_ASSOC);
+        }
+
+        // Get payments to this supplier within date range
+        $paymentsQuery = "SELECT * FROM supplier_payments 
+                          WHERE supplier_id = ? 
+                          AND payment_date BETWEEN ? AND ?";
+        $paymentsStmt = $pdo->prepare($paymentsQuery);
+        $paymentsStmt->execute([$supplierId, $startDate, $endDate]);
+        $payments = $paymentsStmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Calculate totals
+        $totalPurchases = array_sum(array_column($purchases, 'total_price'));
+        $totalPayments = array_sum(array_column($payments, 'amount'));
+        $outstandingBalance = $totalPurchases - $totalPayments;
+
+        // Prepare report data for HTML
+        $reportData = [
+            'supplier' => $supplier,
+            'items' => $items,
+            'purchases' => $purchases,
+            'payments' => $payments,
+            'totalPurchases' => $totalPurchases,
+            'totalPayments' => $totalPayments,
+            'outstandingBalance' => $outstandingBalance,
+            'startDate' => $startDate,
+            'endDate' => $endDate
+        ];
+    }
+}
+
 // Handle PDF generation request
 if (isset($_GET['generate_pdf']) && $_GET['generate_pdf'] == '1') {
     require('fpdf/fpdf.php');
@@ -373,6 +438,16 @@ if (isset($_GET['generate_pdf']) && $_GET['generate_pdf'] == '1') {
             exit;
         }
     }
+}
+
+// Handle AJAX supplier search for autocomplete
+if (isset($_GET['search_term'])) {
+    $term = $_GET['search_term'];
+    $stmt = $pdo->prepare("SELECT supplier_id, supplier_name FROM supplier WHERE supplier_name LIKE ? ORDER BY supplier_name LIMIT 10");
+    $stmt->execute(["%$term%"]);
+    $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    echo json_encode($results);
+    exit;
 }
 
 // Get all suppliers for initial load (if needed)
@@ -774,7 +849,7 @@ $suppliers = $pdo->query($suppliersQuery)->fetchAll(PDO::FETCH_ASSOC);
     </div>
     
     <div class="form-container animate__animated animate__fadeIn">
-        <form id="reportForm" method="POST" action="">
+        <form id="reportForm" method="GET" action="">
             <div class="form-group">
                 <label for="supplier_name"><i class="fas fa-truck"></i> Supplier</label>
                 <div class="supplier-input-container">

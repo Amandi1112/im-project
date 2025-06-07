@@ -684,6 +684,21 @@ $transactions = $pdo->query("
             font-size: 14px;
             pointer-events: none;
         }
+        .form-group2 {
+    margin-bottom: 15px;
+    position: relative;
+    display: flex;
+    justify-content: flex-end; /* Aligns content to the right */
+}
+
+.form-group2 button,
+.form-group2 a button {
+    font-family: 'Poppins', sans-serif;
+    padding: 10px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
         
         @media (max-width: 768px) {
             .info-grid {
@@ -818,7 +833,13 @@ $transactions = $pdo->query("
             <button type="button" class="btn-danger remove-item-btn">×</button>
         </div>
     </template>
-    
+    <br>
+                    <!-- Reset Section -->
+                                <div class="form-group2" style="text-align: right;">
+                    <a href="reset.php" style="text-decoration: none;">
+                        <button type="button" class="btn-secondary" style="font-family: 'Poppins', sans-serif;">Reset Credit Balance</button>
+                    </a>
+                </div>
     
     <script>
         // Load member info when selected
