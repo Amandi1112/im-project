@@ -236,21 +236,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         .container {
             width: 100%;
-            max-width: 800px;
-            background: rgba(255, 255, 255, 0.95);
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            max-width: 1150px;
+            background: rgba(255, 255, 255, 0.98);
+            padding: 56px 56px 44px 56px;
+            border-radius: 22px;
+            box-shadow: 0 12px 40px 0 rgba(102,126,234,0.13), 0 2px 8px rgba(118,75,162,0.08);
+            backdrop-filter: blur(2px);
         }
 
         h2 {
-            color: #333;
+            color: #4b2996;
             text-align: center;
-            margin-bottom: 30px;
-            font-weight: 600;
-            font-size: 28px;
+            margin-bottom: 44px;
+            font-weight: 800;
+            font-size: 44px;
+            letter-spacing: 1px;
             position: relative;
-            padding-bottom: 10px;
+            padding-bottom: 18px;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
         h2::after {
@@ -259,22 +264,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             bottom: 0;
             left: 50%;
             transform: translateX(-50%);
-            width: 100px;
-            height: 3px;
+            width: 140px;
+            height: 5px;
             background: linear-gradient(to right, #667eea, #764ba2);
-            border-radius: 3px;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(102,126,234,0.13);
         }
 
         .form-group {
+            margin-bottom: 32px;
+        }
+
+        /* Center the logo above the form */
+        .form-logo {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            object-fit: cover;
             margin-bottom: 20px;
+            border: 3px solid rgba(102, 126, 234, 0.3);
+            box-shadow: 0 4px 18px rgba(102,126,234,0.10);
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
         }
 
         label {
             display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-            color: #333;
-            font-size: 14px;
+            margin-bottom: 12px;
+            font-weight: 700;
+            color: #4b2996;
+            font-size: 24px;
+            letter-spacing: 0.5px;
         }
 
         input[type="text"],
@@ -283,32 +304,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         input[type="date"],
         textarea {
             width: 100%;
-            padding: 12px 15px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 14px;
-            transition: all 0.3s ease;
-            background-color: #f5f5f5;
+            padding: 22px 24px;
+            border: 2px solid #d1d5db;
+            border-radius: 12px;
+            font-size: 22px;
+            background: rgba(245,245,255,0.98);
+            color: #2c3e50;
+            transition: border 0.2s, box-shadow 0.2s, background 0.2s;
+            box-shadow: 0 2px 8px rgba(102,126,234,0.04);
         }
 
         input:focus,
         textarea:focus {
             outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
-            background-color: white;
+            border-color: #764ba2;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.13);
+            background: #fff;
         }
 
         .note {
-            font-size: 12px;
-            color: #666;
-            margin-top: 5px;
+            font-size: 18px;
+            color: #764ba2;
+            margin-top: 8px;
             font-style: italic;
+            opacity: 0.85;
         }
 
         .grid {
             display: grid;
-            gap: 20px;
+            gap: 32px;
         }
 
         .grid-cols-2 {
@@ -317,51 +341,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         .btn-group {
             display: flex;
-            gap: 15px;
-            margin-top: 30px;
+            gap: 28px;
+            margin-top: 44px;
             justify-content: center;
         }
 
         button {
-            padding: 12px 25px;
+            padding: 22px 48px;
             border: none;
-            border-radius: 8px;
+            border-radius: 12px;
             cursor: pointer;
-            font-weight: 500;
-            transition: all 0.3s ease;
+            font-weight: 700;
+            font-size: 22px;
+            letter-spacing: 0.5px;
+            transition: all 0.2s;
+            box-shadow: 0 4px 18px rgba(102,126,234,0.10);
         }
 
         button[type="submit"] {
-            background: linear-gradient(to right, #667eea, #764ba2);
-            color: white;
-            box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            box-shadow: 0 6px 18px rgba(102, 126, 234, 0.18);
+            position: relative;
+            overflow: hidden;
         }
-
         button[type="submit"]:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 15px rgba(102, 126, 234, 0.4);
+            background: linear-gradient(90deg, #764ba2 0%, #667eea 100%);
+            transform: translateY(-2px) scale(1.03);
+            box-shadow: 0 10px 28px rgba(102, 126, 234, 0.22);
         }
-
         button[type="reset"] {
-            background: #95a5a6;
-            color: white;
+            background: #b2bec3;
+            color: #fff;
         }
-
         button[type="reset"]:hover {
-            background: #7f8c8d;
-            transform: translateY(-2px);
+            background: #636e72;
+            transform: translateY(-2px) scale(1.03);
         }
 
         .home-link {
             display: block;
             text-align: center;
-            margin-top: 20px;
+            margin-top: 32px;
             color: #667eea;
             text-decoration: none;
-            font-weight: 500;
-            transition: all 0.3s ease;
+            font-weight: 700;
+            font-size: 24px;
+            transition: color 0.2s, text-decoration 0.2s;
         }
-
         .home-link:hover {
             color: #764ba2;
             text-decoration: underline;
@@ -370,29 +397,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         /* Toastr overrides to match our theme */
         .toast-success {
             background-color: #2ed573 !important;
+            font-size: 20px !important;
         }
-
         .toast-error {
             background-color: #ff4757 !important;
+            font-size: 20px !important;
         }
-
         .toast-info {
             background-color: #667eea !important;
+            font-size: 20px !important;
         }
 
-        @media (max-width: 768px) {
+        @media (max-width: 1100px) {
             .container {
-                padding: 20px;
+                padding: 18px;
+                max-width: 98vw;
             }
-            
             .grid-cols-2 {
                 grid-template-columns: 1fr;
             }
-            
             .btn-group {
                 flex-direction: column;
             }
-            
             button {
                 width: 100%;
             }
@@ -401,6 +427,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body>
     <div class="container">
+        <img src="images/logo.jpeg" alt="Logo" class="form-logo" id="logo">
         <h2>Member Registration</h2>
 
         <form id="memberRegistrationForm">

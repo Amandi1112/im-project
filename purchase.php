@@ -734,7 +734,7 @@ $transactions = $pdo->query("
 </head>
 <body>
     <div class="container">
-        <h1>Cooperative Shop Credit Purchase System</h1>
+        <h1 style="font-size:50px;">Cooperative Shop Credit Purchase System</h1>
         
         <?php if (isset($success)): ?>
             <div class="alert alert-success"><?php echo $success; ?></div>
@@ -745,14 +745,14 @@ $transactions = $pdo->query("
         <?php endif; ?>
         
         <div class="section">
-            <h2>New Purchase</h2>
+            <h2 style="font-size:30px;">New Purchase</h2>
             <form method="POST" action="">
                 <input type="hidden" name="make_purchase" value="1">
                 
                 <div class="form-group">
-                    <label for="member_search">Search Member</label>
+                    <label for="member_search" style="font-size:20px;">Search Member</label>
                     <input type="text" id="member_search" name="member_search" list="member_list" 
-                           placeholder="Start typing member name    or    membership number..." autocomplete="off">
+                           placeholder="Start typing member name    or    membership number..." autocomplete="off" style="font-size: 15px;">
                     <datalist id="member_list"></datalist>
                     <input type="hidden" id="member_id" name="member_id">
                 </div>

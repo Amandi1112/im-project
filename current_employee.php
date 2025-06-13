@@ -209,7 +209,7 @@ $result = $conn->query($sql);
         <table>
             <thead>
                 <tr>
-                    <th style="font-weight: bold; color: black; font-size: 20px;">Name</th>
+                    <th style="font-weight: bold; color: black; font-size: 20px; color:white;">Name</th>
                     <th style="font-weight: bold; color: black; font-size: 20px;">Email</th>
                     <th style="font-weight: bold; color: black; font-size: 20px;">Position</th>
                     <th style="font-weight: bold; color: black; font-size: 20px;">Actions</th>
