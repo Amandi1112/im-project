@@ -193,12 +193,24 @@ $conn->close();
             background: #fff;
         }
         
+        .input-invalid {
+            border-color: #ff4757 !important;
+            box-shadow: 0 0 0 4px rgba(255, 71, 87, 0.13) !important;
+        }
+        
         .note {
             font-size: 15px;
             color: #764ba2;
             margin-top: 6px;
             font-style: italic;
             opacity: 0.85;
+        }
+        
+        .validation-hint {
+            font-size: 14px;
+            color: #ff4757;
+            margin-top: 6px;
+            display: none;
         }
         
         .form-button {
@@ -267,17 +279,19 @@ $conn->close();
         
         .floating-alert {
             position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 15px 25px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            top: 30px;
+            right: 30px;
+            padding: 20px 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
             transform: translateX(150%);
-            transition: transform 0.3s ease;
+            transition: transform 0.4s ease;
             z-index: 1000;
             color: white;
             font-weight: 600;
             font-size: 16px;
+            max-width: 400px;
+            word-wrap: break-word;
         }
         
         .floating-alert.show {
@@ -285,11 +299,11 @@ $conn->close();
         }
         
         .alert-error {
-            background: #ff4757;
+            background: linear-gradient(45deg, #ff4757, #ff3742);
         }
         
         .alert-success {
-            background: #2ed573;
+            background: linear-gradient(45deg, #2ed573, #17c0eb);
         }
         
         @media (max-width: 700px) {
@@ -306,6 +320,15 @@ $conn->close();
             .btn {
                 width: 100%;
             }
+            .floating-alert {
+                right: 10px;
+                left: 10px;
+                max-width: none;
+                transform: translateY(-150%);
+            }
+            .floating-alert.show {
+                transform: translateY(0);
+            }
         }
     </style>
 </head>
@@ -320,6 +343,7 @@ $conn->close();
                     <label for="supplier_name" style="font-size: 17px; color:black;">Supplier Name</label>
                     <input type="text" id="supplier_name" name="supplier_name" required>
                     <p class="note" style="font-weight: bold;">Format: company name - agent's name</p>
+                    <p class="validation-hint" id="name-hint">Please enter supplier name in the format: Company Name - Agent Name</p>
                 </div>
                 
                 <div class="form-group">
@@ -359,6 +383,8 @@ $conn->close();
         document.addEventListener('DOMContentLoaded', function() {
             const logo = document.getElementById('logo');
             const alertBox = document.getElementById('alert');
+            const supplierNameInput = document.getElementById('supplier_name');
+            const nameHint = document.getElementById('name-hint');
             
             // Add animation to logo on hover
             if (logo) {
@@ -372,17 +398,47 @@ $conn->close();
                 });
             }
             
-            // Show messages as floating alerts
-            <?php if($error): ?>
-                showAlert('<?php echo $error; ?>', 'error');
-            <?php endif; ?>
-            
-            <?php if($success): ?>
-                showAlert('<?php echo $success; ?>', 'success');
-            <?php endif; ?>
-            
+            // Supplier name validation
+            if (supplierNameInput && nameHint) {
+                supplierNameInput.addEventListener('input', function() {
+                    const value = this.value.trim();
+                    const isValid = validateSupplierName(value);
+                    
+                    if (value.length > 0 && !isValid) {
+                        this.classList.add('input-invalid');
+                        nameHint.style.display = 'block';
+                    } else {
+                        this.classList.remove('input-invalid');
+                        nameHint.style.display = 'none';
+                    }
+                });
+                
+                supplierNameInput.addEventListener('blur', function() {
+                    const value = this.value.trim();
+                    if (value.length > 0 && !validateSupplierName(value)) {
+                        this.classList.add('input-invalid');
+                        nameHint.style.display = 'block';
+                    }
+                });
+            }
+
+            // Supplier name validation function
+            function validateSupplierName(name) {
+                if (!name.includes('-')) return false;
+                
+                const parts = name.split('-');
+                if (parts.length !== 2) return false;
+                
+                const companyPart = parts[0].trim();
+                const agentPart = parts[1].trim();
+                
+                return companyPart.length >= 2 && agentPart.length >= 2;
+            }
+
             // Show alert function
             function showAlert(message, type) {
+                if (!alertBox) return;
+                
                 alertBox.textContent = message;
                 alertBox.className = 'floating-alert show';
                 
@@ -393,26 +449,48 @@ $conn->close();
                     alertBox.classList.add('alert-success');
                 }
                 
-                // Hide after 5 seconds
+                // Hide after 6 seconds
                 setTimeout(() => {
                     alertBox.classList.remove('show');
+                    // If success, clear the form and optionally redirect
                     <?php if($success): ?>
                         setTimeout(() => {
-                            window.location.href = window.location.href.split('?')[0];
-                        }, 500);
+                            // Clear form fields
+                            document.getElementById('supplier_name').value = '';
+                            document.getElementById('nic').value = '';
+                            document.getElementById('address').value = '';
+                            document.getElementById('contact_number').value = '';
+                            // Optionally redirect to clear URL parameters
+                            // window.location.href = window.location.href.split('?')[0];
+                        }, 1000);
                     <?php endif; ?>
-                }, 5000);
+                }, 6000);
             }
+
+            // Show messages as floating alerts
+            <?php if($error): ?>
+                showAlert('<?php echo addslashes($error); ?>', 'error');
+            <?php endif; ?>
+            
+            <?php if($success): ?>
+                showAlert('<?php echo addslashes($success); ?>', 'success');
+            <?php endif; ?>
             
             // Add input focus effects
             const inputs = document.querySelectorAll('input');
             inputs.forEach(input => {
                 input.addEventListener('focus', function() {
-                    this.parentNode.querySelector('label').style.color = '#667eea';
+                    const label = this.parentNode.querySelector('label');
+                    if (label) {
+                        label.style.color = '#667eea';
+                    }
                 });
                 
                 input.addEventListener('blur', function() {
-                    this.parentNode.querySelector('label').style.color = '#555';
+                    const label = this.parentNode.querySelector('label');
+                    if (label) {
+                        label.style.color = '#555';
+                    }
                 });
             });
         });
