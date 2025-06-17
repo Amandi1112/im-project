@@ -24,28 +24,47 @@ class Database {
 $database = new Database();
 $db = $database->getConnection();
 
-// Fetch available items (items with current_quantity > 0)
+// Fetch available inventory items
 function getAvailableItems($db) {
-    $query = "SELECT i.item_id, i.item_code, i.item_name, i.price_per_unit, 
-                     i.current_quantity, i.unit, s.supplier_name
+    $query = "SELECT 
+                i.item_id,
+                i.item_code,
+                i.item_name,
+                i.price_per_unit,
+                i.current_quantity,
+                i.unit,
+                s.supplier_name,
+                'available' AS status
               FROM items i 
               LEFT JOIN supplier s ON i.supplier_id = s.supplier_id
               WHERE i.current_quantity > 0
-              ORDER BY i.item_name";
+              ORDER BY item_name";
     
     $stmt = $db->prepare($query);
     $stmt->execute();
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
-// Fetch sold items (items from purchases table)
+// Fetch sold inventory items
 function getSoldItems($db) {
-    $query = "SELECT p.purchase_id, p.member_id, p.full_name, i.item_name, i.item_code,
-                     p.quantity, p.price_per_unit, p.total_price, p.purchase_date, p.unit
+    $query = "SELECT 
+                i.item_id,
+                i.item_code,
+                i.item_name,
+                p.price_per_unit,
+                i.current_quantity,
+                p.unit,
+                s.supplier_name,
+                'sold' AS status,
+                p.purchase_id,
+                p.member_id,
+                p.full_name,
+                p.purchase_date,
+                p.quantity AS sold_quantity
               FROM purchases p
               JOIN items i ON p.item_id = i.item_id
-              ORDER BY p.purchase_date DESC, p.purchase_id DESC
-              LIMIT 100"; // Limit for performance
+              LEFT JOIN supplier s ON i.supplier_id = s.supplier_id
+              ORDER BY purchase_date DESC";
     
     $stmt = $db->prepare($query);
     $stmt->execute();
@@ -85,7 +104,7 @@ $summary = getSummaryData($db);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inventory Management - Available vs Sold Items</title>
+    <title>Inventory Management - Tabbed View</title>
     <style>
         * {
             margin: 0;
@@ -172,6 +191,9 @@ $summary = getSummaryData($db);
             display: flex;
             background: #ecf0f1;
             border-bottom: 3px solid #bdc3c7;
+            margin: 0 30px;
+            border-radius: 10px 10px 0 0;
+            overflow: hidden;
         }
 
         .tab-button {
@@ -184,21 +206,50 @@ $summary = getSummaryData($db);
             cursor: pointer;
             transition: all 0.3s ease;
             color: #7f8c8d;
+            text-align: center;
+            position: relative;
         }
 
         .tab-button.active {
             background: white;
             color: #2c3e50;
-            border-bottom: 3px solid #3498db;
+        }
+
+        .tab-button.active::after {
+            content: "";
+            position: absolute;
+            bottom: -3px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: #3498db;
         }
 
         .tab-button:hover {
             background: #d5dbdb;
         }
 
+        .tab-button .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.8em;
+            margin-left: 8px;
+        }
+
+        .tab-button.available.active .badge {
+            background: #27ae60;
+            color: white;
+        }
+
+        .tab-button.sold.active .badge {
+            background: #e74c3c;
+            color: white;
+        }
+
         .tab-content {
             display: none;
-            padding: 30px;
+            padding: 0;
         }
 
         .tab-content.active {
@@ -206,7 +257,7 @@ $summary = getSummaryData($db);
         }
 
         .search-box {
-            margin-bottom: 25px;
+            margin: 25px 30px 0;
             position: relative;
         }
 
@@ -233,6 +284,7 @@ $summary = getSummaryData($db);
         }
 
         .table-container {
+            margin: 0 30px 30px;
             overflow-x: auto;
             border-radius: 10px;
             box-shadow: 0 5px 15px rgba(0,0,0,0.08);
@@ -242,6 +294,7 @@ $summary = getSummaryData($db);
             width: 100%;
             border-collapse: collapse;
             background: white;
+            table-layout: fixed;
         }
 
         th {
@@ -259,6 +312,7 @@ $summary = getSummaryData($db);
             padding: 15px;
             border-bottom: 1px solid #ecf0f1;
             transition: background-color 0.3s ease;
+            word-wrap: break-word;
         }
 
         tr:hover td {
@@ -266,26 +320,30 @@ $summary = getSummaryData($db);
         }
 
         .status-badge {
-            padding: 5px 12px;
+            padding: 8px 15px;
             border-radius: 20px;
-            font-size: 0.85em;
+            font-size: 0.9em;
             font-weight: bold;
             text-transform: uppercase;
+            display: inline-block;
+            min-width: 100px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
 
         .status-available {
-            background: #d5f4e6;
-            color: #27ae60;
+            background: #27ae60;
+            color: white;
         }
 
         .status-low {
-            background: #ffeaa7;
-            color: #f39c12;
+            background: #f39c12;
+            color: white;
         }
 
         .status-sold {
-            background: #fab1a0;
-            color: #e74c3c;
+            background: #e74c3c;
+            color: white;
         }
 
         .quantity-cell {
@@ -305,18 +363,57 @@ $summary = getSummaryData($db);
             font-size: 1.2em;
         }
 
+        .sold-row {
+            background-color: #fff5f5;
+            position: relative;
+        }
+
+        .sold-row::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 5px;
+            background-color: #e74c3c;
+        }
+
+        .available-row {
+            background-color: #f5fff5;
+            position: relative;
+        }
+
+        .available-row::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 5px;
+            background-color: #27ae60;
+        }
+
+        .sold-details {
+            background-color: #ffeeee;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 5px;
+        }
+
+        .available-details {
+            color: #27ae60;
+            font-weight: 500;
+        }
+
         @media (max-width: 768px) {
             .summary-cards {
                 grid-template-columns: 1fr;
                 padding: 20px;
             }
             
-            .tabs {
-                flex-direction: column;
-            }
-            
-            .tab-content {
-                padding: 20px;
+            .search-box, .table-container {
+                margin-left: 20px;
+                margin-right: 20px;
             }
             
             table {
@@ -333,7 +430,7 @@ $summary = getSummaryData($db);
     <div class="container">
         <div class="header">
             <h1>📊 Inventory Management System</h1>
-            <p>Track Available Stock and Sales Performance</p>
+            <p>Tabbed View of Available and Sold Items</p>
         </div>
 
         <div class="summary-cards">
@@ -360,14 +457,17 @@ $summary = getSummaryData($db);
         </div>
 
         <div class="tabs">
-            <button class="tab-button active" onclick="showTab('available')">
-                🟢 Available Items (<?= count($availableItems) ?>)
+            <button class="tab-button available active" onclick="showTab('available')">
+                Available Items
+                <span class="badge"><?= count($availableItems) ?></span>
             </button>
-            <button class="tab-button" onclick="showTab('sold')">
-                🔴 Sold Items (<?= count($soldItems) ?>)
+            <button class="tab-button sold" onclick="showTab('sold')">
+                Sold Items
+                <span class="badge"><?= count($soldItems) ?></span>
             </button>
         </div>
 
+        <!-- Available Items Tab -->
         <div id="available" class="tab-content active">
             <div class="search-box">
                 <input type="text" id="searchAvailable" placeholder="Search available items by name, code, or supplier..." onkeyup="searchTable('availableTable', this.value)">
@@ -376,81 +476,111 @@ $summary = getSummaryData($db);
             
             <div class="table-container">
                 <table id="availableTable">
+                    <colgroup>
+    <col style="width: 100px"> <!-- Status -->
+   
+    <col> <!-- Item Name -->
+    <col style="width: 120px"> <!-- Quantity -->
+    <col style="width: 80px"> <!-- Unit -->
+    <col style="width: 120px"> <!-- Price -->
+    <col> <!-- Supplier -->
+    <col> <!-- Details -->
+</colgroup>
                     <thead>
-                        <tr>
-                            <th>Item Code</th>
-                            <th>Item Name</th>
-                            <th>Current Stock</th>
-                            <th>Unit</th>
-                            <th>Price per Unit</th>
-                            <th>Supplier</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
+    <tr>
+        <th>Status</th>
+    
+        <th>Item Name</th>
+        <th>Quantity</th>
+        <th>Unit</th>
+        <th>Price</th>
+        <th>Supplier</th>
+        <th>Details</th>
+    </tr>
+</thead>
                     <tbody>
                         <?php if (empty($availableItems)): ?>
                             <tr><td colspan="7" class="no-data">No available items found</td></tr>
                         <?php else: ?>
                             <?php foreach ($availableItems as $item): ?>
-                                <tr>
-                                    <td><strong><?= htmlspecialchars($item['item_code']) ?></strong></td>
-                                    <td><?= htmlspecialchars($item['item_name']) ?></td>
-                                    <td class="quantity-cell"><?= number_format($item['current_quantity']) ?></td>
-                                    <td><?= strtoupper($item['unit']) ?></td>
-                                    <td class="price-cell">Rs. <?= number_format($item['price_per_unit'], 2) ?></td>
-                                    <td><?= htmlspecialchars($item['supplier_name'] ?? 'N/A') ?></td>
-                                    <td>
-                                        <?php if ($item['current_quantity'] > 10): ?>
-                                            <span class="status-badge status-available">Available</span>
-                                        <?php else: ?>
-                                            <span class="status-badge status-low">Low Stock</span>
-                                        <?php endif; ?>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
+    <tr class="available-row">
+        <td>
+            <?php if ($item['status'] === 'available'): ?>
+                <span class="status-badge status-available"><?= ucfirst($item['status']) ?></span>
+            <?php else: ?>
+                <span class="status-badge status-low"><?= ucfirst($item['status']) ?></span>
+            <?php endif; ?>
+        </td>
+        
+        <td><?= htmlspecialchars($item['item_name']) ?></td>
+        <td class="quantity-cell"><?= number_format($item['current_quantity']) ?></td>
+        <td><?= strtoupper($item['unit']) ?></td>
+        <td class="price-cell">Rs. <?= number_format($item['price_per_unit'], 2) ?></td>
+        <td><?= htmlspecialchars($item['supplier_name'] ?? 'N/A') ?></td>
+        <td>
+            <div class="available-details">
+                <div>✔ Ready to sell</div>
+                <div>Last updated: <?= date('M d, Y') ?></div>
+            </div>
+        </td>
+    </tr>
+<?php endforeach; ?>
                         <?php endif; ?>
                     </tbody>
                 </table>
             </div>
         </div>
 
+        <!-- Sold Items Tab -->
         <div id="sold" class="tab-content">
             <div class="search-box">
-                <input type="text" id="searchSold" placeholder="Search sold items by name, member, or purchase ID..." onkeyup="searchTable('soldTable', this.value)">
+                <input type="text" id="searchSold" placeholder="Search sold items by name, code, customer, or purchase ID..." onkeyup="searchTable('soldTable', this.value)">
                 <span class="search-icon">🔍</span>
             </div>
             
             <div class="table-container">
                 <table id="soldTable">
+                    <colgroup>
+                        <col style="width: 120px"> <!-- Status -->
+                        <col> <!-- Item Name -->
+                        <col style="width: 120px"> <!-- Quantity -->
+                        <col style="width: 80px"> <!-- Unit -->
+                        <col style="width: 120px"> <!-- Price -->
+                        <col> <!-- Supplier -->
+                        <col> <!-- Details -->
+                    </colgroup>
                     <thead>
                         <tr>
-                            <th>Purchase ID</th>
+                            <th>Status</th>
                             <th>Item Name</th>
-                            <th>Member</th>
-                            <th>Quantity Sold</th>
+                            <th>Quantity</th>
                             <th>Unit</th>
-                            <th>Price per Unit</th>
-                            <th>Total Price</th>
-                            <th>Purchase Date</th>
+                            <th>Price</th>
+                            <th>Supplier</th>
+                            <th>Details</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (empty($soldItems)): ?>
-                            <tr><td colspan="8" class="no-data">No sold items found</td></tr>
+                            <tr><td colspan="7" class="no-data">No sold items found</td></tr>
                         <?php else: ?>
                             <?php foreach ($soldItems as $item): ?>
-                                <tr>
-                                    <td><strong>#<?= htmlspecialchars($item['purchase_id']) ?></strong></td>
-                                    <td><?= htmlspecialchars($item['item_name']) ?></td>
+                                <tr class="sold-row">
                                     <td>
-                                        <div><?= htmlspecialchars($item['full_name']) ?></div>
-                                        <small style="color: #7f8c8d;">ID: <?= htmlspecialchars($item['member_id']) ?></small>
+                                        <span class="status-badge status-sold">Sold</span>
                                     </td>
-                                    <td class="quantity-cell"><?= number_format($item['quantity']) ?></td>
+                                    <td><?= htmlspecialchars($item['item_name']) ?></td>
+                                    <td class="quantity-cell"><?= number_format($item['sold_quantity']) ?></td>
                                     <td><?= strtoupper($item['unit']) ?></td>
                                     <td class="price-cell">Rs. <?= number_format($item['price_per_unit'], 2) ?></td>
-                                    <td class="price-cell"><strong>Rs. <?= number_format($item['total_price'], 2) ?></strong></td>
-                                    <td><?= date('M d, Y', strtotime($item['purchase_date'])) ?></td>
+                                    <td><?= htmlspecialchars($item['supplier_name'] ?? 'N/A') ?></td>
+                                    <td>
+                                        <div class="sold-details">
+                                            <div><strong>Purchase #<?= $item['purchase_id'] ?></strong></div>
+                                            <div>Customer: <?= htmlspecialchars($item['full_name']) ?></div>
+                                            <div>Date: <?= date('M d, Y', strtotime($item['purchase_date'])) ?></div>
+                                        </div>
+                                    </td>
                                 </tr>
                             <?php endforeach; ?>
                         <?php endif; ?>
@@ -464,17 +594,21 @@ $summary = getSummaryData($db);
         function showTab(tabName) {
             // Hide all tab contents
             const tabContents = document.querySelectorAll('.tab-content');
-            tabContents.forEach(tab => tab.classList.remove('active'));
-            
-            // Remove active class from all buttons
+            tabContents.forEach(content => {
+                content.classList.remove('active');
+            });
+
+            // Remove active class from all tab buttons
             const tabButtons = document.querySelectorAll('.tab-button');
-            tabButtons.forEach(button => button.classList.remove('active'));
-            
+            tabButtons.forEach(button => {
+                button.classList.remove('active');
+            });
+
             // Show selected tab content
             document.getElementById(tabName).classList.add('active');
-            
+
             // Add active class to clicked button
-            event.target.classList.add('active');
+            event.currentTarget.classList.add('active');
         }
 
         function searchTable(tableId, searchTerm) {
