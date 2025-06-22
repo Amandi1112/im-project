@@ -69,6 +69,54 @@ $supplier_name = isset($_GET['supplier_name']) ? $_GET['supplier_name'] : '';
 $item_filter = isset($_GET['item_id']) ? $_GET['item_id'] : '';
 $item_name = isset($_GET['item_name']) ? $_GET['item_name'] : '';
 
+// Function to calculate current quantity for an item purchase
+function getCurrentQuantity($conn, $purchase_id, $original_quantity) {
+    // This function calculates remaining quantity after member purchases
+    // Uses the 'purchases' table that tracks quantities purchased by members
+    
+    $sql = "SELECT COALESCE(SUM(quantity), 0) as total_purchased 
+            FROM purchases 
+            WHERE item_id = (SELECT item_id FROM item_purchases WHERE purchase_id = ?)";
+    
+    $stmt = $conn->prepare($sql);
+    if ($stmt) {
+        $stmt->bind_param("i", $purchase_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        
+        if ($result && $row = $result->fetch_assoc()) {
+            $purchased_quantity = $row['total_purchased'];
+            
+            // Get the total original quantity for this item from all purchases
+            $sql2 = "SELECT COALESCE(SUM(quantity), 0) as total_stock 
+                     FROM item_purchases 
+                     WHERE item_id = (SELECT item_id FROM item_purchases WHERE purchase_id = ?)";
+            
+            $stmt2 = $conn->prepare($sql2);
+            if ($stmt2) {
+                $stmt2->bind_param("i", $purchase_id);
+                $stmt2->execute();
+                $result2 = $stmt2->get_result();
+                
+                if ($result2 && $row2 = $result2->fetch_assoc()) {
+                    $total_stock = $row2['total_stock'];
+                    
+                    // Calculate proportional remaining quantity for this specific purchase
+                    if ($total_stock > 0) {
+                        $remaining_total = max(0, $total_stock - $purchased_quantity);
+                        $proportion = $original_quantity / $total_stock;
+                        return max(0, round($remaining_total * $proportion));
+                    }
+                }
+            }
+        }
+    }
+    
+    // If no sales table or query fails, return original quantity
+    // You can modify this logic based on your actual database structure
+    return $original_quantity;
+}
+
 // Function to get all purchases with item and supplier details
 function getPurchaseDetails($conn, $start_date = '', $end_date = '', $supplier_filter = '', $item_filter = '') {
     $sql = "SELECT 
@@ -142,6 +190,8 @@ function getPurchaseDetails($conn, $start_date = '', $end_date = '', $supplier_f
     
     if ($result && $result->num_rows > 0) {
         while($row = $result->fetch_assoc()) {
+            // Calculate current quantity for each purchase
+            $row['current_quantity'] = getCurrentQuantity($conn, $row['purchase_id'], $row['quantity']);
             $purchases[] = $row;
         }
     }
@@ -344,6 +394,34 @@ $purchases = getPurchaseDetails($conn, $start_date, $end_date, $supplier_filter,
             color: #6c757d;
         }
         
+        .quantity-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            display: inline-block;
+        }
+        
+        .qty-high {
+            background-color: rgba(40, 167, 69, 0.1);
+            color: #28a745;
+        }
+        
+        .qty-medium {
+            background-color: rgba(255, 193, 7, 0.1);
+            color: #ffc107;
+        }
+        
+        .qty-low {
+            background-color: rgba(255, 71, 87, 0.1);
+            color: #ff4757;
+        }
+        
+        .qty-out {
+            background-color: rgba(108, 117, 125, 0.1);
+            color: #6c757d;
+        }
+        
         .alert {
             border-radius: 8px;
             padding: 15px;
@@ -466,8 +544,8 @@ $purchases = getPurchaseDetails($conn, $start_date, $end_date, $supplier_filter,
                         <th style="font-size: 12px; font-weight: bold;"><i class="far fa-calendar me-1"></i> Purchase Date</th>
                         <th style="font-size: 13.5px; font-weight: bold;"><i class="fas fa-box me-1"></i> Item Name</th>
                         <th style="font-size: 13.5px; font-weight: bold;"><i class="fas fa-truck me-1"></i> Supplier</th>
-                        
-                        <th style="font-size: 12px; font-weight: bold;"><i class="fas fa-cubes me-1"></i> Quantity (Unit)</th>
+                        <th style="font-size: 12px; font-weight: bold;"><i class="fas fa-cubes me-1"></i> Original Qty</th>
+                        <th style="font-size: 12px; font-weight: bold;"><i class="fas fa-warehouse me-1"></i> Current Qty</th>
                         <th style="font-size: 12px; font-weight: bold;"><i class="fas fa-tag me-1"></i> Price/Unit</th>
                         <th style="font-size: 12px; font-weight: bold;"><i class="fas fa-money-bill-wave me-1"></i> Total Price</th>
                         <th style="font-size: 12px; font-weight: bold;"><i class="fas fa-hourglass-end me-1"></i> Expire Date</th>
@@ -477,6 +555,7 @@ $purchases = getPurchaseDetails($conn, $start_date, $end_date, $supplier_filter,
                 <tbody>
                     <?php 
                     $totalQuantity = 0;
+                    $totalCurrentQuantity = 0;
                     $totalAmount = 0;
                     
                     foreach($purchases as $purchase): 
@@ -507,15 +586,35 @@ $purchases = getPurchaseDetails($conn, $start_date, $end_date, $supplier_filter,
                             $statusClass = 'status-none';
                         }
                         
+                        // Determine quantity status
+                        $currentQty = $purchase['current_quantity'];
+                        $originalQty = $purchase['quantity'];
+                        $qtyPercentage = $originalQty > 0 ? ($currentQty / $originalQty) * 100 : 0;
+                        
+                        if ($currentQty == 0) {
+                            $qtyClass = 'qty-out';
+                        } elseif ($qtyPercentage <= 25) {
+                            $qtyClass = 'qty-low';
+                        } elseif ($qtyPercentage <= 50) {
+                            $qtyClass = 'qty-medium';
+                        } else {
+                            $qtyClass = 'qty-high';
+                        }
+                        
                         $totalQuantity += $purchase['quantity'];
+                        $totalCurrentQuantity += $purchase['current_quantity'];
                         $totalAmount += $purchase['total_price'];
                     ?>
                     <tr class="<?php echo $rowClass; ?> animate__animated animate__fadeIn">
                         <td style="font-size: 17px;"><?php echo date('d M Y', strtotime($purchase['purchase_date'])); ?></td>
                         <td style="font-size: 17px;"><?php echo $purchase['item_name']; ?></td>
                         <td style="font-size: 17px;"><?php echo $purchase['supplier_name']; ?></td>
-                        
                         <td style="font-size: 17px;"><?php echo $purchase['quantity'] . ' ' . $purchase['unit']; ?></td>
+                        <td style="font-size: 17px;">
+                            <span class="quantity-badge <?php echo $qtyClass; ?>">
+                                <?php echo $purchase['current_quantity'] . ' ' . $purchase['unit']; ?>
+                            </span>
+                        </td>
                         <td style="font-size: 17px;">Rs.<?php echo number_format($purchase['price_per_unit'], 2); ?></td>
                         <td style="font-size: 17px;">Rs.<?php echo number_format($purchase['total_price'], 2); ?></td>
                         <td style="font-size: 17px;"><?php echo !empty($purchase['expire_date']) ? date('d M Y', strtotime($purchase['expire_date'])) : 'N/A'; ?></td>
@@ -527,6 +626,7 @@ $purchases = getPurchaseDetails($conn, $start_date, $end_date, $supplier_filter,
                     <tr class="total-row animate__animated animate__fadeIn">
                         <td colspan="3" class="text-end"><strong>Total:</strong></td>
                         <td><strong><?php echo $totalQuantity; ?></strong></td>
+                        <td><strong><?php echo $totalCurrentQuantity; ?></strong></td>
                         <td></td>
                         <td><strong>Rs.<?php echo number_format($totalAmount, 2); ?></strong></td>
                         <td colspan="2"></td>
@@ -628,50 +728,6 @@ $purchases = getPurchaseDetails($conn, $start_date, $end_date, $supplier_filter,
 
             // Clear hidden ID field when user clears the text input
             $("#supplier_name").on('input', function() {
-                if ($(this).val() === '') {
-                    $("#supplier_id").val('');
-                }
-            });
-
-            // Initialize autocomplete for item
-            $("#item_name").autocomplete({
-                source: function(request, response) {
-                    $.get({
-                        url: window.location.href,
-                        data: { 
-                            search_term: request.term,
-                            type: 'item'
-                        },
-                        dataType: "json",
-                        success: function(data) {
-                            response($.map(data, function(item) {
-                                return {
-                                    label: item.name,
-                                    value: item.name,
-                                    id: item.id
-                                };
-                            }));
-                        }
-                    });
-                },
-                minLength: 2,
-                select: function(event, ui) {
-                    $("#item_id").val(ui.item.id);
-                    $("#item_name").val(ui.item.label);
-                    return false;
-                },
-                focus: function(event, ui) {
-                    $("#item_name").val(ui.item.label);
-                    return false;
-                }
-            }).data("ui-autocomplete")._renderItem = function(ul, item) {
-                return $("<li>")
-                    .append("<div><i class='fas fa-box-open me-2'></i>" + item.label + "</div>")
-                    .appendTo(ul);
-            };
-
-            // Clear hidden ID field when user clears the text input
-            $("#item_name").on('input', function() {
                 if ($(this).val() === '') {
                     $("#item_id").val('');
                 }
