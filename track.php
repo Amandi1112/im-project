@@ -105,7 +105,27 @@ $summary = getSummaryData($db);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inventory Management - Tabbed View</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
     <style>
+        :root {
+            --primary-color: rgb(64, 86, 137);
+            --primary-light: rgba(10, 36, 99, 0.1);
+            --secondary-color: #3e92cc;
+            --accent-color: #2ecc71;
+            --danger-color: #ff6b6b;
+            --warning-color: #ffbe0b;
+            --text-main: rgb(0, 0, 0);
+            --text-secondary: #6c757d;
+            --background-light: rgba(255, 255, 255, 0.98);
+            --shadow-light: 0 4px 20px rgba(0, 0, 0, 0.08);
+            --shadow-medium: 0 8px 30px rgba(0, 0, 0, 0.12);
+            --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            --border-radius: 12px;
+            --gradient-primary: linear-gradient(135deg, var(--primary-color), #3a0ca3);
+        }
         * {
             margin: 0;
             padding: 0;
@@ -113,10 +133,14 @@ $summary = getSummaryData($db);
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Poppins', sans-serif;
+            color: var(--text-main);
+            background: linear-gradient(135deg, rgb(208, 212, 232) 0%, rgb(223, 245, 254) 100%);
+            background-image: radial-gradient(circle at 10% 20%, rgba(234, 249, 249, 0.67) 0%, rgba(239, 249, 251, 0.63) 90%);
+            line-height: 1.6;
             min-height: 100vh;
-            padding: 20px;
+            position: relative;
+            padding: 20px 0;
         }
 
         .container {
@@ -154,16 +178,36 @@ $summary = getSummaryData($db);
         }
 
         .summary-card {
-            background: white;
-            padding: 25px;
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+           background: white;
+            padding: 30px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-light);
             text-align: center;
-            transition: transform 0.3s ease;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+                .summary-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--accent-color);
+            transform: scaleX(0);
+            transition: var(--transition);
         }
 
         .summary-card:hover {
-            transform: translateY(-5px);
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-medium);
+        }
+
+        .summary-card:hover::before {
+            transform: scaleX(1);
         }
 
         .summary-card h3 {
@@ -257,30 +301,36 @@ $summary = getSummaryData($db);
         }
 
         .search-box {
-            margin: 25px 30px 0;
-            position: relative;
+              position: relative;
+            max-width: 500px;
+            margin: 30px auto;
+            padding: 0 30px;
         }
 
-        .search-box input {
+       .search-box input {
             width: 100%;
             padding: 15px 50px 15px 20px;
-            border: 2px solid #e0e0e0;
-            border-radius: 25px;
-            font-size: 16px;
-            transition: border-color 0.3s ease;
+            border: 2px solid transparent;
+            border-radius: 50px;
+            font-size: 1rem;
+            background: white;
+            box-shadow: var(--shadow-light);
+            transition: var(--transition);
         }
 
         .search-box input:focus {
             outline: none;
-            border-color: #3498db;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px var(--primary-light);
         }
 
         .search-icon {
             position: absolute;
-            right: 20px;
+            right: 50px;
             top: 50%;
             transform: translateY(-50%);
-            color: #bdc3c7;
+            color: var(--text-secondary);
+            font-size: 1.2rem;
         }
 
         .table-container {
@@ -294,7 +344,6 @@ $summary = getSummaryData($db);
             width: 100%;
             border-collapse: collapse;
             background: white;
-            table-layout: fixed;
         }
 
         th {
@@ -306,13 +355,14 @@ $summary = getSummaryData($db);
             position: sticky;
             top: 0;
             z-index: 10;
+            white-space: nowrap;
         }
 
         td {
             padding: 15px;
             border-bottom: 1px solid #ecf0f1;
             transition: background-color 0.3s ease;
-            word-wrap: break-word;
+            vertical-align: top;
         }
 
         tr:hover td {
@@ -326,7 +376,7 @@ $summary = getSummaryData($db);
             font-weight: bold;
             text-transform: uppercase;
             display: inline-block;
-            min-width: 100px;
+            min-width: 80px;
             text-align: center;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
@@ -349,11 +399,18 @@ $summary = getSummaryData($db);
         .quantity-cell {
             font-weight: bold;
             font-size: 1.1em;
+            text-align: center;
         }
 
         .price-cell {
             color: #27ae60;
             font-weight: bold;
+            text-align: right;
+        }
+
+        .unit-cell {
+            text-align: center;
+            font-weight: 500;
         }
 
         .no-data {
@@ -398,12 +455,23 @@ $summary = getSummaryData($db);
             padding: 10px;
             border-radius: 5px;
             margin-top: 5px;
+            font-size: 0.9em;
         }
 
         .available-details {
             color: #27ae60;
             font-weight: 500;
+            font-size: 0.9em;
         }
+
+        /* Fixed column widths for better alignment */
+        .col-status { width: 120px; }
+        .col-name { width: auto; min-width: 200px; }
+        .col-quantity { width: 100px; }
+        .col-unit { width: 80px; }
+        .col-price { width: 120px; }
+        .col-supplier { width: 180px; }
+        .col-details { width: 220px; }
 
         @media (max-width: 768px) {
             .summary-cards {
@@ -423,6 +491,7 @@ $summary = getSummaryData($db);
             th, td {
                 padding: 10px 8px;
             }
+            
         }
     </style>
 </head>
@@ -476,55 +545,41 @@ $summary = getSummaryData($db);
             
             <div class="table-container">
                 <table id="availableTable">
-                    <colgroup>
-    <col style="width: 100px"> <!-- Status -->
-   
-    <col> <!-- Item Name -->
-    <col style="width: 120px"> <!-- Quantity -->
-    <col style="width: 80px"> <!-- Unit -->
-    <col style="width: 120px"> <!-- Price -->
-    <col> <!-- Supplier -->
-    <col> <!-- Details -->
-</colgroup>
                     <thead>
-    <tr>
-        <th>Status</th>
-    
-        <th>Item Name</th>
-        <th>Quantity</th>
-        <th>Unit</th>
-        <th>Price</th>
-        <th>Supplier</th>
-        <th>Details</th>
-    </tr>
-</thead>
+                        <tr>
+                            <th class="col-status" style="width:1px;"></th>
+                            <th class="col-name">Status</th>
+                            <th class="col-quantity">Item Name</th>
+                            <th class="col-unit">Quantity</th>
+                            <th class="col-price">Unit</th>
+                            <th class="col-supplier">Price</th>
+                            <th class="col-details">Supplier</th>
+                            <th class="col-code">Details</th>
+                        </tr>
+                    </thead>
                     <tbody>
                         <?php if (empty($availableItems)): ?>
                             <tr><td colspan="7" class="no-data">No available items found</td></tr>
                         <?php else: ?>
                             <?php foreach ($availableItems as $item): ?>
-    <tr class="available-row">
-        <td>
-            <?php if ($item['status'] === 'available'): ?>
-                <span class="status-badge status-available"><?= ucfirst($item['status']) ?></span>
-            <?php else: ?>
-                <span class="status-badge status-low"><?= ucfirst($item['status']) ?></span>
-            <?php endif; ?>
-        </td>
-        
-        <td><?= htmlspecialchars($item['item_name']) ?></td>
-        <td class="quantity-cell"><?= number_format($item['current_quantity']) ?></td>
-        <td><?= strtoupper($item['unit']) ?></td>
-        <td class="price-cell">Rs. <?= number_format($item['price_per_unit'], 2) ?></td>
-        <td><?= htmlspecialchars($item['supplier_name'] ?? 'N/A') ?></td>
-        <td>
-            <div class="available-details">
-                <div>✔ Ready to sell</div>
-                <div>Last updated: <?= date('M d, Y') ?></div>
-            </div>
-        </td>
-    </tr>
-<?php endforeach; ?>
+                                <tr class="available-row">
+                                    <td class="col-status">
+                                        <span class="status-badge status-available">Available</span>
+                                    </td>
+                                    <td class="col-name"><?= htmlspecialchars($item['item_name']) ?></td>
+                                    <td class="col-quantity quantity-cell"><?= number_format($item['current_quantity']) ?></td>
+                                    <td class="col-unit unit-cell"><?= strtoupper($item['unit']) ?></td>
+                                    <td class="col-price price-cell">Rs. <?= number_format($item['price_per_unit'], 2) ?></td>
+                                    <td class="col-supplier"><?= htmlspecialchars($item['supplier_name'] ?? 'N/A') ?></td>
+                                    <td class="col-details">
+                                        <div class="available-details">
+                                            <div>✔ Ready to sell</div>
+                                            <div>Code: <?= htmlspecialchars($item['item_code']) ?></div>
+                                            <div>Updated: <?= date('M d, Y') ?></div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
                         <?php endif; ?>
                     </tbody>
                 </table>
@@ -540,24 +595,16 @@ $summary = getSummaryData($db);
             
             <div class="table-container">
                 <table id="soldTable">
-                    <colgroup>
-                        <col style="width: 120px"> <!-- Status -->
-                        <col> <!-- Item Name -->
-                        <col style="width: 120px"> <!-- Quantity -->
-                        <col style="width: 80px"> <!-- Unit -->
-                        <col style="width: 120px"> <!-- Price -->
-                        <col> <!-- Supplier -->
-                        <col> <!-- Details -->
-                    </colgroup>
                     <thead>
                         <tr>
-                            <th>Status</th>
-                            <th>Item Name</th>
-                            <th>Quantity</th>
-                            <th>Unit</th>
-                            <th>Price</th>
-                            <th>Supplier</th>
-                            <th>Details</th>
+                            <th class="col-status" style="width:1px;"></th>
+                            <th class="col-name">Status</th>
+                            <th class="col-quantity">Item Name</th>
+                            <th class="col-unit">Quantity</th>
+                            <th class="col-price">Unit</th>
+                            <th class="col-supplier">Price</th>
+                            <th class="col-details">Supplier</th>
+                            <th class="col-code">Details</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -566,15 +613,15 @@ $summary = getSummaryData($db);
                         <?php else: ?>
                             <?php foreach ($soldItems as $item): ?>
                                 <tr class="sold-row">
-                                    <td>
+                                    <td class="col-status">
                                         <span class="status-badge status-sold">Sold</span>
                                     </td>
-                                    <td><?= htmlspecialchars($item['item_name']) ?></td>
-                                    <td class="quantity-cell"><?= number_format($item['sold_quantity']) ?></td>
-                                    <td><?= strtoupper($item['unit']) ?></td>
-                                    <td class="price-cell">Rs. <?= number_format($item['price_per_unit'], 2) ?></td>
-                                    <td><?= htmlspecialchars($item['supplier_name'] ?? 'N/A') ?></td>
-                                    <td>
+                                    <td class="col-name"><?= htmlspecialchars($item['item_name']) ?></td>
+                                    <td class="col-quantity quantity-cell"><?= number_format($item['sold_quantity']) ?></td>
+                                    <td class="col-unit unit-cell"><?= strtoupper($item['unit']) ?></td>
+                                    <td class="col-price price-cell">Rs. <?= number_format($item['price_per_unit'], 2) ?></td>
+                                    <td class="col-supplier"><?= htmlspecialchars($item['supplier_name'] ?? 'N/A') ?></td>
+                                    <td class="col-details">
                                         <div class="sold-details">
                                             <div><strong>Purchase #<?= $item['purchase_id'] ?></strong></div>
                                             <div>Customer: <?= htmlspecialchars($item['full_name']) ?></div>
@@ -657,4 +704,3 @@ $summary = getSummaryData($db);
         });
     </script>
 </body>
-</html>
