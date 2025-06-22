@@ -801,6 +801,7 @@ $recentActivities = [
                             <ul class="dropdown-menu" aria-labelledby="inventoryDropdown">
                                 <li><a class="dropdown-item" href="display_purchase_details.php" style="font-size: 17px; color:black;"><i class="fas fa-boxes"></i> Current Stock</a></li>
                                 <li><a class="dropdown-item" href="inventory.php" style="font-size: 17px; color:black;"><i class="fas fa-exchange-alt"></i> Safety Stock</a></li>
+                                <li><a class="dropdown-item" href="track.php" style="font-size:17px; color:black;"><i class="fas fa-truck-moving"></i> Track Items</a></li>
                             </ul>
                         </li>
                         <li class="nav-item dropdown">
