@@ -70,68 +70,61 @@ $item_filter = isset($_GET['item_id']) ? $_GET['item_id'] : '';
 $item_name = isset($_GET['item_name']) ? $_GET['item_name'] : '';
 
 // Function to calculate current quantity for an item purchase
-function getCurrentQuantity($conn, $purchase_id, $original_quantity) {
-    // This function calculates remaining quantity after member purchases
-    // Uses the 'purchases' table that tracks quantities purchased by members
-    
+// Function to calculate current quantity for an item across all purchases
+function getCurrentQuantity($conn, $item_id) {
+    // Get total purchased quantity for this item
     $sql = "SELECT COALESCE(SUM(quantity), 0) as total_purchased 
-            FROM purchases 
-            WHERE item_id = (SELECT item_id FROM item_purchases WHERE purchase_id = ?)";
+            FROM item_purchases 
+            WHERE item_id = ?";
     
     $stmt = $conn->prepare($sql);
     if ($stmt) {
-        $stmt->bind_param("i", $purchase_id);
+        $stmt->bind_param("i", $item_id);
         $stmt->execute();
         $result = $stmt->get_result();
         
         if ($result && $row = $result->fetch_assoc()) {
-            $purchased_quantity = $row['total_purchased'];
+            $total_purchased = $row['total_purchased'];
             
-            // Get the total original quantity for this item from all purchases
-            $sql2 = "SELECT COALESCE(SUM(quantity), 0) as total_stock 
-                     FROM item_purchases 
-                     WHERE item_id = (SELECT item_id FROM item_purchases WHERE purchase_id = ?)";
+            // Get total sold/used quantity from member purchases
+            $sql2 = "SELECT COALESCE(SUM(quantity), 0) as total_sold 
+                     FROM purchases 
+                     WHERE item_id = ?";
             
             $stmt2 = $conn->prepare($sql2);
             if ($stmt2) {
-                $stmt2->bind_param("i", $purchase_id);
+                $stmt2->bind_param("i", $item_id);
                 $stmt2->execute();
                 $result2 = $stmt2->get_result();
                 
                 if ($result2 && $row2 = $result2->fetch_assoc()) {
-                    $total_stock = $row2['total_stock'];
-                    
-                    // Calculate proportional remaining quantity for this specific purchase
-                    if ($total_stock > 0) {
-                        $remaining_total = max(0, $total_stock - $purchased_quantity);
-                        $proportion = $original_quantity / $total_stock;
-                        return max(0, round($remaining_total * $proportion));
-                    }
+                    $total_sold = $row2['total_sold'];
+                    return max(0, $total_purchased - $total_sold);
                 }
             }
+            
+            return $total_purchased;
         }
     }
     
-    // If no sales table or query fails, return original quantity
-    // You can modify this logic based on your actual database structure
-    return $original_quantity;
+    return 0;
 }
-
 // Function to get all purchases with item and supplier details
+// Function to get all purchases with item and supplier details (grouped by item)
 function getPurchaseDetails($conn, $start_date = '', $end_date = '', $supplier_filter = '', $item_filter = '') {
     $sql = "SELECT 
-                ip.purchase_id,
-                ip.purchase_date,
-                ip.expire_date,
-                ip.quantity,
-                ip.price_per_unit,
-                ip.total_price,
                 i.item_id,
                 i.item_code,
                 i.item_name,
                 s.supplier_id,
                 s.supplier_name,
-                COALESCE(ip.unit, i.unit) AS unit
+                COALESCE(i.unit, 'pcs') AS unit,
+                SUM(ip.quantity) as total_quantity,
+                AVG(ip.price_per_unit) as avg_price_per_unit,
+                SUM(ip.total_price) as total_price,
+                MIN(ip.purchase_date) as first_purchase_date,
+                MAX(ip.purchase_date) as last_purchase_date,
+                MIN(ip.expire_date) as earliest_expire_date
             FROM 
                 item_purchases ip
             JOIN 
@@ -172,7 +165,8 @@ function getPurchaseDetails($conn, $start_date = '', $end_date = '', $supplier_f
         $sql .= " WHERE " . implode(" AND ", $conditions);
     }
     
-    $sql .= " ORDER BY ip.purchase_date DESC, ip.purchase_id DESC";
+    $sql .= " GROUP BY i.item_id, s.supplier_id
+              ORDER BY MAX(ip.purchase_date) DESC, i.item_name ASC";
     
     $stmt = $conn->prepare($sql);
     
@@ -190,8 +184,15 @@ function getPurchaseDetails($conn, $start_date = '', $end_date = '', $supplier_f
     
     if ($result && $result->num_rows > 0) {
         while($row = $result->fetch_assoc()) {
-            // Calculate current quantity for each purchase
-            $row['current_quantity'] = getCurrentQuantity($conn, $row['purchase_id'], $row['quantity']);
+            // Calculate current quantity for each item
+            $row['current_quantity'] = getCurrentQuantity($conn, $row['item_id']);
+            
+            // Use the last purchase date as the display date
+            $row['purchase_date'] = $row['last_purchase_date'];
+            $row['expire_date'] = $row['earliest_expire_date'];
+            $row['quantity'] = $row['total_quantity'];
+            $row['price_per_unit'] = $row['avg_price_per_unit'];
+            
             $purchases[] = $row;
         }
     }
@@ -541,7 +542,7 @@ $purchases = getPurchaseDetails($conn, $start_date, $end_date, $supplier_filter,
             <table class="table table-hover">
                 <thead>
                     <tr>
-                        <th style="font-size: 12px; font-weight: bold;"><i class="far fa-calendar me-1"></i> Purchase Date</th>
+                        <th style="font-size: 12px; font-weight: bold;"><i class="far fa-calendar me-1"></i> Last Purchase Date</th>
                         <th style="font-size: 13.5px; font-weight: bold;"><i class="fas fa-box me-1"></i> Item Name</th>
                         <th style="font-size: 13.5px; font-weight: bold;"><i class="fas fa-truck me-1"></i> Supplier</th>
                         <th style="font-size: 12px; font-weight: bold;"><i class="fas fa-cubes me-1"></i> Original Qty</th>
@@ -688,6 +689,50 @@ $purchases = getPurchaseDetails($conn, $start_date, $end_date, $supplier_filter,
                     $(this).css('box-shadow', 'none');
                 }
             );
+
+                        // Initialize autocomplete for item (add this after the supplier autocomplete)
+            $("#item_name").autocomplete({
+                source: function(request, response) {
+                    $.get({
+                        url: window.location.href,
+                        data: { 
+                            search_term: request.term,
+                            type: 'item'
+                        },
+                        dataType: "json",
+                        success: function(data) {
+                            response($.map(data, function(item) {
+                                return {
+                                    label: item.name,
+                                    value: item.name,
+                                    id: item.id
+                                };
+                            }));
+                        }
+                    });
+                },
+                minLength: 2,
+                select: function(event, ui) {
+                    $("#item_id").val(ui.item.id);
+                    $("#item_name").val(ui.item.label);
+                    return false;
+                },
+                focus: function(event, ui) {
+                    $("#item_name").val(ui.item.label);
+                    return false;
+                }
+            }).data("ui-autocomplete")._renderItem = function(ul, item) {
+                return $("<li>")
+                    .append("<div><i class='fas fa-box-open me-2'></i>" + item.label + "</div>")
+                    .appendTo(ul);
+            };
+
+            // Clear hidden ID field when user clears the item text input
+            $("#item_name").on('input', function() {
+                if ($(this).val() === '') {
+                    $("#item_id").val('');
+                }
+            });
 
             // Initialize autocomplete for supplier
             $("#supplier_name").autocomplete({

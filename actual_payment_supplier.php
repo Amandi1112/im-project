@@ -181,7 +181,7 @@ if (isset($_GET['generate_invoice'])) {
 
    // Statement title (top right)
    $pdf->SetFont('Arial', 'B', 18);
-   $pdf->Cell(70, 10, 'STATEMENT', 0, 1, 'R');
+   $pdf->Cell(70, 10, 'INVOICE', 0, 1, 'R');
 
    // Company details (left)
    $pdf->SetFont('Arial', '', 10);
@@ -190,7 +190,7 @@ if (isset($_GET['generate_invoice'])) {
 
    // Statement number (right)
    $pdf->SetFont('Arial', '', 10);
-   $pdf->Cell(70, 5, 'STATEMENT #: ' . $invoice_number, 0, 1, 'R');
+   $pdf->Cell(70, 5, 'INVOICE NO #: ' . $invoice_number, 0, 1, 'R');
 
    // More company details
    $pdf->Cell(120, 5, 'Ratnapura, Sri Lanka', 0, 0, 'L');
@@ -203,7 +203,7 @@ if (isset($_GET['generate_invoice'])) {
    // Add a more attractive email display with a mailto link and icon
    $pdf->SetFont('Arial', 'B', 10);
    $pdf->SetTextColor(41, 128, 185); // Vibrant blue for email
-   $pdf->Cell(0, 5, chr(64) . ' co_op@sanasa.com', 0, 0, 'L', false, 'mailto:co_op@sanasa.com');
+   $pdf->Cell(0, 5, chr(64) . ' co_op@sanasa.com', 0, 0, 'R', false, 'mailto:co_op@sanasa.com');
    $pdf->SetFont('Arial', '', 10);
    $pdf->SetTextColor($darkText[0], $darkText[1], $darkText[2]);
    
@@ -282,7 +282,7 @@ if (isset($_GET['generate_invoice'])) {
    $pdf->Cell(30, 8, 'Rs.' . number_format($total_amount, 2), 1, 1, 'R');
    
    $pdf->Cell($leftPadding, 8, '', 0, 0); // Empty cell for spacing
-   $pdf->Cell($summaryWidth - 30, 8, 'Payments Received:', 1, 0, 'R');
+   $pdf->Cell($summaryWidth - 30, 8, 'Payment Amount:', 1, 0, 'R');
    $pdf->Cell(30, 8, 'Rs.' . number_format($total_payments, 2), 1, 1, 'R');
    
    // Balance due - highlighted
