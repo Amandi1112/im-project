@@ -15,29 +15,55 @@ class MemberManager {
     }
 
     // Get total number of members
-    // Replace your getTotalMembers method with this:
-public function getTotalMembers($searchTerm = '', $filterColumn = '', $filterValue = '') {
-    $whereClause = $this->buildWhereClause($searchTerm, $filterColumn, $filterValue);
-    
-    $sql = "SELECT COUNT(*) as total FROM members {$whereClause}";
-    $stmt = $this->conn->prepare($sql);
-    
-    if (!empty($searchTerm)) {
-        $searchParam = "%{$searchTerm}%";
-        $stmt->bindValue(':search1', $searchParam, PDO::PARAM_STR);
-        $stmt->bindValue(':search2', $searchParam, PDO::PARAM_STR);
-        $stmt->bindValue(':search3', $searchParam, PDO::PARAM_STR);
-        $stmt->bindValue(':search4', $searchParam, PDO::PARAM_STR);
-        $stmt->bindValue(':search5', $searchParam, PDO::PARAM_STR);
+    public function getTotalMembers($searchTerm = '', $filterColumn = '', $filterValue = '') {
+        $whereClause = $this->buildWhereClause($searchTerm, $filterColumn, $filterValue);
+        
+        $sql = "SELECT COUNT(*) as total FROM members {$whereClause}";
+        $stmt = $this->conn->prepare($sql);
+        
+        if (!empty($searchTerm)) {
+            $searchParam = "%{$searchTerm}%";
+            $stmt->bindValue(':search1', $searchParam, PDO::PARAM_STR);
+            $stmt->bindValue(':search2', $searchParam, PDO::PARAM_STR);
+            $stmt->bindValue(':search3', $searchParam, PDO::PARAM_STR);
+            $stmt->bindValue(':search4', $searchParam, PDO::PARAM_STR);
+            $stmt->bindValue(':search5', $searchParam, PDO::PARAM_STR);
+        }
+        
+        if (!empty($filterColumn) && !empty($filterValue)) {
+            $stmt->bindValue(':filter', $filterValue);
+        }
+        
+        $stmt->execute();
+        return $stmt->fetch(PDO::FETCH_ASSOC)['total'];
     }
-    
-    if (!empty($filterColumn) && !empty($filterValue)) {
-        $stmt->bindValue(':filter', $filterValue);
-    }
-    
-    $stmt->execute();
-    return $stmt->fetch(PDO::FETCH_ASSOC)['total'];
-}
+
+    // Calculate current credit balance for a member
+        public function calculateCreditBalance($memberId) {
+            $stmt = $this->conn->prepare("
+                SELECT SUM(total_price) as total_purchases 
+                FROM purchases 
+                WHERE member_id = :member_id
+            ");
+            $stmt->bindParam(':member_id', $memberId, PDO::PARAM_STR);
+            $stmt->execute();
+            
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            $totalPurchases = $result['total_purchases'] ?? 0;
+            
+            return $totalPurchases;
+        }
+
+        // Get member with calculated credit balance
+        public function getMemberWithCreditBalance($id) {
+            $member = $this->getMemberById($id);
+            if ($member) {
+                $creditUsed = $this->calculateCreditBalance($id);
+                $member['credit_used'] = $creditUsed;
+                $member['available_credit'] = $member['credit_limit'] - $creditUsed;
+            }
+            return $member;
+        }
 
     // Build dynamic WHERE clause for search and filter
     private function buildWhereClause($searchTerm = '', $filterColumn = '', $filterValue = '') {
@@ -61,46 +87,52 @@ public function getTotalMembers($searchTerm = '', $filterColumn = '', $filterVal
     }
 
     // Fetch members with pagination and search
-    public function getMembers($page = 1, $perPage = 10, $searchTerm = '', $filterColumn = '', $filterValue = '', $sortColumn = 'id', $sortOrder = 'DESC') {
-        $allowedColumns = ['id', 'full_name', 'age', 'monthly_income', 'registration_date'];
-        $sortColumn = in_array($sortColumn, $allowedColumns) ? $sortColumn : 'id';
-        $sortOrder = strtoupper($sortOrder) === 'ASC' ? 'ASC' : 'DESC';
-        
-        $offset = ($page - 1) * $perPage;
-        $whereClause = $this->buildWhereClause($searchTerm, $filterColumn, $filterValue);
-        
-        $sql = "
-            SELECT
-                id, full_name, bank_membership_number,
-                address, nic, date_of_birth, age, telephone_number,
-                occupation, monthly_income, credit_limit, registration_date
-            FROM members
-            {$whereClause}
-            ORDER BY {$sortColumn} {$sortOrder}
-            LIMIT :limit OFFSET :offset
-        ";
-        
-        $stmt = $this->conn->prepare($sql);
-        
-        if (!empty($searchTerm)) {
-            $searchParam = "%{$searchTerm}%";
-            $stmt->bindValue(':search1', $searchParam, PDO::PARAM_STR);
-            $stmt->bindValue(':search2', $searchParam, PDO::PARAM_STR);
-            $stmt->bindValue(':search3', $searchParam, PDO::PARAM_STR);
-            $stmt->bindValue(':search4', $searchParam, PDO::PARAM_STR);
-            $stmt->bindValue(':search5', $searchParam, PDO::PARAM_STR);
+            public function getMembers($page = 1, $perPage = 10, $searchTerm = '', $filterColumn = '', $filterValue = '', $sortColumn = 'id', $sortOrder = 'DESC') {
+            $allowedColumns = ['id', 'full_name', 'age', 'monthly_income', 'registration_date'];
+            $sortColumn = in_array($sortColumn, $allowedColumns) ? $sortColumn : 'id';
+            $sortOrder = strtoupper($sortOrder) === 'ASC' ? 'ASC' : 'DESC';
+            
+            $offset = ($page - 1) * $perPage;
+            $whereClause = $this->buildWhereClause($searchTerm, $filterColumn, $filterValue);
+            
+            $sql = "
+                SELECT
+                    m.id, m.full_name, m.bank_membership_number,
+                    m.address, m.nic, m.date_of_birth, m.age, m.telephone_number,
+                    m.occupation, m.monthly_income, m.credit_limit, m.registration_date,
+                    COALESCE(SUM(p.total_price), 0) as credit_used,
+                    (m.credit_limit - COALESCE(SUM(p.total_price), 0)) as available_credit
+                FROM members m
+                LEFT JOIN purchases p ON m.id = p.member_id
+                {$whereClause}
+                GROUP BY m.id, m.full_name, m.bank_membership_number, m.address, m.nic, 
+                        m.date_of_birth, m.age, m.telephone_number, m.occupation, 
+                        m.monthly_income, m.credit_limit, m.registration_date
+                ORDER BY m.{$sortColumn} {$sortOrder}
+                LIMIT :limit OFFSET :offset
+            ";
+            
+            $stmt = $this->conn->prepare($sql);
+            
+            if (!empty($searchTerm)) {
+                $searchParam = "%{$searchTerm}%";
+                $stmt->bindValue(':search1', $searchParam, PDO::PARAM_STR);
+                $stmt->bindValue(':search2', $searchParam, PDO::PARAM_STR);
+                $stmt->bindValue(':search3', $searchParam, PDO::PARAM_STR);
+                $stmt->bindValue(':search4', $searchParam, PDO::PARAM_STR);
+                $stmt->bindValue(':search5', $searchParam, PDO::PARAM_STR);
+            }
+            
+            if (!empty($filterColumn) && !empty($filterValue)) {
+                $stmt->bindValue(':filter', $filterValue);
+            }
+            
+            $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
+            $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+            
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
-        
-        if (!empty($filterColumn) && !empty($filterValue)) {
-            $stmt->bindValue(':filter', $filterValue);
-        }
-        
-        $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
-        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-        
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
 
     // Export members to PDF
     public function exportMembersToPdf($searchTerm = '', $filterColumn = '', $filterValue = '') {
@@ -146,7 +178,6 @@ public function getTotalMembers($searchTerm = '', $filterColumn = '', $filterVal
 
     // Get member by ID
     public function getMemberById($id) {
-        // Use proper parameter binding and make sure we're strictly matching by ID
         $stmt = $this->conn->prepare("SELECT * FROM members WHERE id = :id LIMIT 1");
         $stmt->bindParam(':id', $id, PDO::PARAM_STR);
         $stmt->execute();
@@ -154,44 +185,42 @@ public function getTotalMembers($searchTerm = '', $filterColumn = '', $filterVal
     }
 
     // Update member details
-    public function updateMember($id, $data) {
-        // Calculate new age based on updated date of birth
-        $birthdate = new DateTime($data['date_of_birth']);
-        $today = new DateTime('today');
-        $age = $today->diff($birthdate)->y;
-    
-        $stmt = $this->conn->prepare("
-            UPDATE members SET
-                full_name = :full_name,
-                bank_membership_number = :bank_membership_number,
-                address = :address,
-                nic = :nic,
-                date_of_birth = :date_of_birth,
-                age = :age,
-                telephone_number = :telephone_number,
-                occupation = :occupation,
-                monthly_income = :monthly_income,
-                credit_limit = :credit_limit
-            WHERE id = :id LIMIT 1
-        ");
-    
-        $stmt->bindParam(':id', $id, PDO::PARAM_STR);
-        $stmt->bindParam(':full_name', $data['full_name'], PDO::PARAM_STR);
-        $stmt->bindParam(':bank_membership_number', $data['bank_membership_number'], PDO::PARAM_STR);
-        $stmt->bindParam(':address', $data['address'], PDO::PARAM_STR);
-        $stmt->bindParam(':nic', $data['nic'], PDO::PARAM_STR);
-        $stmt->bindParam(':date_of_birth', $data['date_of_birth'], PDO::PARAM_STR);
-        $stmt->bindParam(':age', $age, PDO::PARAM_INT);
-        $stmt->bindParam(':telephone_number', $data['telephone_number'], PDO::PARAM_STR);
-        $stmt->bindParam(':occupation', $data['occupation'], PDO::PARAM_STR);
-        $stmt->bindParam(':monthly_income', $data['monthly_income'], PDO::PARAM_STR);
-        $stmt->bindParam(':credit_limit', $data['credit_limit'], PDO::PARAM_STR);
-    
-        return $stmt->execute();
-    }
+        // Update the existing updateMember method to remove credit_limit parameter
+                public function updateMember($id, $data) {
+            $birthdate = new DateTime($data['date_of_birth']);
+            $today = new DateTime('today');
+            $age = $today->diff($birthdate)->y;
+
+            $stmt = $this->conn->prepare("
+                UPDATE members SET
+                    full_name = :full_name,
+                    bank_membership_number = :bank_membership_number,
+                    address = :address,
+                    nic = :nic,
+                    date_of_birth = :date_of_birth,
+                    age = :age,
+                    telephone_number = :telephone_number,
+                    occupation = :occupation,
+                    monthly_income = :monthly_income
+                WHERE id = :id LIMIT 1
+            ");
+
+            $stmt->bindParam(':id', $id, PDO::PARAM_STR);
+            $stmt->bindParam(':full_name', $data['full_name'], PDO::PARAM_STR);
+            $stmt->bindParam(':bank_membership_number', $data['bank_membership_number'], PDO::PARAM_STR);
+            $stmt->bindParam(':address', $data['address'], PDO::PARAM_STR);
+            $stmt->bindParam(':nic', $data['nic'], PDO::PARAM_STR);
+            $stmt->bindParam(':date_of_birth', $data['date_of_birth'], PDO::PARAM_STR);
+            $stmt->bindParam(':age', $age, PDO::PARAM_INT);
+            $stmt->bindParam(':telephone_number', $data['telephone_number'], PDO::PARAM_STR);
+            $stmt->bindParam(':occupation', $data['occupation'], PDO::PARAM_STR);
+            $stmt->bindParam(':monthly_income', $data['monthly_income'], PDO::PARAM_STR);
+
+            return $stmt->execute();
+        }
+
     // Delete member by ID
     public function deleteMember($id) {
-        // Add LIMIT 1 to ensure only one record is deleted
         $stmt = $this->conn->prepare("DELETE FROM members WHERE id = :id LIMIT 1");
         $stmt->bindParam(':id', $id, PDO::PARAM_STR);
         return $stmt->execute();
@@ -206,7 +235,7 @@ try {
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $memberManager = new MemberManager($pdo);
 
-    // PDF Export Handler
+    // PDF Export Handler - PROFESSIONAL VERSION
     if (isset($_GET['export']) && $_GET['export'] === 'pdf') {
         $searchTerm = $_GET['search'] ?? '';
         $filterColumn = $_GET['filter_column'] ?? '';
@@ -214,120 +243,188 @@ try {
 
         $members = $memberManager->exportMembersToPdf($searchTerm, $filterColumn, $filterValue);
 
-        // Create PDF with professional design in landscape
-$pdf = new FPDF('L','mm','A4');
-$pdf->AddPage();
+        // Create Professional PDF with Corporate Design
+        $pdf = new FPDF('L','mm','A4');
+        $pdf->AddPage();
+        $pdf->SetAutoPageBreak(true, 20);
 
-// ========== COLOR SCHEME (Same as invoice) ========== //
-$primaryColor = array(102, 126, 234);   // #667eea
-$primaryDark = array(90, 103, 216);    // #5a67d8
-$secondaryColor = array(237, 242, 247); // #edf2f7
-$dangerColor = array(229, 62, 62);      // #e53e3e
-$successColor = array(72, 187, 120);    // #48bb78
-$warningColor = array(237, 137, 54);    // #ed8936
-$infoColor = array(66, 153, 225);       // #4299e1
-$lightColor = array(247, 250, 252);     // #f7fafc
-$darkColor = array(45, 55, 72);         // #2d3748
-$grayColor = array(113, 128, 150);      // #718096
-$grayLight = array(226, 232, 240);      // #e2e8f0
+        // ========== PROFESSIONAL COLOR SCHEME ========== //
+        $corporateBlue = array(23, 37, 84);      // #172554 - Deep professional blue
+        $accentBlue = array(59, 130, 246);       // #3B82F6 - Modern blue accent
+        $lightBlue = array(239, 246, 255);       // #EFF6FF - Very light blue
+        $darkGray = array(31, 41, 55);           // #1F2937 - Professional dark gray
+        $mediumGray = array(107, 114, 128);      // #6B7280 - Medium gray
+        $lightGray = array(243, 244, 246);       // #F3F4F6 - Light gray background
+        $successGreen = array(16, 185, 129);     // #10B981 - Professional green
+        $warningOrange = array(245, 158, 11);    // #F59E0B - Professional orange
 
-// ========== HEADER SECTION ========== //
-// Header with primary color background
-$pdf->SetFillColor($primaryColor[0], $primaryColor[1], $primaryColor[2]);
-$pdf->Rect(10, 10, 277, 20, 'F');
+        // ========== HEADER SECTION WITH LOGO SPACE ========== //
+        // Main header background with gradient effect
+        $pdf->SetFillColor($corporateBlue[0], $corporateBlue[1], $corporateBlue[2]);
+        $pdf->Rect(10, 10, 277, 35, 'F');
+        
+        // Logo placeholder (you can add actual logo here)
+        $pdf->SetFillColor(255, 255, 255);
+        $pdf->Rect(15, 15, 25, 25, 'F');
+        $pdf->SetTextColor($corporateBlue[0], $corporateBlue[1], $corporateBlue[2]);
+        $pdf->SetFont('Arial','B',14);
+        $pdf->SetXY(15, 25);
+        $pdf->Cell(25, 8, 'LOGO', 0, 0, 'C');
 
-// Shop name
-$pdf->SetTextColor(255);
-$pdf->SetFont('Helvetica','B',16);
-$pdf->SetXY(15, 12);
-$pdf->Cell(0,8,'Pahala Karawita, Karawita, Ratnapura, Sri Lanka',0,1,'L');
+        // Organization name and details
+        $pdf->SetTextColor(255, 255, 255);
+        $pdf->SetFont('Arial','B',18);
+        $pdf->SetXY(45, 15);
+        $pdf->Cell(0, 8, 'PAHALA KARAWITA COOPERATIVE SOCIETY', 0, 1, 'L');
+        
+        $pdf->SetFont('Arial','',11);
+        $pdf->SetXY(45, 23);
+        $pdf->Cell(0, 5, 'Karawita, Ratnapura, Sri Lanka', 0, 1, 'L');
+        
+        $pdf->SetFont('Arial','',10);
+        $pdf->SetXY(45, 28);
+        $pdf->Cell(0, 4, 'Tel: +94 11 2345678 | Email: co_op@sanasa.com | Reg No: CO-OP/2024/001', 0, 1, 'L');
+        
+        $pdf->SetFont('Arial','',9);
+        $pdf->SetXY(45, 33);
+        $pdf->Cell(0, 4, 'Established 1995 | Licensed by Department of Cooperative Development', 0, 1, 'L');
 
-// Report info box
-$pdf->SetFillColor($primaryDark[0], $primaryDark[1], $primaryDark[2]);
-$pdf->Rect(200, 12, 80, 16, 'F');
-$pdf->SetFont('Helvetica','B',12);
-$pdf->SetXY(200, 12);
-$pdf->Cell(80,8,'MEMBERS LIST',0,1,'C');
-$pdf->SetFont('Helvetica','',10);
-$pdf->SetXY(200, 18);
-$pdf->Cell(80,6,date('F j, Y'),0,1,'C');
+        // Report title box with modern design
+        $pdf->SetFillColor($accentBlue[0], $accentBlue[1], $accentBlue[2]);
+        $pdf->Rect(200, 12, 82, 31, 'F');
+        
+        $pdf->SetTextColor(255, 255, 255);
+        $pdf->SetFont('Arial','B',14);
+        $pdf->SetXY(200, 16);
+        $pdf->Cell(82, 8, 'MEMBERS DIRECTORY', 0, 1, 'C');
+        
+        $pdf->SetFont('Arial','',10);
+        $pdf->SetXY(200, 24);
+        $pdf->Cell(82, 5, 'Generated: ' . date('F j, Y'), 0, 1, 'C');
+        $pdf->SetXY(200, 29);
+        $pdf->Cell(82, 5, 'Time: ' . date('g:i A'), 0, 1, 'C');
+        $pdf->SetXY(200, 34);
+        $pdf->Cell(82, 5, 'Total Records: ' . count($members), 0, 1, 'C');
 
-// Shop contact info
-$pdf->SetTextColor(255);
-$pdf->SetFont('Helvetica','',9);
-$pdf->SetXY(15, 22);
-$pdf->Cell(0,5,'Karawita | Tel: +94 11 2345678 | Email:  co_op@sanasa.com',0,1,'L');
+        // ========== REPORT SUMMARY SECTION ========== //
+        // ========== PROFESSIONAL TABLE SECTION ========== //
+        $pdf->SetY(50);
 
-// ========== TABLE SECTION ========== //
-$pdf->SetY(40);
+        // Professional column widths for landscape A4
+        $colWidths = [
+            'coop_no' => 20,
+            'name' => 28,
+            'nic' => 28,
+            'address' => 45,
+            'phone' => 25,
+            'age' => 12,
+            'occupation' => 30,
+            'income' => 28,
+            'credit' => 28,
+            'reg_date' => 24
+        ];
 
-// Column widths (total width ~280mm for landscape A4)
-$colWidths = [
-    'name' => 40,
-    'bank' => 15,
-    'coop' => 20,
-    'address' => 45,
-    'nic' => 25,
-    'age' => 10,
-    'phone' => 25,
-    'occupation' => 20,
-    'income' => 25,
-    'credit_limit' => 25,
-    'reg_date' => 30
-];
+        // Table header with professional styling
+        $pdf->SetFont('Arial','B',9);
+        $pdf->SetFillColor($corporateBlue[0], $corporateBlue[1], $corporateBlue[2]);
+        $pdf->SetTextColor(255, 255, 255);
+        
+        // Header row
+        $pdf->Cell($colWidths['coop_no'], 10, 'RegNo.', 1, 0, 'C', true);
+        $pdf->Cell($colWidths['name'], 10, 'Full Name', 1, 0, 'C', true);
+        $pdf->Cell($colWidths['nic'], 10, 'NIC Number', 1, 0, 'C', true);
+        $pdf->Cell($colWidths['address'], 10, 'Address', 1, 0, 'C', true);
+        $pdf->Cell($colWidths['phone'], 10, 'Contact No.', 1, 0, 'C', true);
+        $pdf->Cell($colWidths['age'], 10, 'Age', 1, 0, 'C', true);
+        $pdf->Cell($colWidths['occupation'], 10, 'Occupation', 1, 0, 'C', true);
+        $pdf->Cell($colWidths['income'], 10, 'Monthly Income', 1, 0, 'C', true);
+        $pdf->Cell($colWidths['credit'], 10, 'Credit Limit', 1, 0, 'C', true);
+        $pdf->Cell($colWidths['reg_date'], 10, 'Reg. Date', 1, 1, 'C', true);
 
-// Table header with primary color
-$pdf->SetFont('Helvetica','B',10);
-$pdf->SetFillColor($primaryColor[0], $primaryColor[1], $primaryColor[2]);
-$pdf->SetTextColor(255);
-$pdf->Cell($colWidths['name'], 8, 'Full Name', 1, 0, 'C', true);
-$pdf->Cell($colWidths['bank'], 8, 'Bank ID', 1, 0, 'C', true);
-$pdf->Cell($colWidths['coop'], 8, 'Coop No.', 1, 0, 'C', true);
-$pdf->Cell($colWidths['address'], 8, 'Address', 1, 0, 'C', true);
-$pdf->Cell($colWidths['nic'], 8, 'NIC', 1, 0, 'C', true);
-$pdf->Cell($colWidths['age'], 8, 'Age', 1, 0, 'C', true);
-$pdf->Cell($colWidths['phone'], 8, 'Phone', 1, 0, 'C', true);
-$pdf->Cell($colWidths['occupation'], 8, 'Occupation', 1, 0, 'C', true);
-$pdf->Cell($colWidths['income'], 8, 'Income', 1, 0, 'C', true);
-$pdf->Cell($colWidths['credit_limit'], 8, 'Credit Limit', 1, 0, 'C', true);
-$pdf->Cell($colWidths['reg_date'], 8, 'Reg. Date', 1, 1, 'C', true);
+        // Table data with professional alternating colors
+        $pdf->SetTextColor($darkGray[0], $darkGray[1], $darkGray[2]);
+        $pdf->SetFont('Arial','',8);
 
-// Table data with alternate row colors
-$pdf->SetTextColor($darkColor[0], $darkColor[1], $darkColor[2]);
-$pdf->SetFont('Helvetica','',9);
+        $rowNum = 0;
+        foreach ($members as $member) {
+            // Check if we need a new page
+            if ($pdf->GetY() > 180) {
+                $pdf->AddPage();
+                
+                // Repeat header on new page
+                $pdf->SetFont('Arial','B',9);
+                $pdf->SetFillColor($corporateBlue[0], $corporateBlue[1], $corporateBlue[2]);
+                $pdf->SetTextColor(255, 255, 255);
+                
+                $pdf->Cell($colWidths['coop_no'], 10, 'Coop No.', 1, 0, 'C', true);
+                $pdf->Cell($colWidths['name'], 10, 'Full Name', 1, 0, 'C', true);
+                $pdf->Cell($colWidths['nic'], 10, 'NIC Number', 1, 0, 'C', true);
+                $pdf->Cell($colWidths['address'], 10, 'Address', 1, 0, 'C', true);
+                $pdf->Cell($colWidths['phone'], 10, 'Phone Number', 1, 0, 'C', true);
+                $pdf->Cell($colWidths['age'], 10, 'Age', 1, 0, 'C', true);
+                $pdf->Cell($colWidths['occupation'], 10, 'Occupation', 1, 0, 'C', true);
+                $pdf->Cell($colWidths['income'], 10, 'Monthly Income', 1, 0, 'C', true);
+                $pdf->Cell($colWidths['credit'], 10, 'Credit Limit', 1, 0, 'C', true);
+                $pdf->Cell($colWidths['reg_date'], 10, 'Reg. Date', 1, 1, 'C', true);
+                
+                $pdf->SetTextColor($darkGray[0], $darkGray[1], $darkGray[2]);
+                $pdf->SetFont('Arial','',8);
+            }
 
-$fill = false;
-foreach ($members as $member) {
-    $pdf->SetFillColor($fill ? $grayLight[0] : 255); // Alternate row colors
-    $pdf->Cell($colWidths['name'], 7, $member['full_name'], 1, 0, 'L', $fill);
-    $pdf->Cell($colWidths['bank'], 7, $member['bank_membership_number'], 1, 0, 'L', $fill);
-    $pdf->Cell($colWidths['coop'], 7, $member['id'], 1, 0, 'C', $fill);
-    $pdf->Cell($colWidths['address'], 7, $memberManager->shortenText($member['address'], 30), 1, 0, 'L', $fill);
-    $pdf->Cell($colWidths['nic'], 7, $member['nic'], 1, 0, 'C', $fill);
-    $pdf->Cell($colWidths['age'], 7, $member['age'], 1, 0, 'C', $fill);
-    $pdf->Cell($colWidths['phone'], 7, $member['telephone_number'], 1, 0, 'C', $fill);
-    $pdf->Cell($colWidths['occupation'], 7, $member['occupation'] ?? 'N/A', 1, 0, 'L', $fill);
-    $pdf->Cell($colWidths['income'], 7, number_format($member['monthly_income'], 2), 1, 0, 'R', $fill);
-    $pdf->Cell($colWidths['credit_limit'], 7, number_format($member['credit_limit'], 2), 1, 0, 'R', $fill);
-    $pdf->Cell($colWidths['reg_date'], 7, date('Y-m-d', strtotime($member['registration_date'])), 1, 1, 'C', $fill);
-    $fill = !$fill;
-}
+            $fill = ($rowNum % 2 == 0);
+            $pdf->SetFillColor($fill ? $lightGray[0] : 255, $fill ? $lightGray[1] : 255, $fill ? $lightGray[2] : 255);
+            
+            $pdf->Cell($colWidths['coop_no'], 8, str_pad($member['id'], 4, '0', STR_PAD_LEFT), 1, 0, 'C', $fill);
+            $pdf->Cell($colWidths['name'], 8, $memberManager->shortenText($member['full_name'], 20), 1, 0, 'L', $fill);
+            $pdf->Cell($colWidths['nic'], 8, $member['nic'], 1, 0, 'C', $fill);
+            $pdf->Cell($colWidths['address'], 8, $memberManager->shortenText($member['address'], 30), 1, 0, 'L', $fill);
+            $pdf->Cell($colWidths['phone'], 8, $member['telephone_number'], 1, 0, 'C', $fill);
+            $pdf->Cell($colWidths['age'], 8, $member['age'], 1, 0, 'C', $fill);
+            $pdf->Cell($colWidths['occupation'], 8, $memberManager->shortenText($member['occupation'] ?? 'N/A', 18), 1, 0, 'L', $fill);
+            $pdf->Cell($colWidths['income'], 8, 'Rs. ' . number_format($member['monthly_income'], 0), 1, 0, 'R', $fill);
+            $pdf->Cell($colWidths['credit'], 8, 'Rs. ' . number_format($member['credit_limit'], 0), 1, 0, 'R', $fill);
+            $pdf->Cell($colWidths['reg_date'], 8, date('Y-m-d', strtotime($member['registration_date'])), 1, 1, 'C', $fill);
+            
+            $rowNum++;
+        }
 
-// ========== FOOTER SECTION ========== //
-// Summary
-$pdf->Ln(5);
-$pdf->SetFont('Helvetica','I',10);
-$pdf->Cell(0, 8, 'Total Members: ' . count($members), 0, 1, 'L');
+        // ========== PROFESSIONAL FOOTER ========== //
+        $pdf->Ln(10);
+        
+        // Footer information box
+        $pdf->SetFillColor($lightBlue[0], $lightBlue[1], $lightBlue[2]);
+        $pdf->Rect(10, $pdf->GetY(), 277, 25, 'F');
+        
+        $pdf->SetTextColor($corporateBlue[0], $corporateBlue[1], $corporateBlue[2]);
+        $pdf->SetFont('Arial','B',10);
+        $pdf->SetXY(15, $pdf->GetY() + 3);
+        $pdf->Cell(0, 6, 'REPORT CERTIFICATION', 0, 1, 'L');
+        
+        $pdf->SetFont('Arial','',8);
+        $currentY = $pdf->GetY();
+        $pdf->SetXY(15, $currentY);
+        $pdf->Cell(0, 4, 'This report contains ' . count($members) . ' member records as of ' . date('F j, Y \a\t g:i A'), 0, 1, 'L');
+        $pdf->SetXY(15, $currentY + 5);
+        $pdf->Cell(0, 4, 'Generated by: Cooperative Management System', 0, 1, 'L');
+        $pdf->SetXY(15, $currentY + 10);
+        $pdf->Cell(0, 4, 'Authorized by: Clerk, Pahala Karawita Cooperative Society', 0, 1, 'L');
+        
+        // Signature lines
+        $pdf->SetXY(15, $currentY + 40);
+        $pdf->Cell(80, 4, 'Clerk Signature: ________________________', 0, 0, 'L');
+        $pdf->Cell(80, 4, 'Authorized Officer Signature: ________________________', 0, 1, 'L');
 
-// Footer
-$pdf->SetY(-15);
-$pdf->SetFont('Helvetica','I',8);
-$pdf->SetTextColor($grayColor[0], $grayColor[1], $grayColor[2]);
-$pdf->Cell(0,10,'Page ' . $pdf->PageNo(),0,0,'C');
+        // Page footer
+        $pdf->SetY(-15);
+        $pdf->SetFont('Arial','I',8);
+        $pdf->SetTextColor($mediumGray[0], $mediumGray[1], $mediumGray[2]);
+        $pdf->Cell(0, 5, 'Pahala Karawita Cooperative Society - Members Directory Report', 0, 1, 'C');
+        $pdf->Cell(0, 5, 'Page ' . $pdf->PageNo() . ' | Generated on ' . date('Y-m-d H:i:s') . ' | Confidential Document', 0, 0, 'C');
 
-// Output the PDF
-$pdf->Output('Members_Export_' . date('Y-m-d') . '.pdf', 'D');
-exit;
+        // Output the professional PDF
+        $filename = 'Members_Directory_' . date('Y-m-d_H-i-s') . '.pdf';
+        $pdf->Output($filename, 'D');
+        exit;
     }
 
     // Handle Get Member by ID
@@ -363,8 +460,9 @@ exit;
         exit;
     }
 
-    // Handle Edit Member
-    if (isset($_POST['action']) && $_POST['action'] === 'edit') {
+// Handle Edit Member
+if (isset($_POST['action']) && $_POST['action'] === 'edit') {
+    try {
         $id = $_POST['id'];
         $data = [
             'full_name' => $_POST['full_name'],
@@ -374,16 +472,17 @@ exit;
             'date_of_birth' => $_POST['date_of_birth'],
             'telephone_number' => $_POST['telephone_number'],
             'occupation' => $_POST['occupation'],
-            'monthly_income' => $_POST['monthly_income'],
-            'credit_limit' => $_POST['credit_limit']
+            'monthly_income' => $_POST['monthly_income']
         ];
 
         $result = $memberManager->updateMember($id, $data);
 
-        header('Content-Type: application/json');
         echo json_encode(['success' => $result]);
-        exit;
+    } catch (Exception $e) {
+        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
     }
+    exit;
+}
 
     // Handle Delete Member
     if (isset($_POST['action']) && $_POST['action'] === 'delete') {
@@ -400,13 +499,22 @@ exit;
     exit;
 }
 
+// Add error reporting for debugging
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
+// Set content type for AJAX requests early
+if (isset($_GET['page']) || (isset($_POST['action']) && in_array($_POST['action'], ['edit', 'delete'])) || (isset($_GET['action']) && $_GET['action'] === 'get_member')) {
+    header('Content-Type: application/json');
+}
+
 // Ensure output buffering is cleared
 ob_end_flush();
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
-<ty>
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registered Members</title>
@@ -796,13 +904,15 @@ ob_end_flush();
             <table class="table" style="font-size:20px;">
                 <thead>
                     <tr>
-                        <th>Coop Number</th>
+                        <th>Membership No.</th>
                         <th>Full Name</th>
                         <th>NIC</th>
                         <th>Age</th>
                         <th>Occupation</th>
                         <th>Monthly Income</th>
                         <th>Credit Limit</th>
+                        <th>Credit Used</th>
+                        <th>Available Credit</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -819,58 +929,60 @@ ob_end_flush();
 
     <!-- Edit Member Modal -->
     <div id="editModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Edit Member</h3>
-            </div>
-            <form id="editMemberForm">
-                <input type="hidden" name="id" id="editMemberId">
-                <div class="form-group">
-                    <label for="editFullName" class="form-label">Full Name</label>
-                    <input type="text" id="editFullName" name="full_name" required class="form-control">
-                </div>
-                <div class="form-group">
-    <input type="text" name="filter_value" placeholder="Filter Value" class="form-control">
-</div>
-                <div class="form-group">
-                    <label for="editBankMembershipNumber" class="form-label">Bank Membership Number</label>
-                    <input type="text" id="editBankMembershipNumber" name="bank_membership_number" required class="form-control">
-                </div>
-                <div class="form-group">
-                    <label for="editAddress" class="form-label">Address</label>
-                    <textarea id="editAddress" name="address" required class="form-control" rows="3"></textarea>
-                </div>
-                <div class="form-group">
-                    <label for="editNic" class="form-label">NIC</label>
-                    <input type="text" id="editNic" name="nic" required class="form-control">
-                </div>
-                <div class="form-group">
-                    <label for="editDateOfBirth" class="form-label">Date of Birth</label>
-                    <input type="date" id="editDateOfBirth" name="date_of_birth" required class="form-control">
-                </div>
-                <div class="form-group">
-                    <label for="editTelephoneNumber" class="form-label">Telephone Number</label>
-                    <input type="tel" id="editTelephoneNumber" name="telephone_number" required class="form-control">
-                </div>
-                <div class="form-group">
-                    <label for="editOccupation" class="form-label">Occupation</label>
-                    <input type="text" id="editOccupation" name="occupation" class="form-control">
-                </div>
-                <div class="form-group">
-                    <label for="editMonthlyIncome" class="form-label">Monthly Income</label>
-                    <input type="number" id="editMonthlyIncome" name="monthly_income" required step="0.01" class="form-control">
-                </div>
-                <div class="form-group">
-                    <label for="editCreditLimit" class="form-label">Credit Limit</label>
-                    <input type="number" id="editCreditLimit" name="credit_limit" required step="0.01" class="form-control">
-                </div>
-                <div class="modal-footer">
-                    <button type="button" id="closeEditModal" class="btn btn-danger">Cancel</button>
-                    <button type="submit" class="btn btn-success">Save Changes</button>
-                </div>
-            </form>
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Edit Member</h3>
         </div>
+        <form id="editMemberForm">
+            <input type="hidden" name="id" id="editMemberId">
+            <div class="form-group">
+                <label for="editFullName" class="form-label">Full Name</label>
+                <input type="text" id="editFullName" name="full_name" required class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="editBankMembershipNumber" class="form-label">Bank Membership Number</label>
+                <input type="text" id="editBankMembershipNumber" name="bank_membership_number" required class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="editAddress" class="form-label">Address</label>
+                <textarea id="editAddress" name="address" required class="form-control" rows="3"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="editNic" class="form-label">NIC</label>
+                <input type="text" id="editNic" name="nic" required class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="editDateOfBirth" class="form-label">Date of Birth</label>
+                <input type="date" id="editDateOfBirth" name="date_of_birth" required class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="editTelephoneNumber" class="form-label">Telephone Number</label>
+                <input type="tel" id="editTelephoneNumber" name="telephone_number" required class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="editOccupation" class="form-label">Occupation</label>
+                <input type="text" id="editOccupation" name="occupation" class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="editMonthlyIncome" class="form-label">Monthly Income</label>
+                <input type="number" id="editMonthlyIncome" name="monthly_income" required step="0.01" class="form-control">
+            </div>
+            <!-- Credit information display (read-only) -->
+            <div class="form-group">
+                <label class="form-label">Credit Information</label>
+                <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; border: 1px solid #e9ecef;">
+                    <p><strong>Credit Limit:</strong> Rs. <span id="displayCreditLimit">0.00</span></p>
+                    <p><strong>Credit Used:</strong> Rs. <span id="displayCreditUsed">0.00</span></p>
+                    <p><strong>Available Credit:</strong> Rs. <span id="displayAvailableCredit">0.00</span></p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="closeEditModal" class="btn btn-danger">Cancel</button>
+                <button type="submit" class="btn btn-success">Save Changes</button>
+            </div>
+        </form>
     </div>
+</div>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
@@ -882,42 +994,51 @@ ob_end_flush();
 
         // Function to load members
         function loadMembers(page = 1, search = '', filterColumn = '', filterValue = '') {
-            $.ajax({
-                url: '',
-                method: 'GET',
-                data: {
-                    page: page,
-                    search: search,
-                    filter_column: filterColumn,
-                    filter_value: filterValue
-                },
-                dataType: 'json',
-                success: function(response) {
-                    // Populate table
-                    const tableBody = $('#membersTableBody');
-                    tableBody.empty();
+        $.ajax({
+            url: '',
+            method: 'GET',
+            data: {
+                page: page,
+                search: search,
+                filter_column: filterColumn,
+                filter_value: filterValue
+            },
+            dataType: 'json',
+            success: function(response) {
+                const tableBody = $('#membersTableBody');
+                tableBody.empty();
 
-                    response.members.forEach(member => {
-                        tableBody.append(`
-                            <tr>
-                                <td>${member.id}</td>
-                                <td>${member.full_name}</td>
-                                <td>${member.nic}</td>
-                                <td>${member.age}</td>
-                                <td>${member.occupation || 'N/A'}</td>
-                                <td>${member.monthly_income}</td>
-                                <td>${member.credit_limit || '0.00'}</td>
-                                <td>
-                                    <button class="action-btn edit-btn" data-id="${member.id}">
-                                        <i class="fas fa-edit"></i> Edit
-                                    </button>
-                                    <button class="action-btn delete-btn" data-id="${member.id}">
-                                        <i class="fas fa-trash"></i> Delete
-                                    </button>
-                                </td>
-                            </tr>
-                        `);
-                    });
+                response.members.forEach(member => {
+                    // Color coding for available credit
+                    let creditColor = 'green';
+                    if (member.available_credit < 0) {
+                        creditColor = 'red';
+                    } else if (member.available_credit < (member.credit_limit * 0.2)) {
+                        creditColor = 'orange';
+                    }
+
+                    tableBody.append(`
+                        <tr>
+                            <td>${member.id}</td>
+                            <td>${member.full_name}</td>
+                            <td>${member.nic}</td>
+                            <td>${member.age}</td>
+                            <td>${member.occupation || 'N/A'}</td>
+                            <td>Rs. ${parseFloat(member.monthly_income).toLocaleString()}</td>
+                            <td>Rs. ${parseFloat(member.credit_limit).toLocaleString()}</td>
+                            <td>Rs. ${parseFloat(member.credit_used).toLocaleString()}</td>
+                            <td style="color: ${creditColor}; font-weight: bold;">Rs. ${parseFloat(member.available_credit).toLocaleString()}</td>
+                            <td>
+                                <button class="action-btn edit-btn" data-id="${member.id}">
+                                    <i class="fas fa-edit"></i> Edit
+                                </button>
+                                <button class="action-btn delete-btn" data-id="${member.id}">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </td>
+                        </tr>
+                    `);
+                });
 
                     // Pagination
                     const pagination = $('#pagination');
@@ -972,51 +1093,52 @@ $('#exportPdfBtn').click(function() {
     window.location.href = `?${params.toString()}`;
 });
 
-        // Edit Member
         $(document).on('click', '.edit-btn', function() {
-    const memberId = $(this).data('id');
-    
-    // Clear previous form data to avoid data mixup
-    $('#editMemberForm')[0].reset();
-    
-    $.ajax({
-        url: window.location.href,
-        method: 'GET',
-        data: { 
-            action: 'get_member',
-            id: memberId
-        },
-        dataType: 'json',
-        success: function(member) {
-            if (member.error) {
-                alert(member.error);
-                return;
+        const memberId = $(this).data('id');
+        
+        $('#editMemberForm')[0].reset();
+        
+        $.ajax({
+            url: window.location.href,
+            method: 'GET',
+            data: { 
+                action: 'get_member',
+                id: memberId
+            },
+            dataType: 'json',
+            success: function(member) {
+                if (member.error) {
+                    alert(member.error);
+                    return;
+                }
+                
+                // Set form values (excluding credit_limit)
+                $('#editMemberId').val(member.id);
+                $('#editFullName').val(member.full_name);
+                $('#editBankMembershipNumber').val(member.bank_membership_number);
+                $('#editAddress').val(member.address);
+                $('#editNic').val(member.nic);
+                $('#editDateOfBirth').val(member.date_of_birth);
+                $('#editTelephoneNumber').val(member.telephone_number);
+                $('#editOccupation').val(member.occupation);
+                $('#editMonthlyIncome').val(member.monthly_income);
+                
+                // Display credit information (read-only)
+                $('#displayCreditLimit').text(parseFloat(member.credit_limit || 0).toLocaleString());
+                $('#displayCreditUsed').text(parseFloat(member.credit_used || 0).toLocaleString());
+                $('#displayAvailableCredit').text(parseFloat(member.available_credit || member.credit_limit || 0).toLocaleString());
+                
+                $('#editModal').addClass('show');
+            },
+            error: function(xhr, status, error) {
+                console.error('Error details:', xhr.responseText);
+                alert('Error loading member data: ' + error);
             }
-            
-            // Set form values from member data
-            $('#editMemberId').val(member.id);
-            $('#editFullName').val(member.full_name);
-            $('#editBankMembershipNumber').val(member.bank_membership_number);
-            $('#editAddress').val(member.address);
-            $('#editNic').val(member.nic);
-            $('#editDateOfBirth').val(member.date_of_birth);
-            $('#editTelephoneNumber').val(member.telephone_number);
-            $('#editOccupation').val(member.occupation);
-            $('#editMonthlyIncome').val(member.monthly_income);
-            $('#editCreditLimit').val(member.credit_limit || '0.00');
-            
-            // Show the modal
-            $('#editModal').addClass('show');
-        },
-        error: function(xhr, status, error) {
-            console.error('Error details:', xhr.responseText);
-            alert('Error loading member data: ' + error);
-        }
+        });
     });
-});
 
-        // Save Edited Member
-        $('#editMemberForm').submit(function(e) {
+        // Updated form submission (removes credit_limit from data)
+            $('#editMemberForm').submit(function(e) {
     e.preventDefault();
     const formData = $(this).serialize() + '&action=edit';
     
@@ -1028,18 +1150,24 @@ $('#exportPdfBtn').click(function() {
         success: function(response) {
             if (response.success) {
                 $('#editModal').removeClass('show');
-                // Reload the current page of members
                 loadMembers(currentPage, 
                     $('#searchForm [name="search"]').val(),
                     $('#searchForm [name="filter_column"]').val(),
                     $('#searchForm [name="filter_value"]').val());
+                alert('Member updated successfully!');
             } else {
-                alert('Failed to update member');
+                alert('Failed to update member: ' + (response.error || 'Unknown error'));
             }
         },
         error: function(xhr, status, error) {
             console.error('Error details:', xhr.responseText);
-            alert('Failed to update member: ' + error);
+            // Check if response is HTML (error page)
+            if (xhr.responseText.includes('<br />') || xhr.responseText.includes('<html>')) {
+                alert('Server error occurred. Check browser console for details.');
+                console.log('Server returned HTML instead of JSON:', xhr.responseText);
+            } else {
+                alert('Failed to update member: ' + error);
+            }
         }
     });
 });
