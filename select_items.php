@@ -19,21 +19,28 @@ if ($conn->connect_error) {
 $supplierId = isset($_GET['supplier_id']) ? $_GET['supplier_id'] : null;
 $returnUrl = isset($_GET['return_url']) ? $_GET['return_url'] : 'purchase_items.php';
 
+// Debug information (remove after testing) - MOVED AFTER VARIABLE DEFINITIONS
+error_log("select_items.php - Supplier ID: " . $supplierId);
+error_log("select_items.php - Supplier Name from URL: " . (isset($_GET['supplier_name']) ? $_GET['supplier_name'] : 'Not provided'));
+error_log("select_items.php - Return URL: " . $returnUrl);
+
 if (!$supplierId) {
     die("Supplier ID is required");
 }
 
-// Get supplier name
-$supplierName = '';
-$stmt = $conn->prepare("SELECT supplier_name FROM supplier WHERE supplier_id = ?");
-$stmt->bind_param("s", $supplierId);
-$stmt->execute();
-$result = $stmt->get_result();
-if ($result->num_rows > 0) {
-    $row = $result->fetch_assoc();
-    $supplierName = $row['supplier_name'];
-}
+// Get supplier name - first try from URL parameter, then from database
+$supplierName = isset($_GET['supplier_name']) ? $_GET['supplier_name'] : '';
 
+if (empty($supplierName)) {
+    $stmt = $conn->prepare("SELECT supplier_name FROM supplier WHERE supplier_id = ?");
+    $stmt->bind_param("s", $supplierId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        $supplierName = $row['supplier_name'];
+    }
+}
 // Get items for this supplier
 $items = [];
 $stmt = $conn->prepare("SELECT item_id, item_name, item_code, price_per_unit, current_quantity, unit 
@@ -243,9 +250,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['selected_items'])) {
         <h1>Select Items to Purchase</h1>
         
         <div class="supplier-info">
-            <h2><?php echo htmlspecialchars($supplierName); ?></h2>
-            <p>Supplier ID: <?php echo htmlspecialchars($supplierId); ?></p>
-        </div>
+    <h2><?php echo !empty($supplierName) ? htmlspecialchars($supplierName) : 'Supplier ID: ' . htmlspecialchars($supplierId); ?></h2>
+    <p>Supplier ID: <?php echo htmlspecialchars($supplierId); ?></p>
+    <?php if (empty($supplierName)): ?>
+        <p><em>Note: Supplier name could not be retrieved from database</em></p>
+    <?php endif; ?>
+</div>
         
         <?php if (empty($items)): ?>
             <div class="alert alert-info">

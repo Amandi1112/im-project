@@ -957,7 +957,11 @@ $message = isset($_GET['message']) ? $_GET['message'] : '';
                     .replace(/{SUPPLIER_ID}/g, supplierId)
                     .replace(/{SUPPLIER_NAME}/g, supplierName);
                 // Add to container
-                $('#suppliers-container').append(supplierSection);
+               // Add to container
+$('#suppliers-container').append(supplierSection);
+
+// Ensure the data attribute is properly set
+$('.supplier-section[data-supplier-id="' + supplierId + '"]').attr('data-supplier-id', supplierId);
                 // Reset input fields
                 $('#supplier-name-input').val('');
                 $('#supplier-id-input').val('');
@@ -1013,7 +1017,9 @@ $message = isset($_GET['message']) ? $_GET['message'] : '';
                 const supplierSection = $(this).closest('.supplier-section');
                 const supplierId = supplierSection.data('supplier-id');
                 const supplierName = supplierSection.find('.supplier-header h3').text();
-                
+                console.log('Supplier ID:', supplierId); // Debug line
+                console.log('Supplier Name:', supplierName); // Debug line
+
                 // Redirect to select items page
                 window.location.href = `select_items.php?supplier_id=${supplierId}&return_url=${encodeURIComponent(window.location.href)}`;
             });
