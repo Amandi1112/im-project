@@ -789,7 +789,7 @@ $recentActivities = [
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="suppliersDropdown">
                                 <li><a class="dropdown-item" href="supplier.php" style="font-size: 17px; color:black;"><i class="fas fa-user-plus"></i> Registration</a></li>
-                                <li><a class="dropdown-item" href="purchase2.php" style="font-size: 17px; color:black;"><i class="fas fa-shopping-basket"></i> Item Purchases</a></li>
+                                <li><a class="dropdown-item" href="new2.php" style="font-size: 17px; color:black;"><i class="fas fa-shopping-basket"></i> Item Purchases</a></li>
                                 <li><a class="dropdown-item" href="supplier_payments.php" style="font-size: 17px; color:black;"><i class="fas fa-file-invoice-dollar"></i> Purchase Amount Details</a></li>
                                 <li><a class="dropdown-item" href="actual_payment_supplier.php" style="font-size: 17px; color:black;"><i class="fas fa-money-bill-wave"></i> Payment Handling</a></li>
                             </ul>
