@@ -79,7 +79,7 @@ function generateItemCode($itemName, $supplierId, $conn) {
  * Retrieves item details based on item name and supplier ID.
  */
 function getItemDetails($itemName, $supplierId, $conn) {
-    $sql = "SELECT item_id, item_code, price_per_unit, current_quantity, unit 
+    $sql = "SELECT item_id, item_code, price_per_unit, unit_size, current_quantity, unit 
             FROM items 
             WHERE item_name = ? AND supplier_id = ?";
     $stmt = $conn->prepare($sql);
@@ -97,19 +97,20 @@ function getItemDetails($itemName, $supplierId, $conn) {
 /**
  * Adds a new item to the database.
  */
-function addNewItem($itemName, $pricePerUnit, $supplierId, $unit, $conn) {
+function addNewItem($itemName, $pricePerUnit, $unitSize, $supplierId, $unit, $conn) {
     $itemCode = generateItemCode($itemName, $supplierId, $conn);
     
-    $sql = "INSERT INTO items (item_code, item_name, price_per_unit, current_quantity, supplier_id, unit) 
-            VALUES (?, ?, ?, 0, ?, ?)";
+    $sql = "INSERT INTO items (item_code, item_name, price_per_unit, unit_size, current_quantity, supplier_id, unit) 
+            VALUES (?, ?, ?, ?, 0, ?, ?)";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("ssdss", $itemCode, $itemName, $pricePerUnit, $supplierId, $unit);
+    $stmt->bind_param("ssddss", $itemCode, $itemName, $pricePerUnit, $unitSize, $supplierId, $unit);
     
     if ($stmt->execute()) {
         return [
             'item_id' => $conn->insert_id,
             'item_code' => $itemCode,
             'price_per_unit' => $pricePerUnit,
+            'unit_size' => $unitSize,
             'current_quantity' => 0,
             'unit' => $unit
         ];
@@ -118,31 +119,34 @@ function addNewItem($itemName, $pricePerUnit, $supplierId, $unit, $conn) {
     }
 }
 
+
 /**
  * Adds a purchase record and updates the item quantity in the database.
  */
-function addPurchase($itemId, $quantity, $pricePerUnit, $purchaseDate, $expireDate, $supplierId, $unit, $conn) {
+function addPurchase($itemId, $quantity, $pricePerUnit, $unitSize, $purchaseDate, $expireDate, $supplierId, $unit, $conn) {
     $totalPrice = $quantity * $pricePerUnit;
+    $totalUnits = $quantity * $unitSize; // Calculate total units
     
     // Start transaction to ensure atomicity
     $conn->begin_transaction();
     
     try {
         // Insert purchase record
-        $sql = "INSERT INTO item_purchases (item_id, quantity, price_per_unit, total_price, purchase_date, expire_date, supplier_id, unit) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        $sql = "INSERT INTO item_purchases (item_id, quantity, price_per_unit, unit_size, total_units, total_price, purchase_date, expire_date, supplier_id, unit) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         $stmt = $conn->prepare($sql);
-        $stmt->bind_param("idddssss", $itemId, $quantity, $pricePerUnit, $totalPrice, $purchaseDate, $expireDate, $supplierId, $unit);
+        $stmt->bind_param("idddddssss", $itemId, $quantity, $pricePerUnit, $unitSize, $totalUnits, $totalPrice, $purchaseDate, $expireDate, $supplierId, $unit);
         $stmt->execute();
         
-        // Update item quantity and price in the items table
+        // Update item quantity, price and unit_size in the items table
         $sql = "UPDATE items 
                 SET current_quantity = current_quantity + ?, 
                     price_per_unit = ?,
+                    unit_size = ?,
                     unit = ?
                 WHERE item_id = ?";
         $stmt = $conn->prepare($sql);
-        $stmt->bind_param("ddsi", $quantity, $pricePerUnit, $unit, $itemId);
+        $stmt->bind_param("dddsi", $totalUnits, $pricePerUnit, $unitSize, $unit, $itemId);
         $stmt->execute();
         
         // Commit the transaction
@@ -176,7 +180,7 @@ function getSuppliers($conn) {
  * Get all items for a specific supplier
  */
 function getSupplierItems($supplierId, $conn) {
-    $sql = "SELECT item_id, item_name, item_code, price_per_unit, current_quantity 
+    $sql = "SELECT item_id, item_name, item_code, price_per_unit, unit_size, current_quantity 
             FROM items 
             WHERE supplier_id = ?
             ORDER BY item_name";
@@ -215,13 +219,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['item_name']) && isset(
     $response = ['exists' => false];
     
     if ($item) {
-        $response = [
-            'exists' => true,
-            'item_id' => $item['item_id'],
-            'price_per_unit' => $item['price_per_unit'],
-            'current_quantity' => $item['current_quantity']
-        ];
-    }
+    $response = [
+        'exists' => true,
+        'item_id' => $item['item_id'],
+        'price_per_unit' => $item['price_per_unit'],
+        'unit_size' => $item['unit_size'],
+        'current_quantity' => $item['current_quantity']
+    ];
+}
     
     header('Content-Type: application/json');
     echo json_encode($response);
@@ -262,39 +267,39 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['submit_purchases'])) {
         
         // Process each item for this supplier
         foreach ($supplierData['items'] as $itemData) {
-            $itemName = isset($itemData['item_name']) ? trim($itemData['item_name']) : '';
-            $quantity = isset($itemData['quantity']) ? floatval($itemData['quantity']) : 0;
-            $pricePerUnit = isset($itemData['price_per_unit']) ? floatval($itemData['price_per_unit']) : 0;
-            $purchaseDate = isset($itemData['purchase_date']) ? $itemData['purchase_date'] : date('Y-m-d');
-            $expireDate = isset($itemData['expire_date']) && !empty($itemData['expire_date']) ? $itemData['expire_date'] : null;
-            $unit = isset($itemData['unit']) ? $itemData['unit'] : 'other';
-            
-            // Skip invalid entries
-            if (empty($itemName) || $quantity <= 0 || $pricePerUnit <= 0) {
-                continue;
-            }
-            
+    $itemName = isset($itemData['item_name']) ? trim($itemData['item_name']) : '';
+    $quantity = isset($itemData['quantity']) ? floatval($itemData['quantity']) : 0;
+    $pricePerUnit = isset($itemData['price_per_unit']) ? floatval($itemData['price_per_unit']) : 0;
+    $unitSize = isset($itemData['unit_size']) ? floatval($itemData['unit_size']) : 1.0;
+    $purchaseDate = isset($itemData['purchase_date']) ? $itemData['purchase_date'] : date('Y-m-d');
+    $expireDate = isset($itemData['expire_date']) && !empty($itemData['expire_date']) ? $itemData['expire_date'] : null;
+    $unit = isset($itemData['unit']) ? $itemData['unit'] : 'other';
+    
+    // Skip invalid entries
+    if (empty($itemName) || $quantity <= 0 || $pricePerUnit <= 0 || $unitSize <= 0) {
+        continue;
+    }
             // Check if item exists or create new
             $existingItem = getItemDetails($itemName, $supplierId, $conn);
             
             if ($existingItem) {
-                $itemId = $existingItem['item_id'];
-            } else {
-                $newItem = addNewItem($itemName, $pricePerUnit, $supplierId, $unit, $conn);
-                if ($newItem) {
-                    $itemId = $newItem['item_id'];
-                } else {
-                    $errorCount++;
-                    continue;
-                }
-            }
-            
-            // Add purchase record
-            if (addPurchase($itemId, $quantity, $pricePerUnit, $purchaseDate, $expireDate, $supplierId, $unit, $conn)) {
-                $successCount++;
-            } else {
-                $errorCount++;
-            }
+    $itemId = $existingItem['item_id'];
+} else {
+    $newItem = addNewItem($itemName, $pricePerUnit, $unitSize, $supplierId, $unit, $conn);
+    if ($newItem) {
+        $itemId = $newItem['item_id'];
+    } else {
+        $errorCount++;
+        continue;
+    }
+}
+
+// Add purchase record
+if (addPurchase($itemId, $quantity, $pricePerUnit, $unitSize, $purchaseDate, $expireDate, $supplierId, $unit, $conn)) {
+    $successCount++;
+} else {
+    $errorCount++;
+}
         }
     }
     
@@ -773,12 +778,13 @@ $message = isset($_GET['message']) ? $_GET['message'] : '';
                     </div>
                 </div>
                 <!-- Quantity -->
-                <div class="col-md-2">
-                    <div class="mb-3">
-                        <label class="form-label" style="font-size: 16px; font-weight: bold;">Quantity</label>
-                        <input type="number" class="form-control" name="supplier[{SUPPLIER_ID}][items][{ITEM_INDEX}][quantity]" min="1" required>
-                    </div>
-                </div>
+                <!-- Unit Size -->
+<div class="col-md-2">
+    <div class="mb-3">
+        <label class="form-label" style="font-size: 16px; font-weight: bold;">Unit Size</label>
+        <input type="number" step="0.01" class="form-control unit-size" name="supplier[{SUPPLIER_ID}][items][{ITEM_INDEX}][unit_size]" min="0.01" value="1" required>
+    </div>
+</div>
                 <div class="col-md-1-5">
                     <div class="mb-3">
                         <label class="form-label" style="font-size: 16px; font-weight: bold;">Unit</label>
@@ -906,6 +912,91 @@ $message = isset($_GET['message']) ? $_GET['message'] : '';
             <?php foreach ($suppliers as $supplier): ?>
             supplierNames['<?php echo $supplier['supplier_id']; ?>'] = '<?php echo $supplier['supplier_name']; ?>';
             <?php endforeach; ?>
+
+            // Restore suppliers state if returning from select_items.php
+function restoreSupplierState() {
+    try {
+        const savedSuppliers = sessionStorage.getItem('currentSuppliers');
+        const savedCounts = sessionStorage.getItem('supplierCounts');
+        
+        if (savedSuppliers && savedCounts) {
+            const suppliers = JSON.parse(savedSuppliers);
+            supplierCounts = JSON.parse(savedCounts);
+            
+            suppliers.forEach(supplier => {
+                // Check if supplier section already exists
+                if ($('.supplier-section[data-supplier-id="' + supplier.id + '"]').length === 0) {
+                    // Add supplier section
+                    const template = document.getElementById('supplier-template').innerHTML;
+                    let supplierSection = template
+                        .replace(/{SUPPLIER_ID}/g, supplier.id)
+                        .replace(/{SUPPLIER_NAME}/g, supplier.name);
+                    
+                    $('#suppliers-container').append(supplierSection);
+                }
+                
+                // Restore items for this supplier
+                const supplierSection = $('.supplier-section[data-supplier-id="' + supplier.id + '"]');
+                const itemsContainer = supplierSection.find('.items-container');
+                
+                supplier.items.forEach(item => {
+                    let template, newItemRow;
+                    
+                    if (item.is_existing) {
+                        template = document.getElementById('existing-item-template').innerHTML;
+                        // You'll need to fetch and populate the item options here
+                        newItemRow = template
+                            .replace(/{SUPPLIER_ID}/g, supplier.id)
+                            .replace(/{ITEM_INDEX}/g, supplierCounts[supplier.id] || 0)
+                            .replace(/{CURRENT_DATE}/g, currentDate)
+                            .replace(/{ITEM_OPTIONS}/g, ''); // Will be populated by fetchSupplierItems
+                    } else {
+                        template = document.getElementById('new-item-template').innerHTML;
+                        newItemRow = template
+                            .replace(/{SUPPLIER_ID}/g, supplier.id)
+                            .replace(/{ITEM_INDEX}/g, supplierCounts[supplier.id] || 0)
+                            .replace(/{CURRENT_DATE}/g, currentDate);
+                    }
+                    
+                    itemsContainer.append(newItemRow);
+                    
+                    // Set values for the restored item
+                    // Set values for the restored item
+const newRow = itemsContainer.find('.item-row').last();
+if (item.is_existing) {
+    newRow.find('.existing-item-select').val(item.item_name);
+} else {
+    newRow.find('.item-name').val(item.item_name);
+}
+newRow.find('input[name*="[quantity]"]').val(item.quantity);
+newRow.find('.unit-size').val(item.unit_size || 1); // Add this line
+newRow.find('.price-per-unit').val(item.price_per_unit);
+newRow.find('.unit-select').val(item.unit);
+newRow.find('input[name*="[purchase_date]"]').val(item.purchase_date);
+newRow.find('input[name*="[expire_date]"]').val(item.expire_date);
+                    
+                    // Increment item count
+                    if (!supplierCounts[supplier.id]) {
+                        supplierCounts[supplier.id] = 0;
+                    }
+                    supplierCounts[supplier.id]++;
+                });
+                
+                // Fetch existing items for this supplier (for existing item dropdowns)
+                fetchSupplierItems(supplier.id);
+            });
+            
+            // Clear the stored state
+            sessionStorage.removeItem('currentSuppliers');
+            sessionStorage.removeItem('supplierCounts');
+        }
+    } catch(e) {
+        console.log('Error restoring supplier state:', e);
+    }
+}
+
+// Call restore function on page load
+restoreSupplierState();
             
             // Autocomplete for supplier name
             $("#supplier-name-input").autocomplete({
@@ -1011,18 +1102,119 @@ $('.supplier-section[data-supplier-id="' + supplierId + '"]').attr('data-supplie
                 // Increment item count
                 supplierCounts[supplierId]++;
             });
+
+            // Handle existing item selection change - update to include unit_size
+$(document).on('change', '.existing-item-select', function() {
+    const selectedOption = $(this).find('option:selected');
+    const pricePerUnit = selectedOption.data('price');
+    const unitSize = selectedOption.data('unit-size');
+    const currentQuantity = selectedOption.data('quantity');
+    const unit = selectedOption.data('unit');
+    
+    // Set price per unit
+    const priceInput = $(this).closest('.row').find('.price-per-unit');
+    priceInput.val(pricePerUnit);
+    
+    // Set unit size
+    const unitSizeInput = $(this).closest('.row').find('.unit-size');
+    unitSizeInput.val(unitSize || 1);
+    
+    // Set unit if available
+    if (unit) {
+        const unitSelect = $(this).closest('.row').find('.unit-select');
+        unitSelect.val(unit);
+    }
+    
+    // Show current quantity tooltip
+    if (currentQuantity) {
+        showAlert(`Current quantity in stock: ${currentQuantity}`, 'info');
+    }
+});
+
+// Check item existence when new item name changes - update to include unit_size
+$(document).on('blur', '.item-name', function() {
+    const itemNameInput = $(this);
+    const itemName = itemNameInput.val().trim();
+    
+    if (!itemName) return;
+    
+    const supplierSection = itemNameInput.closest('.supplier-section');
+    const supplierId = supplierSection.data('supplier-id');
+    
+    // Check if item exists
+    $.ajax({
+        url: window.location.href,
+        type: 'POST',
+        data: { 
+            item_name: itemName,
+            supplier_id: supplierId
+        },
+        dataType: 'json',
+        success: function(response) {
+            if (response.exists) {
+                const row = itemNameInput.closest('.row');
+                const priceInput = row.find('.price-per-unit');
+                const unitSizeInput = row.find('.unit-size');
+                
+                priceInput.val(response.price_per_unit);
+                unitSizeInput.val(response.unit_size || 1);
+                
+                showAlert(`Item "${itemName}" already exists with current quantity: ${response.current_quantity}`, 'info');
+            }
+        }
+    });
+});
             
             // Add existing item to supplier - redirect to selection page
-            $(document).on('click', '.add-existing-item', function() {
-                const supplierSection = $(this).closest('.supplier-section');
-                const supplierId = supplierSection.data('supplier-id');
-                const supplierName = supplierSection.find('.supplier-header h3').text();
-                console.log('Supplier ID:', supplierId); // Debug line
-                console.log('Supplier Name:', supplierName); // Debug line
+            // Add existing item to supplier - redirect to selection page
+$(document).on('click', '.add-existing-item', function() {
+    const supplierSection = $(this).closest('.supplier-section');
+    const supplierId = supplierSection.data('supplier-id');
+    const supplierName = supplierSection.find('.supplier-header h3').text();
+    
+    // Store current suppliers state in session storage (fallback to localStorage for persistence)
+    const currentSuppliers = [];
+    $('.supplier-section').each(function() {
+        const section = $(this);
+        const id = section.data('supplier-id');
+        const name = section.find('.supplier-header h3').text();
+        const items = [];
+        
+        // Collect existing items in this supplier section
+        section.find('.item-row').each(function() {
+            const itemRow = $(this);
+            const itemData = {
+                item_name: itemRow.find('.item-name, .existing-item-select').val(),
+                quantity: itemRow.find('input[name*="[quantity]"]').val(),
+                price_per_unit: itemRow.find('.price-per-unit').val(),
+                unit: itemRow.find('.unit-select').val(),
+                purchase_date: itemRow.find('input[name*="[purchase_date]"]').val(),
+                expire_date: itemRow.find('input[name*="[expire_date]"]').val(),
+                is_existing: itemRow.find('.existing-item-select').length > 0
+            };
+            if (itemData.item_name) {
+                items.push(itemData);
+            }
+        });
+        
+        currentSuppliers.push({
+            id: id,
+            name: name,
+            items: items
+        });
+    });
+    
+    // Store in sessionStorage
+    try {
+        sessionStorage.setItem('currentSuppliers', JSON.stringify(currentSuppliers));
+        sessionStorage.setItem('supplierCounts', JSON.stringify(supplierCounts));
+    } catch(e) {
+        console.log('SessionStorage not available, state may not persist');
+    }
 
-                // Redirect to select items page
-                window.location.href = `select_items.php?supplier_id=${supplierId}&return_url=${encodeURIComponent(window.location.href)}`;
-            });
+    // Redirect to select items page with supplier name
+    window.location.href = `select_items.php?supplier_id=${supplierId}&supplier_name=${encodeURIComponent(supplierName)}&return_url=${encodeURIComponent(window.location.href)}`;
+});
             
             // Check for returned items from selection
             <?php if (isset($_SESSION['selected_items'])): ?>

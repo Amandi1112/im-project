@@ -492,7 +492,7 @@ $purchases = getPurchaseDetails($conn, $start_date, $end_date, $supplier_filter,
                     <h2><i class="fas fa-shopping-cart me-2"></i> Purchased Items Details</h2>
                 </div>
                 <div class="col-md-4 text-end" style="font-size: 20px;">
-                    <a href="purchase2.php" class="btn btn-light me-2"><i class="fas fa-plus me-1"></i> New Purchase</a>
+                    <a href="new2.php" class="btn btn-light me-2"><i class="fas fa-plus me-1"></i> New Purchase</a>
                     <a href="member_purchases_report.php" class="btn btn-light"><i class="fas fa-file-pdf me-1"></i> Generate Report</a>
                 </div>
             </div>

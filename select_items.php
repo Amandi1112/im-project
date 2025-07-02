@@ -285,7 +285,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['selected_items'])) {
                 </div>
                 
                 <div class="action-buttons">
-                    <a href="<?php echo htmlspecialchars($returnUrl); ?>" class="btn btn-secondary">
+                    <a href="<?php echo htmlspecialchars($returnUrl); ?>" class="btn btn-secondary" onclick="preserveSupplierState()">
                         <i class="fas fa-arrow-left"></i> Back
                     </a>
                     <button type="submit" class="btn btn-primary">
@@ -295,5 +295,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['selected_items'])) {
             </form>
         <?php endif; ?>
     </div>
+    <script>
+function preserveSupplierState() {
+    // This function can be used if you need to preserve any additional state
+    // when going back without selecting items
+    console.log('Preserving supplier state...');
+}
+</script>
+    
 </body>
 </html>
