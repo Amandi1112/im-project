@@ -1,5 +1,4 @@
 <?php
-// [Previous PHP code remains exactly the same until the HTML starts]
 // Database connection
 $servername = "localhost";
 $username = "root";
@@ -69,7 +68,6 @@ $supplier_name = isset($_GET['supplier_name']) ? $_GET['supplier_name'] : '';
 $item_filter = isset($_GET['item_id']) ? $_GET['item_id'] : '';
 $item_name = isset($_GET['item_name']) ? $_GET['item_name'] : '';
 
-// Function to calculate current quantity for an item purchase
 // Function to calculate current quantity for an item across all purchases
 function getCurrentQuantity($conn, $item_id) {
     // Get total purchased quantity for this item
@@ -109,7 +107,7 @@ function getCurrentQuantity($conn, $item_id) {
     
     return 0;
 }
-// Function to get all purchases with item and supplier details
+
 // Function to get all purchases with item and supplier details (grouped by item)
 function getPurchaseDetails($conn, $start_date = '', $end_date = '', $supplier_filter = '', $item_filter = '') {
     $sql = "SELECT 
@@ -118,7 +116,8 @@ function getPurchaseDetails($conn, $start_date = '', $end_date = '', $supplier_f
                 i.item_name,
                 s.supplier_id,
                 s.supplier_name,
-                COALESCE(i.unit, 'pcs') AS unit,
+                COALESCE(i.unit, 'other') AS unit,
+                i.unit_size,
                 SUM(ip.quantity) as total_quantity,
                 AVG(ip.price_per_unit) as avg_price_per_unit,
                 SUM(ip.total_price) as total_price,
@@ -186,6 +185,10 @@ function getPurchaseDetails($conn, $start_date = '', $end_date = '', $supplier_f
         while($row = $result->fetch_assoc()) {
             // Calculate current quantity for each item
             $row['current_quantity'] = getCurrentQuantity($conn, $row['item_id']);
+            
+            // Calculate total units (quantity * unit_size)
+            $row['total_units'] = $row['total_quantity'] * $row['unit_size'];
+            $row['current_units'] = $row['current_quantity'] * $row['unit_size'];
             
             // Use the last purchase date as the display date
             $row['purchase_date'] = $row['last_purchase_date'];
@@ -546,6 +549,7 @@ $purchases = getPurchaseDetails($conn, $start_date, $end_date, $supplier_filter,
                         <th style="font-size: 13.5px; font-weight: bold;"><i class="fas fa-box me-1"></i> Item Name</th>
                         <th style="font-size: 13.5px; font-weight: bold;"><i class="fas fa-truck me-1"></i> Supplier</th>
                         <th style="font-size: 12px; font-weight: bold;"><i class="fas fa-cubes me-1"></i> Original Qty</th>
+                        <th style="font-size: 12px; font-weight: bold;"><i class="fas fa-weight me-1"></i> Unit Size</th>
                         <th style="font-size: 12px; font-weight: bold;"><i class="fas fa-warehouse me-1"></i> Current Qty</th>
                         <th style="font-size: 12px; font-weight: bold;"><i class="fas fa-tag me-1"></i> Price/Unit</th>
                         <th style="font-size: 12px; font-weight: bold;"><i class="fas fa-money-bill-wave me-1"></i> Total Price</th>
@@ -610,10 +614,11 @@ $purchases = getPurchaseDetails($conn, $start_date, $end_date, $supplier_filter,
                         <td style="font-size: 17px;"><?php echo date('d M Y', strtotime($purchase['purchase_date'])); ?></td>
                         <td style="font-size: 17px;"><?php echo $purchase['item_name']; ?></td>
                         <td style="font-size: 17px;"><?php echo $purchase['supplier_name']; ?></td>
-                        <td style="font-size: 17px;"><?php echo $purchase['quantity'] . ' ' . $purchase['unit']; ?></td>
+                        <td style="font-size: 17px;"><?php echo $purchase['quantity']; ?></td>
+                        <td style="font-size: 17px;"><?php echo $purchase['unit_size'] . ' ' . $purchase['unit']; ?></td>
                         <td style="font-size: 17px;">
                             <span class="quantity-badge <?php echo $qtyClass; ?>">
-                                <?php echo $purchase['current_quantity'] . ' ' . $purchase['unit']; ?>
+                                <?php echo $purchase['current_quantity']; ?>
                             </span>
                         </td>
                         <td style="font-size: 17px;">Rs.<?php echo number_format($purchase['price_per_unit'], 2); ?></td>
@@ -627,6 +632,7 @@ $purchases = getPurchaseDetails($conn, $start_date, $end_date, $supplier_filter,
                     <tr class="total-row animate__animated animate__fadeIn">
                         <td colspan="3" class="text-end"><strong>Total:</strong></td>
                         <td><strong><?php echo $totalQuantity; ?></strong></td>
+                        <td></td>
                         <td><strong><?php echo $totalCurrentQuantity; ?></strong></td>
                         <td></td>
                         <td><strong>Rs.<?php echo number_format($totalAmount, 2); ?></strong></td>
@@ -690,7 +696,7 @@ $purchases = getPurchaseDetails($conn, $start_date, $end_date, $supplier_filter,
                 }
             );
 
-                        // Initialize autocomplete for item (add this after the supplier autocomplete)
+            // Initialize autocomplete for item
             $("#item_name").autocomplete({
                 source: function(request, response) {
                     $.get({

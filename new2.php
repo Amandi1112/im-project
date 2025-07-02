@@ -23,7 +23,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['selected_items'])) {
     
     // Get item details for selected items
     $placeholders = implode(',', array_fill(0, count($selectedItems), '?'));
-    $sql = "SELECT item_id, item_name, price_per_unit, unit FROM items WHERE item_id IN ($placeholders)";
+    $sql = "SELECT item_id, item_name, price_per_unit, unit, unit_size FROM items WHERE item_id IN ($placeholders)";
     $stmt = $conn->prepare($sql);
     $types = str_repeat('i', count($selectedItems));
     $stmt->bind_param($types, ...$selectedItems);
@@ -76,14 +76,26 @@ function generateItemCode($itemName, $supplierId, $conn) {
 }
 
 /**
- * Retrieves item details based on item name and supplier ID.
+ * Modified function to retrieve item details based on item name, supplier ID, price, and unit size.
+ * This ensures we get exact matches for price and unit size combinations.
  */
-function getItemDetails($itemName, $supplierId, $conn) {
-    $sql = "SELECT item_id, item_code, price_per_unit, unit_size, current_quantity, unit 
-            FROM items 
-            WHERE item_name = ? AND supplier_id = ?";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("ss", $itemName, $supplierId);
+function getItemDetails($itemName, $supplierId, $pricePerUnit = null, $unitSize = null, $conn) {
+    if ($pricePerUnit !== null && $unitSize !== null) {
+        // Search for exact match including price and unit size
+        $sql = "SELECT item_id, item_code, price_per_unit, current_quantity, unit, unit_size 
+                FROM items 
+                WHERE item_name = ? AND supplier_id = ? AND price_per_unit = ? AND unit_size = ?";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("ssdd", $itemName, $supplierId, $pricePerUnit, $unitSize);
+    } else {
+        // Original search without price and unit size constraints
+        $sql = "SELECT item_id, item_code, price_per_unit, current_quantity, unit, unit_size 
+                FROM items 
+                WHERE item_name = ? AND supplier_id = ?";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("ss", $itemName, $supplierId);
+    }
+    
     $stmt->execute();
     $result = $stmt->get_result();
     
@@ -95,37 +107,59 @@ function getItemDetails($itemName, $supplierId, $conn) {
 }
 
 /**
+ * Get all variations of an item (different prices/unit sizes) for a specific supplier
+ */
+function getItemVariations($itemName, $supplierId, $conn) {
+    $sql = "SELECT item_id, item_code, price_per_unit, current_quantity, unit, unit_size 
+            FROM items 
+            WHERE item_name = ? AND supplier_id = ?
+            ORDER BY price_per_unit, unit_size";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("ss", $itemName, $supplierId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    $variations = [];
+    if ($result->num_rows > 0) {
+        while($row = $result->fetch_assoc()) {
+            $variations[] = $row;
+        }
+    }
+    
+    return $variations;
+}
+
+/**
  * Adds a new item to the database.
  */
-function addNewItem($itemName, $pricePerUnit, $unitSize, $supplierId, $unit, $conn) {
+function addNewItem($itemName, $pricePerUnit, $supplierId, $unit, $unitSize, $conn) {
     $itemCode = generateItemCode($itemName, $supplierId, $conn);
     
-    $sql = "INSERT INTO items (item_code, item_name, price_per_unit, unit_size, current_quantity, supplier_id, unit) 
-            VALUES (?, ?, ?, ?, 0, ?, ?)";
+    $sql = "INSERT INTO items (item_code, item_name, price_per_unit, current_quantity, supplier_id, unit, unit_size) 
+            VALUES (?, ?, ?, 0, ?, ?, ?)";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("ssddss", $itemCode, $itemName, $pricePerUnit, $unitSize, $supplierId, $unit);
+    $stmt->bind_param("ssdssd", $itemCode, $itemName, $pricePerUnit, $supplierId, $unit, $unitSize);
     
     if ($stmt->execute()) {
         return [
             'item_id' => $conn->insert_id,
             'item_code' => $itemCode,
             'price_per_unit' => $pricePerUnit,
-            'unit_size' => $unitSize,
             'current_quantity' => 0,
-            'unit' => $unit
+            'unit' => $unit,
+            'unit_size' => $unitSize
         ];
     } else {
         return null;
     }
 }
 
-
 /**
  * Adds a purchase record and updates the item quantity in the database.
  */
-function addPurchase($itemId, $quantity, $pricePerUnit, $unitSize, $purchaseDate, $expireDate, $supplierId, $unit, $conn) {
+function addPurchase($itemId, $quantity, $pricePerUnit, $purchaseDate, $expireDate, $supplierId, $unit, $unitSize, $conn) {
+    $totalUnits = $quantity * $unitSize;
     $totalPrice = $quantity * $pricePerUnit;
-    $totalUnits = $quantity * $unitSize; // Calculate total units
     
     // Start transaction to ensure atomicity
     $conn->begin_transaction();
@@ -135,18 +169,18 @@ function addPurchase($itemId, $quantity, $pricePerUnit, $unitSize, $purchaseDate
         $sql = "INSERT INTO item_purchases (item_id, quantity, price_per_unit, unit_size, total_units, total_price, purchase_date, expire_date, supplier_id, unit) 
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         $stmt = $conn->prepare($sql);
-        $stmt->bind_param("idddddssss", $itemId, $quantity, $pricePerUnit, $unitSize, $totalUnits, $totalPrice, $purchaseDate, $expireDate, $supplierId, $unit);
+        $stmt->bind_param("iddddsssss", $itemId, $quantity, $pricePerUnit, $unitSize, $totalUnits, $totalPrice, $purchaseDate, $expireDate, $supplierId, $unit);
         $stmt->execute();
         
-        // Update item quantity, price and unit_size in the items table
+        // Update item quantity and price in the items table
         $sql = "UPDATE items 
                 SET current_quantity = current_quantity + ?, 
                     price_per_unit = ?,
-                    unit_size = ?,
-                    unit = ?
+                    unit = ?,
+                    unit_size = ?
                 WHERE item_id = ?";
         $stmt = $conn->prepare($sql);
-        $stmt->bind_param("dddsi", $totalUnits, $pricePerUnit, $unitSize, $unit, $itemId);
+        $stmt->bind_param("ddsdi", $quantity, $pricePerUnit, $unit, $unitSize, $itemId);
         $stmt->execute();
         
         // Commit the transaction
@@ -177,13 +211,13 @@ function getSuppliers($conn) {
 }
 
 /**
- * Get all items for a specific supplier
+ * Get all items for a specific supplier - Modified to show unique item names with variations
  */
 function getSupplierItems($supplierId, $conn) {
-    $sql = "SELECT item_id, item_name, item_code, price_per_unit, unit_size, current_quantity 
+    $sql = "SELECT item_id, item_name, item_code, price_per_unit, current_quantity, unit, unit_size 
             FROM items 
             WHERE supplier_id = ?
-            ORDER BY item_name";
+            ORDER BY item_name, price_per_unit, unit_size";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("s", $supplierId);
     $stmt->execute();
@@ -209,24 +243,34 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['get_supplier_items']))
     exit;
 }
 
-// Handle AJAX request for item details
+// Modified AJAX request for item details - now includes price and unit size checking
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['item_name']) && isset($_POST['supplier_id']) && !isset($_POST['submit_purchases'])) {
     $itemName = trim($_POST['item_name']);
     $supplierId = trim($_POST['supplier_id']);
+    $pricePerUnit = isset($_POST['price_per_unit']) ? floatval($_POST['price_per_unit']) : null;
+    $unitSize = isset($_POST['unit_size']) ? floatval($_POST['unit_size']) : null;
     
-    $item = getItemDetails($itemName, $supplierId, $conn);
+    $response = ['exists' => false, 'variations' => []];
     
-    $response = ['exists' => false];
+    // Get all variations of this item
+    $variations = getItemVariations($itemName, $supplierId, $conn);
     
-    if ($item) {
-    $response = [
-        'exists' => true,
-        'item_id' => $item['item_id'],
-        'price_per_unit' => $item['price_per_unit'],
-        'unit_size' => $item['unit_size'],
-        'current_quantity' => $item['current_quantity']
-    ];
-}
+    if (!empty($variations)) {
+        $response['variations'] = $variations;
+        
+        // Check for exact match if price and unit size are provided
+        if ($pricePerUnit !== null && $unitSize !== null) {
+            $exactMatch = getItemDetails($itemName, $supplierId, $pricePerUnit, $unitSize, $conn);
+            if ($exactMatch) {
+                $response['exists'] = true;
+                $response['exact_match'] = $exactMatch;
+            }
+        } else {
+            // Return the first variation as default
+            $response['exists'] = true;
+            $response['default_item'] = $variations[0];
+        }
+    }
     
     header('Content-Type: application/json');
     echo json_encode($response);
@@ -252,7 +296,8 @@ if (isset($_GET['search_supplier'])) {
 }
 
 /**
- * Process form submission for adding purchases
+ * Modified process form submission for adding purchases
+ * Now creates separate entries for different price/unit size combinations
  */
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['submit_purchases'])) {
     $successCount = 0;
@@ -267,39 +312,42 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['submit_purchases'])) {
         
         // Process each item for this supplier
         foreach ($supplierData['items'] as $itemData) {
-    $itemName = isset($itemData['item_name']) ? trim($itemData['item_name']) : '';
-    $quantity = isset($itemData['quantity']) ? floatval($itemData['quantity']) : 0;
-    $pricePerUnit = isset($itemData['price_per_unit']) ? floatval($itemData['price_per_unit']) : 0;
-    $unitSize = isset($itemData['unit_size']) ? floatval($itemData['unit_size']) : 1.0;
-    $purchaseDate = isset($itemData['purchase_date']) ? $itemData['purchase_date'] : date('Y-m-d');
-    $expireDate = isset($itemData['expire_date']) && !empty($itemData['expire_date']) ? $itemData['expire_date'] : null;
-    $unit = isset($itemData['unit']) ? $itemData['unit'] : 'other';
-    
-    // Skip invalid entries
-    if (empty($itemName) || $quantity <= 0 || $pricePerUnit <= 0 || $unitSize <= 0) {
-        continue;
-    }
-            // Check if item exists or create new
-            $existingItem = getItemDetails($itemName, $supplierId, $conn);
+            $itemName = isset($itemData['item_name']) ? trim($itemData['item_name']) : '';
+            $quantity = isset($itemData['quantity']) ? floatval($itemData['quantity']) : 0;
+            $pricePerUnit = isset($itemData['price_per_unit']) ? floatval($itemData['price_per_unit']) : 0;
+            $unitSize = isset($itemData['unit_size']) ? floatval($itemData['unit_size']) : 1.00;
+            $purchaseDate = isset($itemData['purchase_date']) ? $itemData['purchase_date'] : date('Y-m-d');
+            $expireDate = isset($itemData['expire_date']) && !empty($itemData['expire_date']) ? $itemData['expire_date'] : null;
+            $unit = isset($itemData['unit']) ? $itemData['unit'] : 'other';
+            
+            // Skip invalid entries
+            if (empty($itemName) || $quantity <= 0 || $pricePerUnit <= 0) {
+                continue;
+            }
+            
+            // Check if exact item exists (same name, supplier, price, and unit size)
+            $existingItem = getItemDetails($itemName, $supplierId, $pricePerUnit, $unitSize, $conn);
             
             if ($existingItem) {
-    $itemId = $existingItem['item_id'];
-} else {
-    $newItem = addNewItem($itemName, $pricePerUnit, $unitSize, $supplierId, $unit, $conn);
-    if ($newItem) {
-        $itemId = $newItem['item_id'];
-    } else {
-        $errorCount++;
-        continue;
-    }
-}
-
-// Add purchase record
-if (addPurchase($itemId, $quantity, $pricePerUnit, $unitSize, $purchaseDate, $expireDate, $supplierId, $unit, $conn)) {
-    $successCount++;
-} else {
-    $errorCount++;
-}
+                // Use existing item ID
+                $itemId = $existingItem['item_id'];
+            } else {
+                // Create new item entry (even if item name exists with different price/unit size)
+                $newItem = addNewItem($itemName, $pricePerUnit, $supplierId, $unit, $unitSize, $conn);
+                if ($newItem) {
+                    $itemId = $newItem['item_id'];
+                } else {
+                    $errorCount++;
+                    continue;
+                }
+            }
+            
+            // Add purchase record
+            if (addPurchase($itemId, $quantity, $pricePerUnit, $purchaseDate, $expireDate, $supplierId, $unit, $unitSize, $conn)) {
+                $successCount++;
+            } else {
+                $errorCount++;
+            }
         }
     }
     
@@ -778,14 +826,21 @@ $message = isset($_GET['message']) ? $_GET['message'] : '';
                     </div>
                 </div>
                 <!-- Quantity -->
+                <div class="col-md-2">
+                    <div class="mb-3">
+                        <label class="form-label" style="font-size: 16px; font-weight: bold;">Quantity</label>
+                        <input type="number" class="form-control" name="supplier[{SUPPLIER_ID}][items][{ITEM_INDEX}][quantity]" min="1" required>
+                    </div>
+                </div>
                 <!-- Unit Size -->
-<div class="col-md-2">
-    <div class="mb-3">
-        <label class="form-label" style="font-size: 16px; font-weight: bold;">Unit Size</label>
-        <input type="number" step="0.01" class="form-control unit-size" name="supplier[{SUPPLIER_ID}][items][{ITEM_INDEX}][unit_size]" min="0.01" value="1" required>
-    </div>
-</div>
-                <div class="col-md-1-5">
+                <div class="col-md-2">
+                    <div class="mb-3">
+                        <label class="form-label" style="font-size: 16px; font-weight: bold;">Unit Size</label>
+                        <input type="number" step="0.01" class="form-control" name="supplier[{SUPPLIER_ID}][items][{ITEM_INDEX}][unit_size]" min="0.01" value="1.00" required>
+                    </div>
+                </div>
+                <!-- Unit -->
+                <div class="col-md-1">
                     <div class="mb-3">
                         <label class="form-label" style="font-size: 16px; font-weight: bold;">Unit</label>
                         <select class="form-select unit-select" name="supplier[{SUPPLIER_ID}][items][{ITEM_INDEX}][unit]" required>
@@ -850,7 +905,15 @@ $message = isset($_GET['message']) ? $_GET['message'] : '';
                         <input type="number" class="form-control" name="supplier[{SUPPLIER_ID}][items][{ITEM_INDEX}][quantity]" min="1" required>
                     </div>
                 </div>
-                <div class="col-md-1-5">
+                <!-- Unit Size -->
+                <div class="col-md-2">
+                    <div class="mb-3">
+                        <label class="form-label" style="font-size: 16px; font-weight: bold;">Unit Size</label>
+                        <input type="number" step="0.01" class="form-control" name="supplier[{SUPPLIER_ID}][items][{ITEM_INDEX}][unit_size]" min="0.01" value="1.00" required>
+                    </div>
+                </div>
+                <!-- Unit -->
+                <div class="col-md-1">
                     <div class="mb-3">
                         <label class="form-label" style="font-size: 16px; font-weight: bold;">Unit</label>
                         <select class="form-select unit-select" name="supplier[{SUPPLIER_ID}][items][{ITEM_INDEX}][unit]" required>
@@ -961,19 +1024,18 @@ function restoreSupplierState() {
                     itemsContainer.append(newItemRow);
                     
                     // Set values for the restored item
-                    // Set values for the restored item
-const newRow = itemsContainer.find('.item-row').last();
-if (item.is_existing) {
-    newRow.find('.existing-item-select').val(item.item_name);
-} else {
-    newRow.find('.item-name').val(item.item_name);
-}
-newRow.find('input[name*="[quantity]"]').val(item.quantity);
-newRow.find('.unit-size').val(item.unit_size || 1); // Add this line
-newRow.find('.price-per-unit').val(item.price_per_unit);
-newRow.find('.unit-select').val(item.unit);
-newRow.find('input[name*="[purchase_date]"]').val(item.purchase_date);
-newRow.find('input[name*="[expire_date]"]').val(item.expire_date);
+                    const newRow = itemsContainer.find('.item-row').last();
+                    if (item.is_existing) {
+                        newRow.find('.existing-item-select').val(item.item_name);
+                    } else {
+                        newRow.find('.item-name').val(item.item_name);
+                    }
+                    newRow.find('input[name*="[quantity]"]').val(item.quantity);
+                    newRow.find('input[name*="[unit_size]"]').val(item.unit_size);
+                    newRow.find('.price-per-unit').val(item.price_per_unit);
+                    newRow.find('.unit-select').val(item.unit);
+                    newRow.find('input[name*="[purchase_date]"]').val(item.purchase_date);
+                    newRow.find('input[name*="[expire_date]"]').val(item.expire_date);
                     
                     // Increment item count
                     if (!supplierCounts[supplier.id]) {
@@ -1074,6 +1136,29 @@ $('.supplier-section[data-supplier-id="' + supplierId + '"]').attr('data-supplie
                         // Store items in data attribute for this supplier section
                         const supplierSection = $('.supplier-section[data-supplier-id="' + supplierId + '"]');
                         supplierSection.data('items', items);
+                        
+                        // Update existing item dropdowns with new items
+                        supplierSection.find('.existing-item-select').each(function() {
+                            const currentValue = $(this).val();
+                            $(this).empty().append('<option value="">-- Select Item --</option>');
+                            
+                            items.forEach(item => {
+                                $(this).append(
+                                    $('<option></option>')
+                                        .val(item.item_name)
+                                        .text(item.item_name + ' (' + item.item_code + ')')
+                                        .data('price', item.price_per_unit)
+                                        .data('quantity', item.current_quantity)
+                                        .data('unit', item.unit)
+                                        .data('unit_size', item.unit_size)
+                                );
+                            });
+                            
+                            // Restore previous selection if it exists in the new items
+                            if (currentValue) {
+                                $(this).val(currentValue);
+                            }
+                        });
                     }
                 });
             }
@@ -1102,68 +1187,6 @@ $('.supplier-section[data-supplier-id="' + supplierId + '"]').attr('data-supplie
                 // Increment item count
                 supplierCounts[supplierId]++;
             });
-
-            // Handle existing item selection change - update to include unit_size
-$(document).on('change', '.existing-item-select', function() {
-    const selectedOption = $(this).find('option:selected');
-    const pricePerUnit = selectedOption.data('price');
-    const unitSize = selectedOption.data('unit-size');
-    const currentQuantity = selectedOption.data('quantity');
-    const unit = selectedOption.data('unit');
-    
-    // Set price per unit
-    const priceInput = $(this).closest('.row').find('.price-per-unit');
-    priceInput.val(pricePerUnit);
-    
-    // Set unit size
-    const unitSizeInput = $(this).closest('.row').find('.unit-size');
-    unitSizeInput.val(unitSize || 1);
-    
-    // Set unit if available
-    if (unit) {
-        const unitSelect = $(this).closest('.row').find('.unit-select');
-        unitSelect.val(unit);
-    }
-    
-    // Show current quantity tooltip
-    if (currentQuantity) {
-        showAlert(`Current quantity in stock: ${currentQuantity}`, 'info');
-    }
-});
-
-// Check item existence when new item name changes - update to include unit_size
-$(document).on('blur', '.item-name', function() {
-    const itemNameInput = $(this);
-    const itemName = itemNameInput.val().trim();
-    
-    if (!itemName) return;
-    
-    const supplierSection = itemNameInput.closest('.supplier-section');
-    const supplierId = supplierSection.data('supplier-id');
-    
-    // Check if item exists
-    $.ajax({
-        url: window.location.href,
-        type: 'POST',
-        data: { 
-            item_name: itemName,
-            supplier_id: supplierId
-        },
-        dataType: 'json',
-        success: function(response) {
-            if (response.exists) {
-                const row = itemNameInput.closest('.row');
-                const priceInput = row.find('.price-per-unit');
-                const unitSizeInput = row.find('.unit-size');
-                
-                priceInput.val(response.price_per_unit);
-                unitSizeInput.val(response.unit_size || 1);
-                
-                showAlert(`Item "${itemName}" already exists with current quantity: ${response.current_quantity}`, 'info');
-            }
-        }
-    });
-});
             
             // Add existing item to supplier - redirect to selection page
             // Add existing item to supplier - redirect to selection page
@@ -1186,6 +1209,7 @@ $(document).on('click', '.add-existing-item', function() {
             const itemData = {
                 item_name: itemRow.find('.item-name, .existing-item-select').val(),
                 quantity: itemRow.find('input[name*="[quantity]"]').val(),
+                unit_size: itemRow.find('input[name*="[unit_size]"]').val(),
                 price_per_unit: itemRow.find('.price-per-unit').val(),
                 unit: itemRow.find('.unit-select').val(),
                 purchase_date: itemRow.find('input[name*="[purchase_date]"]').val(),
@@ -1256,6 +1280,9 @@ $(document).on('click', '.add-existing-item', function() {
                     newRow.find('.item-name').val(item.item_name);
                     newRow.find('.price-per-unit').val(item.price_per_unit);
                     newRow.find('.unit-select').val(item.unit);
+                    newRow.find('input[name*="[unit_size]"]').val(item.unit_size || '1.00');
+                    newRow.find('input[name*="[purchase_date]"]').val(item.purchase_date);
+                    newRow.find('input[name*="[expire_date]"]').val(item.expire_date);
                     
                     // Increment item count
                     supplierCounts[selectedItems.supplier_id]++;
@@ -1271,6 +1298,7 @@ $(document).on('click', '.add-existing-item', function() {
                 const pricePerUnit = selectedOption.data('price');
                 const currentQuantity = selectedOption.data('quantity');
                 const unit = selectedOption.data('unit');
+                const unitSize = selectedOption.data('unit_size');
                 
                 // Set price per unit
                 const priceInput = $(this).closest('.row').find('.price-per-unit');
@@ -1280,6 +1308,12 @@ $(document).on('click', '.add-existing-item', function() {
                 if (unit) {
                     const unitSelect = $(this).closest('.row').find('.unit-select');
                     unitSelect.val(unit);
+                }
+                
+                // Set unit size if available
+                if (unitSize) {
+                    const unitSizeInput = $(this).closest('.row').find('input[name*="[unit_size]"]');
+                    unitSizeInput.val(unitSize);
                 }
                 
                 // Show current quantity tooltip
@@ -1311,6 +1345,13 @@ $(document).on('click', '.add-existing-item', function() {
                         if (response.exists) {
                             const priceInput = itemNameInput.closest('.row').find('.price-per-unit');
                             priceInput.val(response.price_per_unit);
+                            
+                            const unitSelect = itemNameInput.closest('.row').find('.unit-select');
+                            unitSelect.val(response.unit);
+                            
+                            const unitSizeInput = itemNameInput.closest('.row').find('input[name*="[unit_size]"]');
+                            unitSizeInput.val(response.unit_size || '1.00');
+                            
                             showAlert(`Item "${itemName}" already exists with current quantity: ${response.current_quantity}`, 'info');
                         }
                     }

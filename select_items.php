@@ -43,7 +43,7 @@ if (empty($supplierName)) {
 }
 // Get items for this supplier
 $items = [];
-$stmt = $conn->prepare("SELECT item_id, item_name, item_code, price_per_unit, current_quantity, unit 
+$stmt = $conn->prepare("SELECT item_id, item_name, item_code, price_per_unit, current_quantity, unit, unit_size 
                        FROM items 
                        WHERE supplier_id = ? 
                        ORDER BY item_name");
@@ -68,7 +68,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['selected_items'])) {
     // Get details for selected items
     $selectedIds = $_POST['selected_items'];
     $placeholders = implode(',', array_fill(0, count($selectedIds), '?'));
-    $sql = "SELECT item_id, item_name, price_per_unit, unit FROM items WHERE item_id IN ($placeholders)";
+    $sql = "SELECT item_id, item_name, price_per_unit, unit, unit_size FROM items WHERE item_id IN ($placeholders)";
     $stmt = $conn->prepare($sql);
     $types = str_repeat('i', count($selectedIds));
     $stmt->bind_param($types, ...$selectedIds);
@@ -278,6 +278,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['selected_items'])) {
                                     <span>Code: <?php echo htmlspecialchars($item['item_code']); ?></span>
                                     <span>Current Price: Rs.<?php echo number_format($item['price_per_unit'], 2); ?></span>
                                     <span>Current Qty: <?php echo $item['current_quantity']; ?> <?php echo htmlspecialchars($item['unit']); ?></span>
+                                    <span>Unit Size: <?php echo $item['unit_size']; ?> <?php echo htmlspecialchars($item['unit']); ?></span>
                                 </div>
                             </div>
                         </div>

@@ -36,41 +36,41 @@ class PDF extends FPDF {
     
     // Colored table header
     function TableHeader() {
-        $this->SetFont('Arial','B',10);
-        $this->SetFillColor(54, 123, 180); // Blue header
-        $this->SetTextColor(255);
-        $this->SetDrawColor(54, 123, 180);
-        $this->SetLineWidth(0.3);
-        
-        $header = array(
-            'Purchase Date',
-            'Item Name', 
-            'Supplier',
-            'Qty (Unit)',
-            'Unit Price',
-            'Total Price',
-            'Expiry Date',
-            'Status'
-        );
-        
-        // Adjusted column widths for portrait mode
-        $w = array(25, 40, 15, 22, 30, 20, 25, 15);
-        
-        for($i=0; $i<count($header); $i++) {
-            $this->Cell($w[$i],7,$header[$i],1,0,'C',true);
-        }
-        $this->Ln();
-    }
+    $this->SetFont('Arial','B',10);
+    $this->SetFillColor(54, 123, 180);
+    $this->SetTextColor(255);
+    $this->SetDrawColor(54, 123, 180);
+    $this->SetLineWidth(0.3);
     
-    // Table content with alternating colors
+    $header = array(
+        'Purchase Date',
+        'Item Name',
+        'Supplier',
+        'Qty',
+        'Size',
+        'Unit Price',
+        'Total Price',
+        'Expiry Date'
+    );
+    
+    $w = array(27, 25, 30, 20, 25, 25, 25, 20);
+    
+    for($i=0; $i<count($header); $i++) {
+        $this->Cell($w[$i],7,$header[$i],1,0,'C',true);
+    }
+    $this->Ln();
+}
+
+    
+    // Table content with adjusted column sizes
     function TableContent($purchases) {
         $this->SetFont('Arial','',9);
         $this->SetTextColor(0);
         $this->SetFillColor(224, 235, 255); // Light blue alternate row
         $fill = false;
         
-        // Adjusted column widths for portrait mode
-        $w = array(25, 40, 15, 22, 30, 20, 25, 15);
+        // Use same widths as in TableHeader
+        $w = array(27, 25, 30, 20, 25, 25, 25, 20);
         
         foreach($purchases as $purchase) {
             // Check if we need a new page
@@ -95,20 +95,37 @@ class PDF extends FPDF {
             $purchase_date = date('d M Y', strtotime($purchase['purchase_date']));
             $expire_date = !empty($purchase['expire_date']) ? date('d M Y', strtotime($purchase['expire_date'])) : 'N/A';
             
-            // Cells
-            $this->Cell($w[0],6,$purchase_date,'LR',0,'L',$fill);
-    $this->Cell($w[1],6,$this->StringLimit($purchase['item_name'], 20),'LR',0,'L',$fill);
-    $this->Cell($w[2],6,$this->StringLimit($purchase['supplier_id'], 20),'LR',0,'L',$fill);
-    $this->Cell($w[3],6,$purchase['quantity'] . ' ' . $purchase['unit'],'LR',0,'R',$fill);
-    $this->Cell($w[4],6,number_format($purchase['price_per_unit'], 2) . '/' . $purchase['unit'],'LR',0,'R',$fill);
-    $this->Cell($w[5],6,number_format($purchase['total_price'], 2),'LR',0,'R',$fill);
-    $this->Cell($w[6],6,$expire_date,'LR',0,'L',$fill);
-    $this->Cell($w[7],6,$status,'LR',0,'L',$fill);
-    $this->Ln();
+            // Get unit name
+            $unitName = $this->getUnitName($purchase['unit']);
+            
+            // Cells with adjusted widths
+            $this->Cell($w[0],6,$purchase_date,'LR',0,'C',$fill);
+    $this->Cell($w[1],6,$this->StringLimit($purchase['item_name'], 35),'LR',0,'L',$fill);
+    $this->Cell($w[2],6,$this->StringLimit($purchase['supplier_name'], 20),'LR',0,'L',$fill);
+    $this->Cell($w[3],6,$purchase['quantity'] . ' units','LR',0,'C',$fill);
+    $this->Cell($w[4],6,$purchase['unit_size'] . ' ' . $unitName,'LR',0,'C',$fill);
+    $this->Cell($w[5],6,'Rs.'.number_format($purchase['price_per_unit'], 2),'LR',0,'R',$fill);
+    $this->Cell($w[6],6,'Rs.'.number_format($purchase['total_price'], 2),'LR',0,'R',$fill);
+    $this->Cell($w[7],6,$expire_date,'LR',0,'C',$fill);
+           
+            $this->Ln();
         }
         
         // Closing line
         $this->Cell(array_sum($w),0,'','T');
+    }
+    
+    // Helper function to get proper unit name
+    function getUnitName($unit) {
+        $unitNames = [
+            'g' => 'grams',
+            'kg' => 'kilograms',
+            'packets' => 'packets',
+            'bottles' => 'bottles',
+            'other' => 'units'
+        ];
+        
+        return $unitNames[$unit] ?? 'units';
     }
     
     // Helper function to limit string length for better fit in portrait mode
@@ -149,6 +166,9 @@ class PDF extends FPDF {
         $this->Cell(50,6,'Total Purchases:',0,0,'L');
         $this->Cell(0,6,$count,0,1,'L');
         
+        $this->Cell(50,6,'Total Quantity:',0,0,'L');
+        $this->Cell(0,6,$totalQuantity. ' ' . 'units',0,1,'L');
+        
         $this->Cell(50,6,'Total Amount:',0,0,'L');
         $this->Cell(0,6,'Rs.'.number_format($totalAmount, 2),0,1,'L');
         
@@ -157,18 +177,17 @@ class PDF extends FPDF {
         $this->Cell(0, 6, 'Report generated on: ' . date('F j, Y'), 0, 1, 'L');
         $this->Ln(3.5);
     }
+    
     // Signature section
     function SignatureSection() {
-       
-        
         // Co-op City Staff signature
         $this->SetFont('Arial','B',10);
         $this->Cell(90, 5, 'Co-op City Staff:', 0, 0, 'L');
         $this->Cell(90, 5, 'Bank Manager:', 0, 1, 'L');
         
         $this->SetFont('Arial','',10);
-        $this->Cell(90, 5, '', 0, 0, 'L'); // Removed 'B' parameter to remove bottom border
-        $this->Cell(90, 5, '', 0, 1, 'L'); // Removed 'B' parameter to remove bottom border
+        $this->Cell(90, 5, '', 0, 0, 'L');
+        $this->Cell(90, 5, '', 0, 1, 'L');
         
         $this->SetFont('Arial','I',9);
         $this->Cell(90, 5, 'Signature: _________________________', 0, 0, 'L');
@@ -182,7 +201,7 @@ class PDF extends FPDF {
     }
 }
 
-// Database connection and data retrieval (same as before)
+// Database connection and data retrieval
 $servername = "localhost";
 $username = "root";
 $password = "";
@@ -192,9 +211,16 @@ $conn = new mysqli($servername, $username, $password, $dbname);
 if ($conn->connect_error) die("Connection failed: " . $conn->connect_error);
 
 function getPurchaseDetails($conn, $start_date = '', $end_date = '', $supplier_filter = '', $item_filter = '') {
-    $sql = "SELECT ip.purchase_date, ip.expire_date, ip.quantity, ip.price_per_unit, 
-                   ip.total_price, i.item_name, s.supplier_id,
-                   COALESCE(ip.unit, i.unit) AS unit
+    $sql = "SELECT 
+                ip.purchase_date, 
+                ip.expire_date, 
+                ip.quantity, 
+                ip.price_per_unit, 
+                ip.total_price, 
+                i.item_name, 
+                s.supplier_name,
+                i.unit_size,
+                COALESCE(ip.unit, i.unit) AS unit
             FROM item_purchases ip
             JOIN items i ON ip.item_id = i.item_id
             JOIN supplier s ON i.supplier_id = s.supplier_id";
@@ -232,7 +258,7 @@ $totalQuantity = array_sum(array_column($purchases, 'quantity'));
 $totalAmount = array_sum(array_column($purchases, 'total_price'));
 
 // Generate PDF
-$pdf = new PDF(); // Default is portrait orientation (removed 'L')
+$pdf = new PDF();
 $pdf->AliasNbPages();
 $pdf->AddPage();
 
@@ -240,7 +266,7 @@ $pdf->AddPage();
 $pdf->TableHeader();
 $pdf->TableContent($purchases);
 $pdf->Summary($totalQuantity, $totalAmount, count($purchases));
-$pdf->SignatureSection(); // Make sure signature section is included
+$pdf->SignatureSection();
 
 // Output PDF
 $pdf->Output('Purchase_Report_'.date('Ymd_His').'.pdf', 'D');
