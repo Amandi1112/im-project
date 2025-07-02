@@ -28,13 +28,11 @@ if (isset($_GET['action'])) {
     if ($_GET['action'] == 'get_item_info' && isset($_GET['id'])) {
         $stmt = $pdo->prepare("
             SELECT i.*, 
-                   GROUP_CONCAT(DISTINCT s.supplier_name SEPARATOR ', ') as supplier_names,
-                   COUNT(DISTINCT i2.item_id) as supplier_count
-            FROM items i
-            LEFT JOIN supplier s ON i.supplier_id = s.supplier_id
-            LEFT JOIN items i2 ON i.item_name = i2.item_name AND i2.item_id != i.item_id
-            WHERE i.item_id = ?
-            GROUP BY i.item_id
+       GROUP_CONCAT(DISTINCT s.supplier_name SEPARATOR ', ') as supplier_names
+FROM items i
+LEFT JOIN supplier s ON i.supplier_id = s.supplier_id
+WHERE i.item_id = ?
+GROUP BY i.item_id
         ");
         $stmt->execute([$_GET['id']]);
         $item = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -74,12 +72,12 @@ if (isset($_GET['action'])) {
         $term = '%' . $_GET['term'] . '%';
         $stmt = $pdo->prepare("
             SELECT item_id as id, 
-                   CONCAT(item_name, ' (', unit_size, ' ', unit,' ', type, ')') as label,
-                   unit, type, current_quantity
-            FROM items 
-            WHERE item_name LIKE ? AND current_quantity > 0
-            ORDER BY item_name
-            LIMIT 10
+       CONCAT(item_name, ' (', unit_size, ' ', unit,' ', type, ')') as label,
+       current_quantity
+FROM items 
+WHERE item_name LIKE ? AND current_quantity > 0
+ORDER BY item_name
+LIMIT 10
         ");
         $stmt->execute([$term]);
         $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -99,7 +97,7 @@ function generateInvoicePDF($purchaseId, $pdo) {
     $stmt = $pdo->prepare("
     SELECT p.*, m.id as member_id, m.full_name, m.bank_membership_number, 
            m.address, m.telephone_number, i.item_name, i.price_per_unit, 
-           i.item_code, s.supplier_name, p.unit as purchase_unit
+           i.item_code, i.unit_size, i.unit, s.supplier_name, p.unit as purchase_unit
     FROM purchases p
     JOIN members m ON p.member_id = m.id
     JOIN items i ON p.item_id = i.item_id
@@ -204,37 +202,37 @@ function generateInvoicePDF($purchaseId, $pdo) {
 
     // Table Header (wider columns for landscape)
     $pdf->SetFillColor($primaryColor[0], $primaryColor[1], $primaryColor[2]);
-    $pdf->SetTextColor(255);
-    $pdf->SetFont('Helvetica','B',10);
+$pdf->SetTextColor(255);
+$pdf->SetFont('Helvetica','B',10);
 
-    $pdf->Cell(15,10,'#',1,0,'C',true);
-    $pdf->Cell(90,10,'ITEM DESCRIPTION',1,0,'L',true); // Adjusted width
-    $pdf->Cell(30,10,'ITEM CODE',1,0,'C',true); // Adjusted width
-    $pdf->Cell(30,10,'UNIT',1,0,'C',true); // Added unit column
-    $pdf->Cell(30,10,'UNIT PRICE',1,0,'R',true);
-    $pdf->Cell(25,10,'QTY',1,0,'C',true);
-    $pdf->Cell(35,10,'TOTAL',1,1,'R',true);
+$pdf->Cell(15,10,'#',1,0,'C',true);
+$pdf->Cell(65,10,'ITEM DESCRIPTION',1,0,'L',true);    // Reduced from 90
+$pdf->Cell(45,10,'ITEM CODE',1,0,'C',true);           // Reduced from 30
+$pdf->Cell(25,10,'UNIT SIZE',1,0,'C',true);           // NEW COLUMN
+$pdf->Cell(25,10,'UNIT PRICE',1,0,'R',true);          // Reduced from 30
+$pdf->Cell(20,10,'QTY',1,0,'C',true);                 // Reduced from 25
+$pdf->Cell(30,10,'TOTAL',1,1,'R',true); 
 
     // Table Rows
     $pdf->SetTextColor($darkColor[0], $darkColor[1], $darkColor[2]);
-    $pdf->SetFont('Helvetica','',10);
+$pdf->SetFont('Helvetica','',10);
 
-    $rowNum = 1;
-    foreach ($purchases as $purchase) {
-        $pdf->Cell(15,8,$rowNum,1,0,'C');
-        $pdf->Cell(90,8,$purchase['item_name'],1,0,'L');
-        $pdf->Cell(30,8,$purchase['item_code'],1,0,'C');
-        $pdf->Cell(30,8,strtoupper($purchase['purchase_unit']),1,0,'C'); // Display unit
-        $pdf->Cell(30,8,'Rs. '.number_format($purchase['price_per_unit'],2),1,0,'R');
-        $pdf->Cell(25,8,$purchase['quantity'],1,0,'C');
-        $pdf->Cell(35,8,'Rs. '.number_format($purchase['total_price'],2),1,1,'R');
-        $rowNum++;
-    }
+$rowNum = 1;
+foreach ($purchases as $purchase) {
+    $pdf->Cell(15,8,$rowNum,1,0,'C');
+    $pdf->Cell(65,8,$purchase['item_name'],1,0,'L');
+    $pdf->Cell(45,8,$purchase['item_code'],1,0,'C');
+    $pdf->Cell(25,8,$purchase['unit_size'].' '.$purchase['unit'],1,0,'C');  // NEW COLUMN
+    $pdf->Cell(25,8,'Rs. '.number_format($purchase['price_per_unit'],2),1,0,'R');
+    $pdf->Cell(20,8,$purchase['quantity'],1,0,'C');
+    $pdf->Cell(30,8,'Rs. '.number_format($purchase['total_price'],2),1,1,'R');
+    $rowNum++;
+}
 
     // Subtotal row
-    $pdf->SetFont('Helvetica','B',10);
-    $pdf->Cell(190,8,'SUBTOTAL',1,0,'R'); // Adjusted width
-    $pdf->Cell(35,8,'Rs. '.number_format($subtotal,2),1,1,'R');
+   $pdf->SetFont('Helvetica','B',10);
+$pdf->Cell(195,8,'SUBTOTAL',1,0,'R');  // Adjusted from 210 to 195
+$pdf->Cell(30,8,'Rs. '.number_format($subtotal,2),1,1,'R');
 
     // ========== NEW CREDIT LIMIT ========== //
     // Check if credit_limit exists before using it
@@ -306,7 +304,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Validate items array structure
             $validItems = [];
             foreach ($items as $itemData) {
-                if (!isset($itemData['item_id']) || !isset($itemData['quantity']) || !isset($itemData['unit'])) {
+                if (!isset($itemData['item_id']) || !isset($itemData['quantity'])) {
                     $error = "Invalid item data format";
                     break;
                 }
@@ -320,7 +318,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $validItems[] = [
                     'item_id' => $itemId,
                     'quantity' => $quantity,
-                    'unit' => $unit
+                    
                 ];
             }
             
@@ -339,7 +337,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     foreach ($validItems as $itemData) {
                         $itemId = $itemData['item_id'];
                         $quantity = $itemData['quantity'];
-                        $unit = $itemData['unit'];
+                        
                         
                         // Get item details
                         $itemStmt = $pdo->prepare("SELECT * FROM items WHERE item_id = ?");
@@ -360,7 +358,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $purchaseDetails[] = [
                             'item_id' => $itemId,
                             'quantity' => $quantity,
-                            'unit' => $unit,
+                            
                             'price_per_unit' => $item['price_per_unit'],
                             'total_price' => $itemTotal,
                             'item_name' => $item['item_name']
@@ -379,15 +377,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $purchaseStmt = $pdo->prepare("
                             INSERT INTO purchases (member_id, item_id, full_name, quantity, 
                                                 price_per_unit, total_price, purchase_date, 
-                                                current_credit_balance, unit)
-                            VALUES (?, ?, ?, ?, ?, ?, CURDATE(), ?, ?)
+                                                current_credit_balance)
+                            VALUES (?, ?, ?, ?, ?, ?, CURDATE(), ?)
                         ");
                         $purchaseStmt->execute([
-                            $memberId, $purchase['item_id'], $member['full_name'], 
-                            $purchase['quantity'], $purchase['price_per_unit'], $purchase['total_price'], 
-                            $member['current_credit_balance'] + $totalPurchaseAmount,
-                            $purchase['unit']
-                        ]);
+    $memberId, $purchase['item_id'], $member['full_name'], 
+    $purchase['quantity'], $purchase['price_per_unit'], $purchase['total_price'], 
+    $member['current_credit_balance'] + $totalPurchaseAmount
+]);
                         
                         $purchaseIds[] = $pdo->lastInsertId();
                         
@@ -619,10 +616,7 @@ $transactions = $pdo->query("
             flex: 1;
             max-width: 90px;
         }
-        .item-row .item-unit {
-            flex: 1.2;
-            max-width: 120px;
-        }
+       
         .item-row .item-price {
             flex: 1;
             max-width: 100px;
@@ -792,7 +786,7 @@ $transactions = $pdo->query("
                             <th>Bank No.</th>
                             <th>Item</th>
                             <th>Qty</th>
-                            <th>Unit</th>
+                          
                             <th>Unit Price</th>
                             <th>Total</th>
                             <th>Credit Bal.</th>
@@ -807,7 +801,7 @@ $transactions = $pdo->query("
                                 <td><?php echo htmlspecialchars($transaction['bank_membership_number']); ?></td>
                                 <td><?php echo htmlspecialchars($transaction['item_name']); ?></td>
                                 <td><?php echo htmlspecialchars($transaction['quantity']); ?></td>
-                                <td><?php echo htmlspecialchars($transaction['unit']); ?></td>
+                                
                                 <td>Rs. <?php echo number_format($transaction['price_per_unit'], 2); ?></td>
                                 <td>Rs. <?php echo number_format($transaction['total_price'], 2); ?></td>
                                 <td>Rs. <?php echo number_format($transaction['current_credit_balance'], 2); ?></td>
@@ -831,19 +825,7 @@ $transactions = $pdo->query("
             <input type="text" class="item-search" placeholder="Search item..." list="item_list" autocomplete="off">
             <input type="hidden" class="item-id" name="">
             <input type="number" class="item-quantity" name="" min="1" value="1" placeholder="Qty">
-            <select class="item-unit" name="">
-                <option value="g">Grams (g)</option>
-                <option value="kg">Kilograms (kg)</option>
-                <option value="ml">Milliliters (ml)</option>
-                <option value="l">Liters (l)</option>
-                <option value="packets">Packets</option>
-                <option value="bags">Bags</option>
-                <option value="bottle">Bottles</option>
-                <option value="box">Boxes</option>
-                <option value="sachet">Sachets</option>
-                <option value="bars">Bars</option>
-                <option value="other">Other</option>
-            </select>
+            
             <span class="item-price">Rs. 0.00</span>
             <span class="item-total">Rs. 0.00</span>
             <button type="button" class="btn-danger remove-item-btn">×</button>
@@ -957,11 +939,11 @@ $transactions = $pdo->query("
             const index = document.querySelectorAll('.item-row').length;
             const itemIdInput = newRow.querySelector('.item-id');
             const quantityInput = newRow.querySelector('.item-quantity');
-            const unitSelect = newRow.querySelector('.item-unit');
+           
             
             itemIdInput.name = `items[${index}][item_id]`;
             quantityInput.name = `items[${index}][quantity]`;
-            unitSelect.name = `items[${index}][unit]`;
+        
             
             container.appendChild(clone);
             
@@ -974,7 +956,7 @@ $transactions = $pdo->query("
             const itemSearch = row.querySelector('.item-search');
             const itemIdInput = row.querySelector('.item-id');
             const quantityInput = row.querySelector('.item-quantity');
-            const unitSelect = row.querySelector('.item-unit');
+            
             const priceDisplay = row.querySelector('.item-price');
             const totalDisplay = row.querySelector('.item-total');
             const removeBtn = row.querySelector('.remove-item-btn');
@@ -1013,12 +995,10 @@ $transactions = $pdo->query("
                                 if (data) {
                                     priceDisplay.textContent = 'Rs. ' + data.price_per_unit.toLocaleString();
                                     // Set unit from item data if available
-                                    if (data.unit) {
-                                        unitSelect.value = data.unit;
-                                    }
+                                    
                                     
                                     // Create a tooltip with additional info
-                                    let tooltipText = `Available Quantity: ${data.current_quantity} ${data.unit}s\nType: ${data.type}\nUnit: ${data.unit}`;
+                                    let tooltipText = `Available Quantity: ${data.current_quantity} ${data.unit}s\nType: ${data.type}`;
                                     
                                     if (data.has_multiple_suppliers) {
                                         tooltipText += "\nNote: This item is available from multiple suppliers";
@@ -1049,7 +1029,7 @@ $transactions = $pdo->query("
                 itemSearch.title = '';
                 quantityInput.max = '';
                 quantityInput.placeholder = 'Qty';
-                unitSelect.value = 'other';
+                
                 calculateRowTotal(row);
             });
             
@@ -1075,7 +1055,7 @@ $transactions = $pdo->query("
                 const unitSelect = row.querySelector('.item-unit');
                 itemIdInput.name = `items[${index}][item_id]`;
                 quantityInput.name = `items[${index}][quantity]`;
-                unitSelect.name = `items[${index}][unit]`;
+               
             });
         }
         
