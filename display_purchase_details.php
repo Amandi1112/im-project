@@ -39,9 +39,10 @@ if ($_SERVER["REQUEST_METHOD"] == "GET" && isset($_GET['search_term']) && isset(
             }
         }
     } elseif ($type == 'item') {
-        $sql = "SELECT item_id, item_name FROM items 
+        // Modified to include unit size in the item search
+        $sql = "SELECT item_id, item_name, unit_size, unit FROM items 
                 WHERE item_name LIKE '%$searchTerm%' 
-                ORDER BY item_name LIMIT 10";
+                ORDER BY item_name, unit_size LIMIT 10";
         $result = $conn->query($sql);
         
         $suggestions = [];
@@ -49,7 +50,10 @@ if ($_SERVER["REQUEST_METHOD"] == "GET" && isset($_GET['search_term']) && isset(
             while ($row = $result->fetch_assoc()) {
                 $suggestions[] = [
                     'id' => $row['item_id'],
-                    'name' => $row['item_name']
+                    'name' => $row['item_name'] . ' (' . $row['unit_size'] . ' ' . $row['unit'] . ')',
+                    'item_name' => $row['item_name'],
+                    'unit_size' => $row['unit_size'],
+                    'unit' => $row['unit']
                 ];
             }
         }
@@ -711,7 +715,10 @@ $purchases = getPurchaseDetails($conn, $start_date, $end_date, $supplier_filter,
                                 return {
                                     label: item.name,
                                     value: item.name,
-                                    id: item.id
+                                    id: item.id,
+                                    item_name: item.item_name,
+                                    unit_size: item.unit_size,
+                                    unit: item.unit
                                 };
                             }));
                         }
@@ -720,16 +727,16 @@ $purchases = getPurchaseDetails($conn, $start_date, $end_date, $supplier_filter,
                 minLength: 2,
                 select: function(event, ui) {
                     $("#item_id").val(ui.item.id);
-                    $("#item_name").val(ui.item.label);
+                    $("#item_name").val(ui.item.item_name + ' (' + ui.item.unit_size + ' ' + ui.item.unit + ')');
                     return false;
                 },
                 focus: function(event, ui) {
-                    $("#item_name").val(ui.item.label);
+                    $("#item_name").val(ui.item.item_name + ' (' + ui.item.unit_size + ' ' + ui.item.unit + ')');
                     return false;
                 }
             }).data("ui-autocomplete")._renderItem = function(ul, item) {
                 return $("<li>")
-                    .append("<div><i class='fas fa-box-open me-2'></i>" + item.label + "</div>")
+                    .append("<div><i class='fas fa-box-open me-2'></i>" + item.item_name + " <small class='text-muted'>(" + item.unit_size + " " + item.unit + ")</small></div>")
                     .appendTo(ul);
             };
 
