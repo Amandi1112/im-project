@@ -23,7 +23,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['selected_items'])) {
     
     // Get item details for selected items
     $placeholders = implode(',', array_fill(0, count($selectedItems), '?'));
-    $sql = "SELECT item_id, item_name, price_per_unit, unit, unit_size FROM items WHERE item_id IN ($placeholders)";
+    $sql = "SELECT item_id, item_name, price_per_unit, unit, unit_size, type FROM items WHERE item_id IN ($placeholders)";
     $stmt = $conn->prepare($sql);
     $types = str_repeat('i', count($selectedItems));
     $stmt->bind_param($types, ...$selectedItems);
@@ -82,14 +82,14 @@ function generateItemCode($itemName, $supplierId, $conn) {
 function getItemDetails($itemName, $supplierId, $pricePerUnit = null, $unitSize = null, $conn) {
     if ($pricePerUnit !== null && $unitSize !== null) {
         // Search for exact match including price and unit size
-        $sql = "SELECT item_id, item_code, price_per_unit, current_quantity, unit, unit_size 
+        $sql = "SELECT item_id, item_code, price_per_unit, current_quantity, unit, unit_size, type 
                 FROM items 
                 WHERE item_name = ? AND supplier_id = ? AND price_per_unit = ? AND unit_size = ?";
         $stmt = $conn->prepare($sql);
         $stmt->bind_param("ssdd", $itemName, $supplierId, $pricePerUnit, $unitSize);
     } else {
         // Original search without price and unit size constraints
-        $sql = "SELECT item_id, item_code, price_per_unit, current_quantity, unit, unit_size 
+        $sql = "SELECT item_id, item_code, price_per_unit, current_quantity, unit, unit_size, type 
                 FROM items 
                 WHERE item_name = ? AND supplier_id = ?";
         $stmt = $conn->prepare($sql);
@@ -110,7 +110,7 @@ function getItemDetails($itemName, $supplierId, $pricePerUnit = null, $unitSize 
  * Get all variations of an item (different prices/unit sizes) for a specific supplier
  */
 function getItemVariations($itemName, $supplierId, $conn) {
-    $sql = "SELECT item_id, item_code, price_per_unit, current_quantity, unit, unit_size 
+    $sql = "SELECT item_id, item_code, price_per_unit, current_quantity, unit, unit_size, type 
             FROM items 
             WHERE item_name = ? AND supplier_id = ?
             ORDER BY price_per_unit, unit_size";
@@ -132,13 +132,13 @@ function getItemVariations($itemName, $supplierId, $conn) {
 /**
  * Adds a new item to the database.
  */
-function addNewItem($itemName, $pricePerUnit, $supplierId, $unit, $unitSize, $conn) {
+function addNewItem($itemName, $pricePerUnit, $supplierId, $unit, $unitSize, $type, $conn) {
     $itemCode = generateItemCode($itemName, $supplierId, $conn);
     
-    $sql = "INSERT INTO items (item_code, item_name, price_per_unit, current_quantity, supplier_id, unit, unit_size) 
-            VALUES (?, ?, ?, 0, ?, ?, ?)";
+    $sql = "INSERT INTO items (item_code, item_name, price_per_unit, current_quantity, supplier_id, unit, unit_size, type) 
+            VALUES (?, ?, ?, 0, ?, ?, ?, ?)";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("ssdssd", $itemCode, $itemName, $pricePerUnit, $supplierId, $unit, $unitSize);
+    $stmt->bind_param("ssdssds", $itemCode, $itemName, $pricePerUnit, $supplierId, $unit, $unitSize, $type);
     
     if ($stmt->execute()) {
         return [
@@ -147,7 +147,8 @@ function addNewItem($itemName, $pricePerUnit, $supplierId, $unit, $unitSize, $co
             'price_per_unit' => $pricePerUnit,
             'current_quantity' => 0,
             'unit' => $unit,
-            'unit_size' => $unitSize
+            'unit_size' => $unitSize,
+            'type' => $type
         ];
     } else {
         return null;
@@ -157,7 +158,7 @@ function addNewItem($itemName, $pricePerUnit, $supplierId, $unit, $unitSize, $co
 /**
  * Adds a purchase record and updates the item quantity in the database.
  */
-function addPurchase($itemId, $quantity, $pricePerUnit, $purchaseDate, $expireDate, $supplierId, $unit, $unitSize, $conn) {
+function addPurchase($itemId, $quantity, $pricePerUnit, $purchaseDate, $expireDate, $supplierId, $unit, $unitSize, $type, $conn) {
     $totalUnits = $quantity * $unitSize;
     $totalPrice = $quantity * $pricePerUnit;
     
@@ -166,10 +167,10 @@ function addPurchase($itemId, $quantity, $pricePerUnit, $purchaseDate, $expireDa
     
     try {
         // Insert purchase record
-        $sql = "INSERT INTO item_purchases (item_id, quantity, price_per_unit, unit_size, total_units, total_price, purchase_date, expire_date, supplier_id, unit) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        $sql = "INSERT INTO item_purchases (item_id, quantity, price_per_unit, unit_size, total_units, total_price, purchase_date, expire_date, supplier_id, unit, type) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         $stmt = $conn->prepare($sql);
-        $stmt->bind_param("iddddsssss", $itemId, $quantity, $pricePerUnit, $unitSize, $totalUnits, $totalPrice, $purchaseDate, $expireDate, $supplierId, $unit);
+        $stmt->bind_param("iddddssssss", $itemId, $quantity, $pricePerUnit, $unitSize, $totalUnits, $totalPrice, $purchaseDate, $expireDate, $supplierId, $unit, $type);
         $stmt->execute();
         
         // Update item quantity and price in the items table
@@ -177,10 +178,11 @@ function addPurchase($itemId, $quantity, $pricePerUnit, $purchaseDate, $expireDa
                 SET current_quantity = current_quantity + ?, 
                     price_per_unit = ?,
                     unit = ?,
-                    unit_size = ?
+                    unit_size = ?,
+                    type = ?
                 WHERE item_id = ?";
         $stmt = $conn->prepare($sql);
-        $stmt->bind_param("ddsdi", $quantity, $pricePerUnit, $unit, $unitSize, $itemId);
+        $stmt->bind_param("ddsdsi", $quantity, $pricePerUnit, $unit, $unitSize, $type, $itemId);
         $stmt->execute();
         
         // Commit the transaction
@@ -214,7 +216,7 @@ function getSuppliers($conn) {
  * Get all items for a specific supplier - Modified to show unique item names with variations
  */
 function getSupplierItems($supplierId, $conn) {
-    $sql = "SELECT item_id, item_name, item_code, price_per_unit, current_quantity, unit, unit_size 
+    $sql = "SELECT item_id, item_name, item_code, price_per_unit, current_quantity, unit, unit_size, type 
             FROM items 
             WHERE supplier_id = ?
             ORDER BY item_name, price_per_unit, unit_size";
@@ -319,6 +321,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['submit_purchases'])) {
             $purchaseDate = isset($itemData['purchase_date']) ? $itemData['purchase_date'] : date('Y-m-d');
             $expireDate = isset($itemData['expire_date']) && !empty($itemData['expire_date']) ? $itemData['expire_date'] : null;
             $unit = isset($itemData['unit']) ? $itemData['unit'] : 'other';
+            $type = isset($itemData['type']) ? $itemData['type'] : 'other';
             
             // Skip invalid entries
             if (empty($itemName) || $quantity <= 0 || $pricePerUnit <= 0) {
@@ -333,7 +336,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['submit_purchases'])) {
                 $itemId = $existingItem['item_id'];
             } else {
                 // Create new item entry (even if item name exists with different price/unit size)
-                $newItem = addNewItem($itemName, $pricePerUnit, $supplierId, $unit, $unitSize, $conn);
+                $newItem = addNewItem($itemName, $pricePerUnit, $supplierId, $unit, $unitSize, $type, $conn);
                 if ($newItem) {
                     $itemId = $newItem['item_id'];
                 } else {
@@ -343,7 +346,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['submit_purchases'])) {
             }
             
             // Add purchase record
-            if (addPurchase($itemId, $quantity, $pricePerUnit, $purchaseDate, $expireDate, $supplierId, $unit, $unitSize, $conn)) {
+            if (addPurchase($itemId, $quantity, $pricePerUnit, $purchaseDate, $expireDate, $supplierId, $unit, $unitSize, $type, $conn)) {
                 $successCount++;
             } else {
                 $errorCount++;
@@ -826,14 +829,14 @@ $message = isset($_GET['message']) ? $_GET['message'] : '';
                     </div>
                 </div>
                 <!-- Quantity -->
-                <div class="col-md-2">
+                <div class="col-md-1">
                     <div class="mb-3">
                         <label class="form-label" style="font-size: 16px; font-weight: bold;">Quantity</label>
                         <input type="number" class="form-control" name="supplier[{SUPPLIER_ID}][items][{ITEM_INDEX}][quantity]" min="1" required>
                     </div>
                 </div>
                 <!-- Unit Size -->
-                <div class="col-md-2">
+                <div class="col-md-1">
                     <div class="mb-3">
                         <label class="form-label" style="font-size: 16px; font-weight: bold;">Unit Size</label>
                         <input type="number" step="0.01" class="form-control" name="supplier[{SUPPLIER_ID}][items][{ITEM_INDEX}][unit_size]" min="0.01" value="1.00" required>
@@ -846,8 +849,22 @@ $message = isset($_GET['message']) ? $_GET['message'] : '';
                         <select class="form-select unit-select" name="supplier[{SUPPLIER_ID}][items][{ITEM_INDEX}][unit]" required>
                             <option value="g">Grams (g)</option>
                             <option value="kg">Kilograms (kg)</option>
+                            <option value="ml">Milliliters (ml)</option>
+                            <option value="l">Liters (l)</option>
+                        </select>
+                    </div>
+                </div>
+                <!-- Type -->
+                <div class="col-md-1">
+                    <div class="mb-3">
+                        <label class="form-label" style="font-size: 16px; font-weight: bold;">Type</label>
+                        <select class="form-select" name="supplier[{SUPPLIER_ID}][items][{ITEM_INDEX}][type]" required>
                             <option value="packets">Packets</option>
-                            <option value="bottles">Bottles</option>
+                            <option value="bags">Bags</option>
+                            <option value="bottle">Bottle</option>
+                            <option value="box">Box</option>
+                            <option value="sachet">Sachet</option>
+                            <option value="bars">Bars</option>
                             <option value="other">Other</option>
                         </select>
                     </div>
@@ -899,14 +916,14 @@ $message = isset($_GET['message']) ? $_GET['message'] : '';
                     </div>
                 </div>
                 <!-- Quantity -->
-                <div class="col-md-2">
+                <div class="col-md-1">
                     <div class="mb-3">
                         <label class="form-label" style="font-size: 16px; font-weight: bold;">Quantity</label>
                         <input type="number" class="form-control" name="supplier[{SUPPLIER_ID}][items][{ITEM_INDEX}][quantity]" min="1" required>
                     </div>
                 </div>
                 <!-- Unit Size -->
-                <div class="col-md-2">
+                <div class="col-md-1">
                     <div class="mb-3">
                         <label class="form-label" style="font-size: 16px; font-weight: bold;">Unit Size</label>
                         <input type="number" step="0.01" class="form-control" name="supplier[{SUPPLIER_ID}][items][{ITEM_INDEX}][unit_size]" min="0.01" value="1.00" required>
@@ -919,8 +936,22 @@ $message = isset($_GET['message']) ? $_GET['message'] : '';
                         <select class="form-select unit-select" name="supplier[{SUPPLIER_ID}][items][{ITEM_INDEX}][unit]" required>
                             <option value="g">Grams (g)</option>
                             <option value="kg">Kilograms (kg)</option>
+                            <option value="ml">Milliliters (ml)</option>
+                            <option value="l">Liters (l)</option>
+                        </select>
+                    </div>
+                </div>
+                <!-- Type -->
+                <div class="col-md-1">
+                    <div class="mb-3">
+                        <label class="form-label" style="font-size: 16px; font-weight: bold;">Type</label>
+                        <select class="form-select" name="supplier[{SUPPLIER_ID}][items][{ITEM_INDEX}][type]" required>
                             <option value="packets">Packets</option>
-                            <option value="bottles">Bottles</option>
+                            <option value="bags">Bags</option>
+                            <option value="bottle">Bottle</option>
+                            <option value="box">Box</option>
+                            <option value="sachet">Sachet</option>
+                            <option value="bars">Bars</option>
                             <option value="other">Other</option>
                         </select>
                     </div>
@@ -1034,6 +1065,7 @@ function restoreSupplierState() {
                     newRow.find('input[name*="[unit_size]"]').val(item.unit_size);
                     newRow.find('.price-per-unit').val(item.price_per_unit);
                     newRow.find('.unit-select').val(item.unit);
+                    newRow.find('select[name*="[type]"]').val(item.type);
                     newRow.find('input[name*="[purchase_date]"]').val(item.purchase_date);
                     newRow.find('input[name*="[expire_date]"]').val(item.expire_date);
                     
@@ -1151,6 +1183,7 @@ $('.supplier-section[data-supplier-id="' + supplierId + '"]').attr('data-supplie
                                         .data('quantity', item.current_quantity)
                                         .data('unit', item.unit)
                                         .data('unit_size', item.unit_size)
+                                        .data('type', item.type)
                                 );
                             });
                             
@@ -1212,6 +1245,7 @@ $(document).on('click', '.add-existing-item', function() {
                 unit_size: itemRow.find('input[name*="[unit_size]"]').val(),
                 price_per_unit: itemRow.find('.price-per-unit').val(),
                 unit: itemRow.find('.unit-select').val(),
+                type: itemRow.find('select[name*="[type]"]').val(),
                 purchase_date: itemRow.find('input[name*="[purchase_date]"]').val(),
                 expire_date: itemRow.find('input[name*="[expire_date]"]').val(),
                 is_existing: itemRow.find('.existing-item-select').length > 0
@@ -1280,6 +1314,7 @@ $(document).on('click', '.add-existing-item', function() {
                     newRow.find('.item-name').val(item.item_name);
                     newRow.find('.price-per-unit').val(item.price_per_unit);
                     newRow.find('.unit-select').val(item.unit);
+                    newRow.find('select[name*="[type]"]').val(item.type || 'other');
                     newRow.find('input[name*="[unit_size]"]').val(item.unit_size || '1.00');
                     newRow.find('input[name*="[purchase_date]"]').val(item.purchase_date);
                     newRow.find('input[name*="[expire_date]"]').val(item.expire_date);
@@ -1299,6 +1334,7 @@ $(document).on('click', '.add-existing-item', function() {
                 const currentQuantity = selectedOption.data('quantity');
                 const unit = selectedOption.data('unit');
                 const unitSize = selectedOption.data('unit_size');
+                const type = selectedOption.data('type');
                 
                 // Set price per unit
                 const priceInput = $(this).closest('.row').find('.price-per-unit');
@@ -1314,6 +1350,12 @@ $(document).on('click', '.add-existing-item', function() {
                 if (unitSize) {
                     const unitSizeInput = $(this).closest('.row').find('input[name*="[unit_size]"]');
                     unitSizeInput.val(unitSize);
+                }
+                
+                // Set type if available
+                if (type) {
+                    const typeSelect = $(this).closest('.row').find('select[name*="[type]"]');
+                    typeSelect.val(type);
                 }
                 
                 // Show current quantity tooltip
@@ -1349,10 +1391,24 @@ $(document).on('click', '.add-existing-item', function() {
                             const unitSelect = itemNameInput.closest('.row').find('.unit-select');
                             unitSelect.val(response.unit);
                             
+                            const typeSelect = itemNameInput.closest('.row').find('select[name*="[type]"]');
+                            typeSelect.val(response.type || 'other');
+                            
                             const unitSizeInput = itemNameInput.closest('.row').find('input[name*="[unit_size]"]');
                             unitSizeInput.val(response.unit_size || '1.00');
                             
-                            showAlert(`Item "${itemName}" already exists with current quantity: ${response.current_quantity}`, 'info');
+                            // Try to get current_quantity from the correct response property
+                            let currentQty = null;
+                            if (response.exact_match && response.exact_match.current_quantity !== undefined) {
+                                currentQty = response.exact_match.current_quantity;
+                            } else if (response.default_item && response.default_item.current_quantity !== undefined) {
+                                currentQty = response.default_item.current_quantity;
+                            }
+                            if (currentQty !== null) {
+                                showAlert(`Item "${itemName}" already exists with current quantity: ${currentQty}`, 'info');
+                            } else {
+                                showAlert(`Item "${itemName}" already exists.`, 'info');
+                            }
                         }
                     }
                 });

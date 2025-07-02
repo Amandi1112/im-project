@@ -41,31 +41,51 @@ function formatCurrency($amount) {
 }
 
 // Function to determine stock status based on unit and quantity
-function getStockStatus($quantity, $unit) {
+function getStockStatus($quantity, $unit, $type = '') {
     $unit = strtolower($unit);
+    $type = strtolower($type);
 
-    // Define thresholds based on units
+    // Special rules for bags/bottles (kg), box/sachet/bars (g), bottle (l/ml)
+    if ($unit == 'kg' && ($type == 'bags' || $type == 'bottles')) {
+        if ($quantity <= 10) return 'Low';
+        if ($quantity < 30) return 'Medium';
+        return 'High';
+    } else if ($unit == 'g' && ($type == 'box' || $type == 'sachet' || $type == 'bars')) {
+        if ($quantity <= 10) return 'Low';
+        if ($quantity < 30) return 'Medium';
+        return 'High';
+    } else if (($unit == 'l' || $unit == 'ml') && $type == 'bottle') {
+        if ($quantity <= 10) return 'Low';
+        if ($quantity < 30) return 'Medium';
+        return 'High';
+    }
+
+    // General rules for other types/units
     if ($unit == 'kg') {
         if ($quantity < 5) return 'Low';
-        else if ($quantity < 20) return 'Medium';
-        else return 'High';
-    } else if ($unit == 'packet' || $unit == 'packets') {
+        if ($quantity < 20) return 'Medium';
+        return 'High';
+    } else if ($unit == 'packet' || $unit == 'packets' || $type == 'packets') {
         if ($quantity < 5) return 'Low';
-        else if ($quantity < 10) return 'Medium';
-        else return 'High';
+        if ($quantity < 10) return 'Medium';
+        return 'High';
     } else if ($unit == 'g' || $unit == 'gram' || $unit == 'grams') {
         if ($quantity < 100) return 'Low';
-        else if ($quantity < 500) return 'Medium';
-        else return 'High';
-    } else if ($unit == 'bottle' || $unit == 'bottles') {
+        if ($quantity < 500) return 'Medium';
+        return 'High';
+    } else if ($unit == 'bottle' || $unit == 'bottles' || $type == 'bottle') {
         if ($quantity < 5) return 'Low';
-        else if ($quantity < 20) return 'Medium';
-        else return 'High';
+        if ($quantity < 20) return 'Medium';
+        return 'High';
+    } else if ($type == 'bags' || $type == 'box' || $type == 'sachet' || $type == 'bars' || $type == 'other') {
+        if ($quantity < 5) return 'Low';
+        if ($quantity < 10) return 'Medium';
+        return 'High';
     } else {
-        // Default case for other units
+        // Default case for other units/types
         if ($quantity < 5) return 'Low';
-        else if ($quantity < 10) return 'Medium';
-        else return 'High';
+        if ($quantity < 10) return 'Medium';
+        return 'High';
     }
 }
 ?>
@@ -487,7 +507,7 @@ function getStockStatus($quantity, $unit) {
                                     <?php
                                     // Fetch items with supplier name and quantity status
                                     $sql = "SELECT i.item_id, i.item_code, i.item_name, i.price_per_unit,
-                                    i.current_quantity, s.supplier_name, i.unit
+                                    i.current_quantity, s.supplier_name, i.unit, i.type
                                     FROM items i
                                     LEFT JOIN supplier s ON i.supplier_id = s.supplier_id
                                     ORDER BY i.current_quantity ASC";
@@ -497,9 +517,11 @@ function getStockStatus($quantity, $unit) {
                                         while($row = $result->fetch_assoc()) {
                                             $quantity = intval($row['current_quantity']);
                                             $unit = $row['unit'];
-                                            $status = getStockStatus($quantity, $unit);
+                                            $type = isset($row['type']) ? $row['type'] : '';
+                                            $status = getStockStatus($quantity, $unit, $type); // Pass type here
                                             $statusClass = '';
                                             $dotClass = '';
+
 
                                             if ($status == 'Low') {
                                                 $statusClass = 'badge-low pulse-warning';
@@ -514,8 +536,8 @@ function getStockStatus($quantity, $unit) {
 
                                             echo "<tr data-id='" . htmlspecialchars($row["item_id"]) . "'>";
                                             echo "<td>" . htmlspecialchars($row["item_name"]) . "</td>";
-                                            echo "<td>Rs." . formatCurrency($row["price_per_unit"]) . "/" . htmlspecialchars($unit) . "</td>";
-                                            echo "<td>" . $quantity . " " . htmlspecialchars($unit) . "</td>";
+                                            echo "<td>Rs." . formatCurrency($row["price_per_unit"]) . "/unit" . "</td>";
+                                            echo "<td>" . $quantity . (!empty($type) ? " <span class='text-muted' style='font-size:13px;'>(" . htmlspecialchars($type) . ")</span>" : "") . "</td>";
                                             echo "<td><span class='badge " . $statusClass . "'><span class='status-dot " . $dotClass . "'></span>" . $status . "</span></td>";
                                             echo "</tr>";
                                         }
@@ -564,71 +586,43 @@ function getStockStatus($quantity, $unit) {
                         <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Stock Level Thresholds</h5>
                     </div>
                     <div class="card-body">
-                        <!-- High Stock Thresholds -->
-                        <div class="threshold-item">
-                            <div class="threshold-category">
-                                <span class="status-dot status-dot-high me-2"></span>
-                                High Stock
-                            </div>
-                            <div class="threshold-details">
-                                <div class="threshold-unit">
-                                    <i class="fas fa-weight me-1"></i> KG: ≥ 40kg
-                                </div>
-                                <div class="threshold-unit">
-                                    <i class="fas fa-box me-1"></i> Packets: ≥ 20 packets
-                                </div>
-                                <div class="threshold-unit">
-                                    <i class="fas fa-balance-scale me-1"></i> Gram: ≥ 1000g
-                                </div>
-                                <div class="threshold-unit">
-                                    <i class="fas fa-wine-bottle me-1"></i> Bottle: ≥ 40 bottles
-                                </div>
-                            </div>
-                        </div>
+                        <!-- Stock Thresholds Table (Updated for clarity and accuracy) -->
+                        <div class="mb-4">
+                            <table class="table table-bordered table-sm mb-0" style="background: #f8fafc;">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Unit/Type</th>
+                                        <th>Low Stock</th>
+                                        <th>Medium Stock</th>
+                                        <th>High Stock</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    
+                                    <tr>
+                                        <td><i class="fas fa-weight me-1"></i> KG (Bags)</td>
+                                        <td>&le; 10 units</td>
+                                        <td>11 - 29 units</td>
+                                        <td>&ge; 30 units</td>
+                                    </tr>
+                                    <tr>
+                                        <td><i class="fas fa-box me-1"></i> L or ml</td>
+                                        <td>&le; 10 units</td>
+                                        <td>11 - 29 units</td>
+                                        <td>&ge; 30 units</td>
+                                    </tr>
+                                    <tr>
+                                        <td><i class="fas fa-weight-hanging me-1"></i> Grams (boxes/sachets/bars)</td>
+                                        <td>&le; 10 units</td>
+                                        <td>11 - 29 units</td>
+                                        <td>&ge; 30 units</td>
+                                    </tr>
+                                    <tr>
+                       
 
-                        <!-- Medium Stock Thresholds -->
-                        <div class="threshold-item">
-                            <div class="threshold-category">
-                                <span class="status-dot status-dot-medium me-2"></span>
-                                Medium Stock
-                            </div>
-                            <div class="threshold-details">
-                                <div class="threshold-unit">
-                                    <i class="fas fa-weight me-1"></i> KG: 5-39kg
-                                </div>
-                                <div class="threshold-unit">
-                                    <i class="fas fa-box me-1"></i> Packets: 5-19 packets
-                                </div>
-                                <div class="threshold-unit">
-                                    <i class="fas fa-balance-scale me-1"></i> Gram: 100-999g
-                                </div>
-                                <div class="threshold-unit">
-                                    <i class="fas fa-wine-bottle me-1"></i> Bottle: 5-39 bottles
-                                </div>
-                            </div>
-                        </div>
+                        
 
-                        <!-- Low Stock Thresholds -->
-                        <div class="threshold-item">
-                            <div class="threshold-category">
-                                <span class="status-dot status-dot-low me-2"></span>
-                                Low Stock (Need to Order)
-                            </div>
-                            <div class="threshold-details">
-                                <div class="threshold-unit">
-                                    <i class="fas fa-weight me-1"></i> KG: < 5kg
-                                </div>
-                                <div class="threshold-unit">
-                                    <i class="fas fa-box me-1"></i> Packets: < 5 packets
-                                </div>
-                                <div class="threshold-unit">
-                                    <i class="fas fa-balance-scale me-1"></i> Gram: < 100g
-                                </div>
-                                <div class="threshold-unit">
-                                    <i class="fas fa-wine-bottle me-1"></i> Bottle: < 5 bottles
-                                </div>
-                            </div>
-                        </div>
+                        
 
                         <!-- General Notes -->
                         <div class="mt-4 p-3 bg-light rounded">
@@ -674,23 +668,21 @@ function getStockStatus($quantity, $unit) {
                     datasets: [{
                         data: [
                             <?php
-                            // Custom query using the getStockStatus function logic in PHP
+                            // Use type in getStockStatus for accurate distribution
                             $lowCount = 0;
                             $mediumCount = 0;
                             $highCount = 0;
-
-                            $sql = "SELECT current_quantity, unit FROM items";
+                            $sql = "SELECT current_quantity, unit, type FROM items";
                             $result = $conn->query($sql);
-
                             if ($result->num_rows > 0) {
                                 while($row = $result->fetch_assoc()) {
-                                    $status = getStockStatus($row['current_quantity'], $row['unit']);
+                                    $type = isset($row['type']) ? $row['type'] : '';
+                                    $status = getStockStatus($row['current_quantity'], $row['unit'], $type);
                                     if ($status == 'Low') $lowCount++;
                                     else if ($status == 'Medium') $mediumCount++;
                                     else $highCount++;
                                 }
                             }
-
                             echo "$lowCount, $mediumCount, $highCount";
                             ?>
                         ],
@@ -809,8 +801,8 @@ function getStockStatus($quantity, $unit) {
 
             if (lowStockItems.length > 0) {
                 let message = 'The following items are at low stock levels and need immediate attention:<ul>';
-                lowStockItems.forEach(item => {
-                    message += `<li>${item.item_name} - ${item.current_quantity} ${item.unit}</li>`;
+                lowStockItems.forEach(item => {i
+                    message += `<li>${item.item_name} - ${item.current_quantity} unit</li>`;
                 });
                 message += '</ul>';
                 showNotification(message, 'warning');

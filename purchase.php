@@ -847,9 +847,9 @@ $transactions = $pdo->query("
             <select class="item-unit" name="">
                 <option value="g">Grams (g)</option>
                 <option value="kg">Kilograms (kg)</option>
-                <option value="packets">Packets</option>
-                <option value="bottles">Bottles</option>
-                <option value="other">Other</option>
+                <option value="packets">milileter</option>
+                <option value="bottles">liter</option>
+                
             </select>
             <span class="item-price">Rs. 0.00</span>
             <span class="item-total">Rs. 0.00</span>

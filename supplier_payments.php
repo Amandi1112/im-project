@@ -48,19 +48,21 @@ function getPurchaseDetails($conn, $start_date = '', $end_date = '', $supplier_f
                 ip.expire_date,
                 ip.quantity,
                 ip.price_per_unit,
+                ip.unit_size,
+                ip.total_units,
                 ip.total_price,
                 i.item_id,
                 i.item_code,
                 i.item_name,
-                s.supplier_id,
+                ip.supplier_id,
                 s.supplier_name,
                 COALESCE(ip.unit, i.unit) AS unit
             FROM 
                 item_purchases ip
             JOIN 
                 items i ON ip.item_id = i.item_id
-            JOIN 
-                supplier s ON i.supplier_id = s.supplier_id";
+            LEFT JOIN 
+                supplier s ON ip.supplier_id = s.supplier_id";
     
     // Add WHERE conditions based on filters
     $conditions = [];
@@ -80,7 +82,7 @@ function getPurchaseDetails($conn, $start_date = '', $end_date = '', $supplier_f
     }
     
     if (!empty($supplier_filter)) {
-        $conditions[] = "s.supplier_id = ?";
+        $conditions[] = "ip.supplier_id = ?";
         $params[] = $supplier_filter;
         $types .= 's';
     }
@@ -113,15 +115,13 @@ function getPurchaseDetails($conn, $start_date = '', $end_date = '', $supplier_f
 // Function to get supplier totals
 function getSupplierTotals($conn, $start_date = '', $end_date = '', $supplier_filter = '') {
     $sql = "SELECT 
-                s.supplier_id,
+                ip.supplier_id,
                 s.supplier_name,
                 SUM(ip.total_price) as supplier_total
             FROM 
                 item_purchases ip
-            JOIN 
-                items i ON ip.item_id = i.item_id
-            JOIN 
-                supplier s ON i.supplier_id = s.supplier_id";
+            LEFT JOIN 
+                supplier s ON ip.supplier_id = s.supplier_id";
     
     // Add WHERE conditions based on filters
     $conditions = [];
@@ -141,7 +141,7 @@ function getSupplierTotals($conn, $start_date = '', $end_date = '', $supplier_fi
     }
     
     if (!empty($supplier_filter)) {
-        $conditions[] = "s.supplier_id = ?";
+        $conditions[] = "ip.supplier_id = ?";
         $params[] = $supplier_filter;
         $types .= 's';
     }
@@ -150,7 +150,7 @@ function getSupplierTotals($conn, $start_date = '', $end_date = '', $supplier_fi
         $sql .= " WHERE " . implode(" AND ", $conditions);
     }
     
-    $sql .= " GROUP BY s.supplier_id, s.supplier_name ORDER BY supplier_total DESC";
+    $sql .= " GROUP BY ip.supplier_id, s.supplier_name ORDER BY supplier_total DESC";
     
     $stmt = $conn->prepare($sql);
     
@@ -182,7 +182,7 @@ $data = array_column($supplierTotals, 'supplier_total');
 
 <!DOCTYPE html>
 <html lang="en">
-<
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Purchased Items Details</title>
@@ -538,7 +538,6 @@ $data = array_column($supplierTotals, 'supplier_total');
             }
         }
     </style>
-
 </head>
 <body style="font-weight: bold; color:black;">
     <div class="container">
@@ -655,7 +654,7 @@ $data = array_column($supplierTotals, 'supplier_total');
             <td><?php echo date('d M Y', strtotime($purchase['purchase_date'])); ?></td>
             <td><?php echo $purchase['item_name']; ?></td>
             <td><?php echo $purchase['supplier_name']; ?></td>
-            <td><?php echo $purchase['quantity'] . ' ' . $purchase['unit']; ?></td>
+            <td><?php echo $purchase['quantity']; ?></td>
             <td>Rs.<?php echo number_format($purchase['price_per_unit'], 2) . '/' . $purchase['unit']; ?></td>
             <td>Rs.<?php echo number_format($purchase['total_price'], 2); ?></td>
             <td><?php echo !empty($purchase['expire_date']) ? date('d M Y', strtotime($purchase['expire_date'])) : 'N/A'; ?></td>
