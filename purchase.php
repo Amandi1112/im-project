@@ -73,7 +73,9 @@ if (isset($_GET['action'])) {
     if ($_GET['action'] == 'search_items' && isset($_GET['term'])) {
         $term = '%' . $_GET['term'] . '%';
         $stmt = $pdo->prepare("
-            SELECT item_id as id, CONCAT(item_name, ' (Rs. ', price_per_unit, ')') as label 
+            SELECT item_id as id, 
+                   CONCAT(item_name, ' (', unit_size, ' ', unit,' ', type, ')') as label,
+                   unit, type, current_quantity
             FROM items 
             WHERE item_name LIKE ? AND current_quantity > 0
             ORDER BY item_name
@@ -97,7 +99,7 @@ function generateInvoicePDF($purchaseId, $pdo) {
     $stmt = $pdo->prepare("
     SELECT p.*, m.id as member_id, m.full_name, m.bank_membership_number, 
            m.address, m.telephone_number, i.item_name, i.price_per_unit, 
-           i.item_code, s.supplier_name
+           i.item_code, s.supplier_name, p.unit as purchase_unit
     FROM purchases p
     JOIN members m ON p.member_id = m.id
     JOIN items i ON p.item_id = i.item_id
@@ -121,171 +123,168 @@ function generateInvoicePDF($purchaseId, $pdo) {
         $subtotal += $purchase['total_price'];
     }
 
-    // Create PDF with professional design
     // Create PDF with professional design in landscape
-$pdf = new FPDF('L','mm','A4'); // Changed to landscape orientation
-$pdf->AddPage();
+    $pdf = new FPDF('L','mm','A4'); // Changed to landscape orientation
+    $pdf->AddPage();
 
-// ========== COLOR SCHEME ========== //
-$primaryColor = array(102, 126, 234);   // #667eea
-$primaryDark = array(90, 103, 216);    // #5a67d8
-$secondaryColor = array(237, 242, 247); // #edf2f7
-$dangerColor = array(229, 62, 62);      // #e53e3e
-$successColor = array(72, 187, 120);    // #48bb78
-$warningColor = array(237, 137, 54);    // #ed8936
-$infoColor = array(66, 153, 225);       // #4299e1
-$lightColor = array(247, 250, 252);     // #f7fafc
-$darkColor = array(45, 55, 72);         // #2d3748
-$grayColor = array(113, 128, 150);      // #718096
-$grayLight = array(226, 232, 240);      // #e2e8f0
+    // ========== COLOR SCHEME ========== //
+    $primaryColor = array(102, 126, 234);   // #667eea
+    $primaryDark = array(90, 103, 216);    // #5a67d8
+    $secondaryColor = array(237, 242, 247); // #edf2f7
+    $dangerColor = array(229, 62, 62);      // #e53e3e
+    $successColor = array(72, 187, 120);    // #48bb78
+    $warningColor = array(237, 137, 54);    // #ed8936
+    $infoColor = array(66, 153, 225);       // #4299e1
+    $lightColor = array(247, 250, 252);     // #f7fafc
+    $darkColor = array(45, 55, 72);         // #2d3748
+    $grayColor = array(113, 128, 150);      // #718096
+    $grayLight = array(226, 232, 240);      // #e2e8f0
 
-// ========== HEADER SECTION ========== //
-// Header with primary color background (wider for landscape)
-$pdf->SetFillColor($primaryColor[0], $primaryColor[1], $primaryColor[2]);
-$pdf->Rect(10, 10, 277, 20, 'F');
+    // ========== HEADER SECTION ========== //
+    // Header with primary color background (wider for landscape)
+    $pdf->SetFillColor($primaryColor[0], $primaryColor[1], $primaryColor[2]);
+    $pdf->Rect(10, 10, 277, 20, 'F');
 
-// Shop name
-$pdf->SetTextColor(255);
-$pdf->SetFont('Helvetica','B',16);
-$pdf->SetXY(15, 12);
-$pdf->Cell(0,8,'T&C co-op City shop',0,1,'L');
+    // Shop name
+    $pdf->SetTextColor(255);
+    $pdf->SetFont('Helvetica','B',16);
+    $pdf->SetXY(15, 12);
+    $pdf->Cell(0,8,'T&C co-op City shop',0,1,'L');
 
-// Invoice info box (position adjusted for landscape)
-$pdf->SetFillColor($primaryDark[0], $primaryDark[1], $primaryDark[2]);
-$pdf->Rect(200, 12, 80, 16, 'F'); // Moved further right
-$pdf->SetFont('Helvetica','B',12);
-$pdf->SetXY(200, 12);
-$pdf->Cell(80,8,'INVOICE',0,1,'C');
-$pdf->SetFont('Helvetica','',10);
-$pdf->SetXY(200, 18);
-$pdf->Cell(80,6,'#INV-'.str_pad($purchaseId, 5, '0', STR_PAD_LEFT),0,1,'C');
+    // Invoice info box (position adjusted for landscape)
+    $pdf->SetFillColor($primaryDark[0], $primaryDark[1], $primaryDark[2]);
+    $pdf->Rect(200, 12, 80, 16, 'F'); // Moved further right
+    $pdf->SetFont('Helvetica','B',12);
+    $pdf->SetXY(200, 12);
+    $pdf->Cell(80,8,'INVOICE',0,1,'C');
+    $pdf->SetFont('Helvetica','',10);
+    $pdf->SetXY(200, 18);
+    $pdf->Cell(80,6,'#INV-'.str_pad($purchaseId, 5, '0', STR_PAD_LEFT),0,1,'C');
 
-// Shop contact info (adjusted for landscape width)
-$pdf->SetTextColor(255);
-$pdf->SetFont('Helvetica','',9);
-$pdf->SetXY(15, 22);
-$pdf->Cell(0,5,'Pahala Karawita, Karawita, Ratnapura, Sri Lanka | Tel: +94 11 2345678 | Email: co_op@sanasa.com',0,1,'L');
+    // Shop contact info (adjusted for landscape width)
+    $pdf->SetTextColor(255);
+    $pdf->SetFont('Helvetica','',9);
+    $pdf->SetXY(15, 22);
+    $pdf->Cell(0,5,'Pahala Karawita, Karawita, Ratnapura, Sri Lanka | Tel: +94 11 2345678 | Email: co_op@sanasa.com',0,1,'L');
 
-// Invoice date and payment terms
-$pdf->SetTextColor($darkColor[0], $darkColor[1], $darkColor[2]);
-$pdf->SetFont('Helvetica','',10);
-$pdf->SetXY(15, 40);
-$pdf->Cell(50,5,'Invoice Date:',0,0);
-$pdf->SetFont('Helvetica','B',10);
-$pdf->Cell(0,5,$firstPurchase['purchase_date'],0,1);
-
-$pdf->SetFont('Helvetica','',10);
-$pdf->SetXY(15, 45);
-$pdf->Cell(50,5,'Payment Terms:',0,0);
-$pdf->SetFont('Helvetica','B',10);
-$pdf->Cell(0,5,'Credit Account',0,1);
-
-// ========== BILL TO SECTION ========== //
-$pdf->SetFillColor($secondaryColor[0], $secondaryColor[1], $secondaryColor[2]);
-$pdf->Rect(15, 55, 130, 30, 'F'); // Wider for landscape
-$pdf->SetTextColor($darkColor[0], $darkColor[1], $darkColor[2]);
-$pdf->SetFont('Helvetica','B',12);
-$pdf->SetXY(15, 55);
-$pdf->Cell(130,8,'BILL TO',0,1,'L');
-$pdf->SetFont('Helvetica','',10);
-
-$pdf->SetXY(17, 63);
-$pdf->Cell(126,5,$firstPurchase['full_name'],0,1);
-$pdf->SetXY(17, 68);
-$pdf->Cell(126,5,$firstPurchase['address'],0,1);
-$pdf->SetXY(17, 73);
-$pdf->Cell(126,5,'Tel: '.$firstPurchase['telephone_number'],0,1);
-$pdf->SetXY(17, 78);
-$pdf->Cell(126,5,'Coop: '.$firstPurchase['id'],0,1);
-
-// ========== ITEM TABLE ========== //
-$pdf->SetY(90);
-
-// Table Header (wider columns for landscape)
-$pdf->SetFillColor($primaryColor[0], $primaryColor[1], $primaryColor[2]);
-$pdf->SetTextColor(255);
-$pdf->SetFont('Helvetica','B',10);
-
-$pdf->Cell(15,10,'#',1,0,'C',true);
-$pdf->Cell(100,10,'ITEM DESCRIPTION',1,0,'L',true); // Wider
-$pdf->Cell(40,10,'ITEM CODE',1,0,'C',true); // Wider
-$pdf->Cell(35,10,'UNIT PRICE',1,0,'R',true);
-$pdf->Cell(25,10,'QTY',1,0,'C',true);
-$pdf->Cell(35,10,'TOTAL',1,1,'R',true); // Wider
-
-// Table Rows
-$pdf->SetTextColor($darkColor[0], $darkColor[1], $darkColor[2]);
-$pdf->SetFont('Helvetica','',10);
-
-$rowNum = 1;
-foreach ($purchases as $purchase) {
-    $pdf->Cell(15,8,$rowNum,1,0,'C');
-    $pdf->Cell(100,8,$purchase['item_name'],1,0,'L');
-    $pdf->Cell(40,8,$purchase['item_code'],1,0,'C');
-    $pdf->Cell(35,8,'Rs. '.number_format($purchase['price_per_unit'],2),1,0,'R');
-    $pdf->Cell(25,8,$purchase['quantity'],1,0,'C');
-    $pdf->Cell(35,8,'Rs. '.number_format($purchase['total_price'],2),1,1,'R');
-    $rowNum++;
-}
-
-// Subtotal row
-$pdf->SetFont('Helvetica','B',10);
-$pdf->Cell(215,8,'SUBTOTAL',1,0,'R'); // Adjusted width
-$pdf->Cell(35,8,'Rs. '.number_format($subtotal,2),1,1,'R');
-
-// ========== NEW CREDIT LIMIT ========== //
-// Check if credit_limit exists before using it
-$creditLimit = isset($firstPurchase['credit_limit']) ? $firstPurchase['credit_limit'] : 0;
-$newCreditLimit = $creditLimit - $subtotal;
-
-if ($creditLimit > 0) {
-    $pdf->SetY($pdf->GetY() + 10);
+    // Invoice date and payment terms
+    $pdf->SetTextColor($darkColor[0], $darkColor[1], $darkColor[2]);
+    $pdf->SetFont('Helvetica','',10);
+    $pdf->SetXY(15, 40);
+    $pdf->Cell(50,5,'Invoice Date:',0,0);
     $pdf->SetFont('Helvetica','B',10);
-    $pdf->Cell(180,8,'New Credit Limit:',0,0,'R');
-    $pdf->SetFillColor($successColor[0], $successColor[1], $successColor[2]);
-    $pdf->Cell(35,8,'Rs. '.number_format($newCreditLimit,2),1,1,'R',true);
-}
+    $pdf->Cell(0,5,$firstPurchase['purchase_date'],0,1);
 
-// ========== SIGNATURE SECTION ========== //
-// Increased the initial Y position by 15mm (from +10 to +15)
-// ========== SIGNATURE SECTION ========== //
-// ========== SIGNATURE SECTION ========== //
-$pdf->SetY($pdf->GetY() + 15); // Start signature section 15mm below previous content
+    $pdf->SetFont('Helvetica','',10);
+    $pdf->SetXY(15, 45);
+    $pdf->Cell(50,5,'Payment Terms:',0,0);
+    $pdf->SetFont('Helvetica','B',10);
+    $pdf->Cell(0,5,'Credit Account',0,1);
 
-// Signature Labels with comfortable spacing
-$pdf->SetFont('Helvetica','B',10);
-$pdf->Cell(115, 8, 'Customer Signature', 0, 0, 'C'); // Restored to original height
-$pdf->Cell(140, 8, 'Authorized Signature', 0, 1, 'C');
+    // ========== BILL TO SECTION ========== //
+    $pdf->SetFillColor($secondaryColor[0], $secondaryColor[1], $secondaryColor[2]);
+    $pdf->Rect(15, 55, 130, 30, 'F'); // Wider for landscape
+    $pdf->SetTextColor($darkColor[0], $darkColor[1], $darkColor[2]);
+    $pdf->SetFont('Helvetica','B',12);
+    $pdf->SetXY(15, 55);
+    $pdf->Cell(130,8,'BILL TO',0,1,'L');
+    $pdf->SetFont('Helvetica','',10);
 
-// Space between labels and signature lines (added 5mm gap)
-$pdf->Cell(0, 5, '', 0, 1); // This creates a 5mm vertical gap
+    $pdf->SetXY(17, 63);
+    $pdf->Cell(126,5,$firstPurchase['full_name'],0,1);
+    $pdf->SetXY(17, 68);
+    $pdf->Cell(126,5,$firstPurchase['address'],0,1);
+    $pdf->SetXY(17, 73);
+    $pdf->Cell(126,5,'Tel: '.$firstPurchase['telephone_number'],0,1);
+    $pdf->SetXY(17, 78);
+    $pdf->Cell(126,5,'Coop: '.$firstPurchase['id'],0,1);
 
-// Space for signatures (original height)
-$pdf->Cell(115, 15, '', 0, 0, 'C');
-$pdf->Cell(140, 15, '', 0, 1, 'C');
+    // ========== ITEM TABLE ========== //
+    $pdf->SetY(90);
 
-// Signature lines positioned with better spacing
-$yPosition = $pdf->GetY() - 10; // Lines will be 10mm above current position
-$pdf->SetDrawColor($grayColor[0], $grayColor[1], $grayColor[2]);
-$pdf->Line(45, $yPosition, 125, $yPosition); // Customer line
-$pdf->Line(160, $yPosition, 240, $yPosition); // Authorized line
+    // Table Header (wider columns for landscape)
+    $pdf->SetFillColor($primaryColor[0], $primaryColor[1], $primaryColor[2]);
+    $pdf->SetTextColor(255);
+    $pdf->SetFont('Helvetica','B',10);
 
-// Additional space after signature lines
-$pdf->SetY($yPosition + 5); // Move 5mm below signature lines
+    $pdf->Cell(15,10,'#',1,0,'C',true);
+    $pdf->Cell(90,10,'ITEM DESCRIPTION',1,0,'L',true); // Adjusted width
+    $pdf->Cell(30,10,'ITEM CODE',1,0,'C',true); // Adjusted width
+    $pdf->Cell(30,10,'UNIT',1,0,'C',true); // Added unit column
+    $pdf->Cell(30,10,'UNIT PRICE',1,0,'R',true);
+    $pdf->Cell(25,10,'QTY',1,0,'C',true);
+    $pdf->Cell(35,10,'TOTAL',1,1,'R',true);
 
-// Footer note
-$pdf->SetFont('Helvetica','I',8);
-$pdf->SetTextColor($grayColor[0], $grayColor[1], $grayColor[2]);
+    // Table Rows
+    $pdf->SetTextColor($darkColor[0], $darkColor[1], $darkColor[2]);
+    $pdf->SetFont('Helvetica','',10);
 
+    $rowNum = 1;
+    foreach ($purchases as $purchase) {
+        $pdf->Cell(15,8,$rowNum,1,0,'C');
+        $pdf->Cell(90,8,$purchase['item_name'],1,0,'L');
+        $pdf->Cell(30,8,$purchase['item_code'],1,0,'C');
+        $pdf->Cell(30,8,strtoupper($purchase['purchase_unit']),1,0,'C'); // Display unit
+        $pdf->Cell(30,8,'Rs. '.number_format($purchase['price_per_unit'],2),1,0,'R');
+        $pdf->Cell(25,8,$purchase['quantity'],1,0,'C');
+        $pdf->Cell(35,8,'Rs. '.number_format($purchase['total_price'],2),1,1,'R');
+        $rowNum++;
+    }
 
-// Clear any output buffers before sending PDF
-while (ob_get_level()) {
-    ob_end_clean();
-}
+    // Subtotal row
+    $pdf->SetFont('Helvetica','B',10);
+    $pdf->Cell(190,8,'SUBTOTAL',1,0,'R'); // Adjusted width
+    $pdf->Cell(35,8,'Rs. '.number_format($subtotal,2),1,1,'R');
 
-// Output the PDF
-$pdf->Output('I', 'Invoice_'.$purchaseId.'.pdf');
-exit;
+    // ========== NEW CREDIT LIMIT ========== //
+    // Check if credit_limit exists before using it
+    $creditLimit = isset($firstPurchase['credit_limit']) ? $firstPurchase['credit_limit'] : 0;
+    $newCreditLimit = $creditLimit - $subtotal;
+
+    if ($creditLimit > 0) {
+        $pdf->SetY($pdf->GetY() + 10);
+        $pdf->SetFont('Helvetica','B',10);
+        $pdf->Cell(180,8,'New Credit Limit:',0,0,'R');
+        $pdf->SetFillColor($successColor[0], $successColor[1], $successColor[2]);
+        $pdf->Cell(35,8,'Rs. '.number_format($newCreditLimit,2),1,1,'R',true);
+    }
+
+    // ========== SIGNATURE SECTION ========== //
+    $pdf->SetY($pdf->GetY() + 15); // Start signature section 15mm below previous content
+
+    // Signature Labels with comfortable spacing
+    $pdf->SetFont('Helvetica','B',10);
+    $pdf->Cell(115, 8, 'Customer Signature', 0, 0, 'C');
+    $pdf->Cell(140, 8, 'Authorized Signature', 0, 1, 'C');
+
+    // Space between labels and signature lines (added 5mm gap)
+    $pdf->Cell(0, 5, '', 0, 1);
+
+    // Space for signatures (original height)
+    $pdf->Cell(115, 15, '', 0, 0, 'C');
+    $pdf->Cell(140, 15, '', 0, 1, 'C');
+
+    // Signature lines positioned with better spacing
+    $yPosition = $pdf->GetY() - 10; // Lines will be 10mm above current position
+    $pdf->SetDrawColor($grayColor[0], $grayColor[1], $grayColor[2]);
+    $pdf->Line(45, $yPosition, 125, $yPosition); // Customer line
+    $pdf->Line(160, $yPosition, 240, $yPosition); // Authorized line
+
+    // Additional space after signature lines
+    $pdf->SetY($yPosition + 5); // Move 5mm below signature lines
+
+    // Footer note
+    $pdf->SetFont('Helvetica','I',8);
+    $pdf->SetTextColor($grayColor[0], $grayColor[1], $grayColor[2]);
+
+    // Clear any output buffers before sending PDF
+    while (ob_get_level()) {
+        ob_end_clean();
+    }
+
+    // Output the PDF
+    $pdf->Output('I', 'Invoice_'.$purchaseId.'.pdf');
+    exit;
 }
 
 // Handle form submission
@@ -307,19 +306,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Validate items array structure
             $validItems = [];
             foreach ($items as $itemData) {
-                if (!isset($itemData['item_id']) || !isset($itemData['quantity'])) {
+                if (!isset($itemData['item_id']) || !isset($itemData['quantity']) || !isset($itemData['unit'])) {
                     $error = "Invalid item data format";
                     break;
                 }
                 
                 $itemId = $itemData['item_id'];
                 $quantity = (int)$itemData['quantity'];
+                $unit = $itemData['unit'];
                 
                 if ($quantity <= 0) continue;
                 
                 $validItems[] = [
                     'item_id' => $itemId,
-                    'quantity' => $quantity
+                    'quantity' => $quantity,
+                    'unit' => $unit
                 ];
             }
             
@@ -338,6 +339,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     foreach ($validItems as $itemData) {
                         $itemId = $itemData['item_id'];
                         $quantity = $itemData['quantity'];
+                        $unit = $itemData['unit'];
                         
                         // Get item details
                         $itemStmt = $pdo->prepare("SELECT * FROM items WHERE item_id = ?");
@@ -358,6 +360,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $purchaseDetails[] = [
                             'item_id' => $itemId,
                             'quantity' => $quantity,
+                            'unit' => $unit,
                             'price_per_unit' => $item['price_per_unit'],
                             'total_price' => $itemTotal,
                             'item_name' => $item['item_name']
@@ -374,15 +377,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     foreach ($purchaseDetails as $purchase) {
                         // Insert purchase record
                         $purchaseStmt = $pdo->prepare("
-    INSERT INTO purchases (member_id, item_id, full_name, quantity, 
-                          price_per_unit, total_price, purchase_date, current_credit_balance)
-    VALUES (?, ?, ?, ?, ?, ?, CURDATE(), ?)
-");
-$purchaseStmt->execute([
-    $memberId, $purchase['item_id'], $member['full_name'], 
-    $purchase['quantity'], $purchase['price_per_unit'], $purchase['total_price'], 
-    $member['current_credit_balance'] + $totalPurchaseAmount
-]);
+                            INSERT INTO purchases (member_id, item_id, full_name, quantity, 
+                                                price_per_unit, total_price, purchase_date, 
+                                                current_credit_balance, unit)
+                            VALUES (?, ?, ?, ?, ?, ?, CURDATE(), ?, ?)
+                        ");
+                        $purchaseStmt->execute([
+                            $memberId, $purchase['item_id'], $member['full_name'], 
+                            $purchase['quantity'], $purchase['price_per_unit'], $purchase['total_price'], 
+                            $member['current_credit_balance'] + $totalPurchaseAmount,
+                            $purchase['unit']
+                        ]);
                         
                         $purchaseIds[] = $pdo->lastInsertId();
                         
@@ -393,9 +398,6 @@ $purchaseStmt->execute([
                             WHERE item_id = ?
                         ");
                         $updateItemStmt->execute([$purchase['quantity'], $purchase['item_id']]);
-                        
-                        // Log activity
-                       
                     }
                     
                     // Update member's credit balance once for the entire purchase
@@ -408,23 +410,7 @@ $purchaseStmt->execute([
                     
                     $pdo->commit();
                     header("Location: ".$_SERVER['PHP_SELF']."?success=1&purchase_id=".$purchaseIds[0]);
-                exit();
-                    
-                    // Generate invoice for the first item (you might want to modify this for multiple items)
-                    if (!empty($purchaseIds)) {
-                        $invoiceLink = "?action=generate_invoice&purchase_id=" . $purchaseIds[0];
-                        $success .= " <a href='$invoiceLink' target='_blank'>Download Invoice</a>";
-                    }
-                    
-                    // Clear the form after successful submission
-                    echo '<script>
-                        document.getElementById("member_search").value = "";
-                        document.getElementById("member_id").value = "";
-                        document.getElementById("memberInfo").style.display = "none";
-                        document.getElementById("items-container").innerHTML = "";
-                        document.getElementById("total-amount").textContent = "0.00";
-                        document.getElementById("add-item-btn").click(); // Add one empty row
-                    </script>';
+                    exit();
                 } catch (Exception $e) {
                     $pdo->rollBack();
                     $error = "Transaction failed: " . $e->getMessage();
@@ -452,7 +438,6 @@ $transactions = $pdo->query("
     <title>Cooperative Shop - Credit Purchase System</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
-
         body {
             font-family: 'Poppins', sans-serif;
             line-height: 1.6;
@@ -698,20 +683,20 @@ $transactions = $pdo->query("
             pointer-events: none;
         }
         .form-group2 {
-    margin-bottom: 15px;
-    position: relative;
-    display: flex;
-    justify-content: flex-end; /* Aligns content to the right */
-}
+            margin-bottom: 15px;
+            position: relative;
+            display: flex;
+            justify-content: flex-end;
+        }
 
-.form-group2 button,
-.form-group2 a button {
-    font-family: 'Poppins', sans-serif;
-    padding: 10px 15px;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
+        .form-group2 button,
+        .form-group2 a button {
+            font-family: 'Poppins', sans-serif;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
         
         @media (max-width: 768px) {
             .info-grid {
@@ -752,7 +737,7 @@ $transactions = $pdo->query("
                 <div class="form-group">
                     <label for="member_search" style="font-size:20px;">Search Member</label>
                     <input type="text" id="member_search" name="member_search" list="member_list" 
-                           placeholder="Start typing member name    or    membership number..." autocomplete="off" style="font-size: 15px;">
+                           placeholder="Start typing member name or membership number..." autocomplete="off" style="font-size: 15px;">
                     <datalist id="member_list"></datalist>
                     <input type="hidden" id="member_id" name="member_id">
                 </div>
@@ -807,6 +792,7 @@ $transactions = $pdo->query("
                             <th>Bank No.</th>
                             <th>Item</th>
                             <th>Qty</th>
+                            <th>Unit</th>
                             <th>Unit Price</th>
                             <th>Total</th>
                             <th>Credit Bal.</th>
@@ -821,6 +807,7 @@ $transactions = $pdo->query("
                                 <td><?php echo htmlspecialchars($transaction['bank_membership_number']); ?></td>
                                 <td><?php echo htmlspecialchars($transaction['item_name']); ?></td>
                                 <td><?php echo htmlspecialchars($transaction['quantity']); ?></td>
+                                <td><?php echo htmlspecialchars($transaction['unit']); ?></td>
                                 <td>Rs. <?php echo number_format($transaction['price_per_unit'], 2); ?></td>
                                 <td>Rs. <?php echo number_format($transaction['total_price'], 2); ?></td>
                                 <td>Rs. <?php echo number_format($transaction['current_credit_balance'], 2); ?></td>
@@ -847,9 +834,15 @@ $transactions = $pdo->query("
             <select class="item-unit" name="">
                 <option value="g">Grams (g)</option>
                 <option value="kg">Kilograms (kg)</option>
-                <option value="packets">milileter</option>
-                <option value="bottles">liter</option>
-                
+                <option value="ml">Milliliters (ml)</option>
+                <option value="l">Liters (l)</option>
+                <option value="packets">Packets</option>
+                <option value="bags">Bags</option>
+                <option value="bottle">Bottles</option>
+                <option value="box">Boxes</option>
+                <option value="sachet">Sachets</option>
+                <option value="bars">Bars</option>
+                <option value="other">Other</option>
             </select>
             <span class="item-price">Rs. 0.00</span>
             <span class="item-total">Rs. 0.00</span>
@@ -857,12 +850,12 @@ $transactions = $pdo->query("
         </div>
     </template>
     <br>
-                    <!-- Reset Section -->
-                                <div class="form-group2" style="text-align: right;">
-                    <a href="reset.php" style="text-decoration: none;">
-                        <button type="button" class="btn-secondary" style="font-family: 'Poppins', sans-serif;">Reset Credit Balance</button>
-                    </a>
-                </div>
+    <!-- Reset Section -->
+    <div class="form-group2" style="text-align: right;">
+        <a href="reset.php" style="text-decoration: none;">
+            <button type="button" class="btn-secondary" style="font-family: 'Poppins', sans-serif;">Reset Credit Balance</button>
+        </a>
+    </div>
     
     <script>
         // Load member info when selected
@@ -1019,13 +1012,13 @@ $transactions = $pdo->query("
                             .then(data => {
                                 if (data) {
                                     priceDisplay.textContent = 'Rs. ' + data.price_per_unit.toLocaleString();
-                                    // Set unit if available
+                                    // Set unit from item data if available
                                     if (data.unit) {
                                         unitSelect.value = data.unit;
                                     }
                                     
                                     // Create a tooltip with additional info
-                                    let tooltipText = `Available Quantity: ${data.current_quantity}`;
+                                    let tooltipText = `Available Quantity: ${data.current_quantity} ${data.unit}s\nType: ${data.type}\nUnit: ${data.unit}`;
                                     
                                     if (data.has_multiple_suppliers) {
                                         tooltipText += "\nNote: This item is available from multiple suppliers";

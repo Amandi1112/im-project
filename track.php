@@ -32,6 +32,7 @@ function getAvailableItems($db) {
                 i.item_name,
                 i.price_per_unit,
                 i.current_quantity,
+                i.type,
                 i.unit,
                 s.supplier_name,
                 'available' AS status
@@ -486,7 +487,7 @@ $summary = getSummaryData($db);
         .col-status { width: 120px; }
         .col-name { width: auto; min-width: 200px; }
         .col-quantity { width: 100px; }
-        .col-unit { width: 80px; }
+        .col-type { width: 80px; }
         .col-price { width: 120px; }
         .col-supplier { width: 180px; }
         .col-details { width: 220px; }
@@ -568,7 +569,7 @@ $summary = getSummaryData($db);
                             <th class="col-status" style="width:1px;"></th>
                             <th class="col-name">Status</th>
                             <th class="col-quantity">Item Name</th>
-                            <th class="col-unit">Quantity</th>
+                            <th class="col-type">Quantity</th>
                             <th class="col-price">Unit</th>
                             <th class="col-supplier">Price</th>
                             <th class="col-details">Supplier</th>
@@ -585,8 +586,8 @@ $summary = getSummaryData($db);
                                         <span class="status-badge status-available">Available</span>
                                     </td>
                                     <td class="col-name"><?= htmlspecialchars($item['item_name']) ?></td>
-                                    <td class="col-quantity quantity-cell"><?= number_format($item['current_quantity']) ?></td>
-                                    <td class="col-unit unit-cell"><?= strtoupper($item['unit']) ?></td>
+                                    <td class="col-quantity quantity-cell"><?= number_format($item['current_quantity']) ?> <span class="unit-cell"><?= htmlspecialchars($item['unit']) ?></span></td>
+                                    <td class="col-type type-cell"><?= strtoupper($item['type']) ?></td>
                                     <td class="col-price price-cell">Rs. <?= number_format($item['price_per_unit'], 2) ?></td>
                                     <td class="col-supplier"><?= htmlspecialchars($item['supplier_name'] ?? 'N/A') ?></td>
                                     <td class="col-details">
@@ -618,7 +619,7 @@ $summary = getSummaryData($db);
                             <th class="col-status" style="width:1px;"></th>
                             <th class="col-name">Status</th>
                             <th class="col-quantity">Item Name</th>
-                            <th class="col-unit">Quantity</th>
+                            <th class="col-type">Quantity</th>
                             <th class="col-price">Unit</th>
                             <th class="col-supplier">Price</th>
                             <th class="col-details">Supplier</th>
@@ -636,7 +637,7 @@ $summary = getSummaryData($db);
                                     </td>
                                     <td class="col-name"><?= htmlspecialchars($item['item_name']) ?></td>
                                     <td class="col-quantity quantity-cell"><?= number_format($item['sold_quantity']) ?></td>
-                                    <td class="col-unit unit-cell"><?= strtoupper($item['unit']) ?></td>
+                                    <td class="col-type type-cell"><?= strtoupper($item['type']) ?></td>
                                     <td class="col-price price-cell">Rs. <?= number_format($item['price_per_unit'], 2) ?></td>
                                     <td class="col-supplier"><?= htmlspecialchars($item['supplier_name'] ?? 'N/A') ?></td>
                                     <td class="col-details">
