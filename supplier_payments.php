@@ -655,7 +655,7 @@ $data = array_column($supplierTotals, 'supplier_total');
             <td><?php echo $purchase['item_name']; ?></td>
             <td><?php echo $purchase['supplier_name']; ?></td>
             <td><?php echo $purchase['quantity']; ?></td>
-            <td>Rs.<?php echo number_format($purchase['price_per_unit'], 2) . '/' . $purchase['unit']; ?></td>
+            <td>Rs.<?php echo number_format($purchase['price_per_unit'], 2) . '/' . 'unit'; ?></td>
             <td>Rs.<?php echo number_format($purchase['total_price'], 2); ?></td>
             <td><?php echo !empty($purchase['expire_date']) ? date('d M Y', strtotime($purchase['expire_date'])) : 'N/A'; ?></td>
             <td><?php echo ucwords($status); ?></td>

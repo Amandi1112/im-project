@@ -72,12 +72,14 @@ GROUP BY i.item_id
         $term = '%' . $_GET['term'] . '%';
         $stmt = $pdo->prepare("
             SELECT item_id as id, 
-       CONCAT(item_name, ' (', unit_size, ' ', unit,' ', type, ')') as label,
-       current_quantity
-FROM items 
-WHERE item_name LIKE ? AND current_quantity > 0
-ORDER BY item_name
-LIMIT 10
+                   CONCAT(item_name, ' (', unit_size, ' ', 
+                         CASE WHEN unit = 'kg' THEN unit ELSE CONCAT(unit, ' ', type) END, 
+                         ')') as label,
+                   current_quantity
+            FROM items 
+            WHERE item_name LIKE ? AND current_quantity > 0
+            ORDER BY item_name
+            LIMIT 10
         ");
         $stmt->execute([$term]);
         $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -833,11 +835,7 @@ $transactions = $pdo->query("
     </template>
     <br>
     <!-- Reset Section -->
-    <div class="form-group2" style="text-align: right;">
-        <a href="reset.php" style="text-decoration: none;">
-            <button type="button" class="btn-secondary" style="font-family: 'Poppins', sans-serif;">Reset Credit Balance</button>
-        </a>
-    </div>
+    
     
     <script>
         // Load member info when selected
