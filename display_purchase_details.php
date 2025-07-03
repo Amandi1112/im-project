@@ -39,8 +39,8 @@ if ($_SERVER["REQUEST_METHOD"] == "GET" && isset($_GET['search_term']) && isset(
             }
         }
     } elseif ($type == 'item') {
-        // Modified to include unit size in the item search
-        $sql = "SELECT item_id, item_name, unit_size, unit FROM items 
+        // Modified to include unit size and type in the item search
+        $sql = "SELECT item_id, item_name, unit_size, unit, type FROM items 
                 WHERE item_name LIKE '%$searchTerm%' 
                 ORDER BY item_name, unit_size LIMIT 10";
         $result = $conn->query($sql);
@@ -53,7 +53,8 @@ if ($_SERVER["REQUEST_METHOD"] == "GET" && isset($_GET['search_term']) && isset(
                     'name' => $row['item_name'] . ' (' . $row['unit_size'] . ' ' . $row['unit'] . ')',
                     'item_name' => $row['item_name'],
                     'unit_size' => $row['unit_size'],
-                    'unit' => $row['unit']
+                    'unit' => $row['unit'],
+                    'type' => $row['type']
                 ];
             }
         }
@@ -71,6 +72,8 @@ $supplier_filter = isset($_GET['supplier_id']) ? $_GET['supplier_id'] : '';
 $supplier_name = isset($_GET['supplier_name']) ? $_GET['supplier_name'] : '';
 $item_filter = isset($_GET['item_id']) ? $_GET['item_id'] : '';
 $item_name = isset($_GET['item_name']) ? $_GET['item_name'] : '';
+$min_price = isset($_GET['min_price']) ? $_GET['min_price'] : '';
+$max_price = isset($_GET['max_price']) ? $_GET['max_price'] : '';
 
 // Function to calculate current quantity for an item across all purchases
 function getCurrentQuantity($conn, $item_id) {
@@ -113,11 +116,12 @@ function getCurrentQuantity($conn, $item_id) {
 }
 
 // Function to get all purchases with item and supplier details (grouped by item)
-function getPurchaseDetails($conn, $start_date = '', $end_date = '', $supplier_filter = '', $item_filter = '') {
+function getPurchaseDetails($conn, $start_date = '', $end_date = '', $supplier_filter = '', $item_filter = '', $min_price = '', $max_price = '') {
     $sql = "SELECT 
                 i.item_id,
                 i.item_code,
                 i.item_name,
+                i.type,
                 s.supplier_id,
                 s.supplier_name,
                 COALESCE(i.unit, 'other') AS unit,
@@ -164,6 +168,18 @@ function getPurchaseDetails($conn, $start_date = '', $end_date = '', $supplier_f
         $types .= 's';
     }
     
+    if (!empty($min_price)) {
+        $conditions[] = "ip.price_per_unit >= ?";
+        $params[] = $min_price;
+        $types .= 'd';
+    }
+    
+    if (!empty($max_price)) {
+        $conditions[] = "ip.price_per_unit <= ?";
+        $params[] = $max_price;
+        $types .= 'd';
+    }
+    
     if (!empty($conditions)) {
         $sql .= " WHERE " . implode(" AND ", $conditions);
     }
@@ -208,7 +224,7 @@ function getPurchaseDetails($conn, $start_date = '', $end_date = '', $supplier_f
 }
 
 // Get all purchase details with filters
-$purchases = getPurchaseDetails($conn, $start_date, $end_date, $supplier_filter, $item_filter);
+$purchases = getPurchaseDetails($conn, $start_date, $end_date, $supplier_filter, $item_filter, $min_price, $max_price);
 ?>
 
 <!DOCTYPE html>
@@ -509,15 +525,15 @@ $purchases = getPurchaseDetails($conn, $start_date, $end_date, $supplier_filter,
         <div class="filter-section animate__animated animate__fadeIn">
             <form method="GET" action="">
                 <div class="row filter-row">
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <label for="start_date" class="form-label" style="font-size: 20px;"><i class="far fa-calendar-alt me-1"></i> From Date</label>
                         <input type="date" class="form-control" id="start_date" name="start_date" value="<?php echo $start_date; ?>" style="font-size: 20px;">
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <label for="end_date" class="form-label" style="font-size: 20px;"><i class="far fa-calendar-alt me-1"></i> To Date</label>
                         <input type="date" class="form-control" id="end_date" name="end_date" value="<?php echo $end_date; ?>" style="font-size: 20px;">
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <label for="supplier_name" class="form-label" style="font-size: 20px;"><i class="fas fa-truck me-1"></i> Supplier</label>
                         <div class="search-container">
                             <input type="text" class="form-control" id="supplier_name" name="supplier_name" 
@@ -526,7 +542,7 @@ $purchases = getPurchaseDetails($conn, $start_date, $end_date, $supplier_filter,
                             <input type="hidden" id="supplier_id" name="supplier_id" value="<?php echo $supplier_filter; ?>">
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <label for="item_name" class="form-label" style="font-size: 20px;"><i class="fas fa-box-open me-1"></i> Item</label>
                         <div class="search-container">
                             <input type="text" class="form-control" id="item_name" name="item_name" 
@@ -534,6 +550,18 @@ $purchases = getPurchaseDetails($conn, $start_date, $end_date, $supplier_filter,
                                    placeholder="Type item name..." style="font-size: 20px;">
                             <input type="hidden" id="item_id" name="item_id" value="<?php echo $item_filter; ?>">
                         </div>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="min_price" class="form-label" style="font-size: 20px;"><i class="fas fa-tag me-1"></i> Min Price</label>
+                        <input type="number" step="0.01" class="form-control" id="min_price" name="min_price" 
+                               value="<?php echo htmlspecialchars($min_price); ?>" 
+                               placeholder="Min price" style="font-size: 20px;">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="max_price" class="form-label" style="font-size: 20px;"><i class="fas fa-tag me-1"></i> Max Price</label>
+                        <input type="number" step="0.01" class="form-control" id="max_price" name="max_price" 
+                               value="<?php echo htmlspecialchars($max_price); ?>" 
+                               placeholder="Max price" style="font-size: 20px;">
                     </div>
                 </div>
                 <div class="row mt-3">
@@ -618,11 +646,25 @@ $purchases = getPurchaseDetails($conn, $start_date, $end_date, $supplier_filter,
                         <td style="font-size: 17px;"><?php echo date('d M Y', strtotime($purchase['purchase_date'])); ?></td>
                         <td style="font-size: 17px;"><?php echo $purchase['item_name']; ?></td>
                         <td style="font-size: 17px;"><?php echo $purchase['supplier_name']; ?></td>
-                        <td style="font-size: 17px;"><?php echo $purchase['quantity']; ?></td>
+                        <td style="font-size: 17px;"><?php 
+                            $qtyDisplay = $purchase['quantity'];
+                            if (isset($purchase['unit']) && strtolower($purchase['unit']) == 'kg') {
+                                $qtyDisplay .= ' kg';
+                            } else {
+                                $qtyDisplay .= ' ' . ($purchase['type'] ?? 'units');
+                            }
+                            echo $qtyDisplay; 
+                        ?></td>
                         <td style="font-size: 17px;"><?php echo $purchase['unit_size'] . ' ' . $purchase['unit']; ?></td>
                         <td style="font-size: 17px;">
                             <span class="quantity-badge <?php echo $qtyClass; ?>">
-                                <?php echo $purchase['current_quantity']; ?>
+                                <?php 
+                                $currentQtyDisplay = $purchase['current_quantity'];
+                                if (isset($purchase['unit']) && strtolower($purchase['unit']) == 'kg') {
+                                    $currentQtyDisplay .= ' kg';
+                                }
+                                echo $currentQtyDisplay; 
+                                ?>
                             </span>
                         </td>
                         <td style="font-size: 17px;">Rs.<?php echo number_format($purchase['price_per_unit'], 2); ?></td>
@@ -635,9 +677,23 @@ $purchases = getPurchaseDetails($conn, $start_date, $end_date, $supplier_filter,
                     <?php if (count($purchases) > 0): ?>
                     <tr class="total-row animate__animated animate__fadeIn">
                         <td colspan="3" class="text-end"><strong>Total:</strong></td>
-                        <td><strong><?php echo $totalQuantity; ?></strong></td>
+                        <td><strong><?php 
+                            $totalQtyDisplay = $totalQuantity;
+                            if (isset($purchases[0]['unit']) && strtolower($purchases[0]['unit']) == 'kg') {
+                                $totalQtyDisplay .= ' kg';
+                            } else {
+                                $totalQtyDisplay .= ' units';
+                            }
+                            echo $totalQtyDisplay; 
+                        ?></strong></td>
                         <td></td>
-                        <td><strong><?php echo $totalCurrentQuantity; ?></strong></td>
+                        <td><strong><?php 
+                            $totalCurrentQtyDisplay = $totalCurrentQuantity;
+                            if (isset($purchases[0]['unit']) && strtolower($purchases[0]['unit']) == 'kg') {
+                                $totalCurrentQtyDisplay .= ' kg';
+                            }
+                            echo $totalCurrentQtyDisplay; 
+                        ?></strong></td>
                         <td></td>
                         <td><strong>Rs.<?php echo number_format($totalAmount, 2); ?></strong></td>
                         <td colspan="2"></td>
@@ -718,7 +774,8 @@ $purchases = getPurchaseDetails($conn, $start_date, $end_date, $supplier_filter,
                                     id: item.id,
                                     item_name: item.item_name,
                                     unit_size: item.unit_size,
-                                    unit: item.unit
+                                    unit: item.unit,
+                                    type: item.type || 'units'
                                 };
                             }));
                         }

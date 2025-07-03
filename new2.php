@@ -475,6 +475,33 @@ $message = isset($_GET['message']) ? $_GET['message'] : '';
             display: none;
         }
         
+        /* Style for all form labels in item rows */
+.item-row .form-label {
+    font-weight: 600; /* Semi-bold */
+    font-size: 14px;
+    color: #495057;
+    min-width: 100px; /* Ensures labels don't wrap */
+    margin-bottom: 5px;
+    display: block;
+}
+
+/* Adjust column widths for better spacing */
+.item-row .col-md-1 {
+    flex: 0 0 12%; /* Slightly wider than before */
+    max-width: 12%;
+}
+
+.item-row .col-md-2 {
+    flex: 0 0 18%; /* Adjusted for better alignment */
+    max-width: 18%;
+}
+
+.item-row .col-md-3 {
+    flex: 0 0 25%; /* Wider for item name */
+    max-width: 25%;
+}
+
+
         .item-row {
             margin-bottom: 15px;
             padding: 20px;
@@ -860,7 +887,7 @@ $message = isset($_GET['message']) ? $_GET['message'] : '';
                         <label class="form-label" style="font-size: 16px; font-weight: bold;">Type</label>
                         <select class="form-select" name="supplier[{SUPPLIER_ID}][items][{ITEM_INDEX}][type]" required>
                             <option value="packets">Packets</option>
-                            <option value="bags">Bags</option>
+                            <option value="kg">kg</option>
                             <option value="bottle">Bottle</option>
                             <option value="box">Box</option>
                             <option value="sachet">Sachet</option>
@@ -947,7 +974,7 @@ $message = isset($_GET['message']) ? $_GET['message'] : '';
                         <label class="form-label" style="font-size: 16px; font-weight: bold;">Type</label>
                         <select class="form-select" name="supplier[{SUPPLIER_ID}][items][{ITEM_INDEX}][type]" required>
                             <option value="packets">Packets</option>
-                            <option value="bags">Bags</option>
+                            <option value="kg">kg</option>
                             <option value="bottle">Bottle</option>
                             <option value="box">Box</option>
                             <option value="sachet">Sachet</option>
