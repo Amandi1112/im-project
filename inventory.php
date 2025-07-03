@@ -537,7 +537,7 @@ function getStockStatus($quantity, $unit, $type = '') {
                                             echo "<tr data-id='" . htmlspecialchars($row["item_id"]) . "'>";
                                             echo "<td>" . htmlspecialchars($row["item_name"]) . "</td>";
                                             echo "<td>Rs." . formatCurrency($row["price_per_unit"]) . "/unit" . "</td>";
-                                            echo "<td>" . $quantity . (!empty($type) ? " <span class='text-muted' style='font-size:13px;'>(" . htmlspecialchars($type) . ")</span>" : "") . "</td>";
+                                            echo "<td>" . $quantity . (strtolower($unit) == 'kg' ? 'kg' : '') . (!empty($type) ? " <span class='text-muted' style='font-size:13px;'>(" . htmlspecialchars($type) . ")</span>" : "") . "</td>";
                                             echo "<td><span class='badge " . $statusClass . "'><span class='status-dot " . $dotClass . "'></span>" . $status . "</span></td>";
                                             echo "</tr>";
                                         }
@@ -600,7 +600,7 @@ function getStockStatus($quantity, $unit, $type = '') {
                                 <tbody>
                                     
                                     <tr>
-                                        <td><i class="fas fa-weight me-1"></i> KG (Bags)</td>
+                                        <td><i class="fas fa-weight me-1"></i> KG</td>
                                         <td>&le; 10 units</td>
                                         <td>11 - 29 units</td>
                                         <td>&ge; 30 units</td>
@@ -801,8 +801,8 @@ function getStockStatus($quantity, $unit, $type = '') {
 
             if (lowStockItems.length > 0) {
                 let message = 'The following items are at low stock levels and need immediate attention:<ul>';
-                lowStockItems.forEach(item => {i
-                    message += `<li>${item.item_name} - ${item.current_quantity} unit</li>`;
+                lowStockItems.forEach(item => {
+                    message += `<li>${item.item_name} - ${item.current_quantity}${item.unit.toLowerCase() == 'kg' ? 'kg' : ''}</li>`;
                 });
                 message += '</ul>';
                 showNotification(message, 'warning');
