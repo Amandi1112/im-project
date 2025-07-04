@@ -167,8 +167,9 @@ function generateReport($conn, $id, $start_date, $end_date) {
             $this->SetDrawColor($this->headerColor[0], $this->headerColor[1], $this->headerColor[2]);
             $this->SetLineWidth(0.3);
             
-            $w = array(25, 30, 60, 20, 30, 30); // Column widths
-            $headers = array('Date', 'Item Code', 'Item Name', 'Qty', 'Unit Price', 'Total');
+            // Updated column widths with narrower item name column and added unit size column
+            $w = array(25, 30, 40, 20, 20, 30, 30); // Column widths: Date, Item Code, Item Name, Unit Size, Qty, Unit Price, Total
+            $headers = array('Date', 'Item Code', 'Item Name','Qty', 'Unit Size', 'Unit Price', 'Total');
             
             for($i=0; $i<count($headers); $i++) {
                 $this->Cell($w[$i],7,$headers[$i],1,0,'C',true);
@@ -187,16 +188,23 @@ function generateReport($conn, $id, $start_date, $end_date) {
                 $this->Cell($w[0],6,$row['purchase_date'],'LR',0,'C',$fill);
                 $this->Cell($w[1],6,$row['item_code'],'LR',0,'C',$fill);
                 $this->Cell($w[2],6,$this->CellFitScale($w[2], 6, $row['item_name']),'LR',0,'L',$fill);
-                $this->Cell($w[3],6,$row['quantity'],'LR',0,'C',$fill);
-                $this->Cell($w[4],6,'Rs. ' . number_format($row['price_per_unit'], 2),'LR',0,'R',$fill);
-                $this->Cell($w[5],6,'Rs. ' . number_format($row['total_price'], 2),'LR',0,'R',$fill);
+                 $this->Cell($w[4],6,$row['quantity'],'LR',0,'C',$fill);
+                // Display unit size and type (e.g., "1kg" or "500ml")
+                
+                $unitType = isset($row['type']) ? $row['type'] : '';
+                $unitSizeText =$unitType;
+                $this->Cell($w[3],6,$unitSizeText,'LR',0,'C',$fill);
+                
+               
+                $this->Cell($w[5],6,'Rs. ' . number_format($row['price_per_unit'], 2),'LR',0,'R',$fill);
+                $this->Cell($w[6],6,'Rs. ' . number_format($row['total_price'], 2),'LR',0,'R',$fill);
                 $this->Ln();
             }
             
             // Total row
             $this->SetFont('Arial','B',10);
-            $this->Cell(array_sum($w)-$w[5],8,'Total','T',0,'R');
-            $this->Cell($w[5],8,'Rs. ' . number_format($total_spent, 2),'T',1,'R');
+            $this->Cell(array_sum($w)-$w[6],8,'Total','T',0,'R');
+            $this->Cell($w[6],8,'Rs. ' . number_format($total_spent, 2),'T',1,'R');
         }
         
         function SignatureSection() {
@@ -295,9 +303,8 @@ function generateReport($conn, $id, $start_date, $end_date) {
     
     $member = $member_result->fetch_assoc();
     
-    // FIX: Ensure we're getting only purchases for the selected member
-    // Make sure we're explicitly checking for the member_id match
-    $purchases_sql = "SELECT p.*, i.item_name, i.item_code 
+    // Fetch purchases with unit size and type information
+    $purchases_sql = "SELECT p.*, i.item_name, i.item_code, i.unit_size, i.type 
                      FROM purchases p 
                      JOIN items i ON p.item_id = i.item_id 
                      WHERE p.member_id = ? 
@@ -310,7 +317,7 @@ function generateReport($conn, $id, $start_date, $end_date) {
     $purchases_result = $stmt->get_result();
     $purchases = $purchases_result->fetch_all(MYSQLI_ASSOC);
     
-    // FIX: Calculate total purchases amount only for this member
+    // Calculate total purchases amount only for this member
     $total_sql = "SELECT SUM(total_price) as total_spent
                  FROM purchases 
                  WHERE member_id = ? 

@@ -586,7 +586,7 @@ $summary = getSummaryData($db);
                                         <span class="status-badge status-available">Available</span>
                                     </td>
                                     <td class="col-name"><?= htmlspecialchars($item['item_name']) ?></td>
-                                    <td class="col-quantity quantity-cell"><?= number_format($item['current_quantity']) ?> <span class="unit-cell"><?= htmlspecialchars($item['unit']) ?></span></td>
+                                    <td class="col-quantity quantity-cell"><?= number_format($item['current_quantity']) ?> <span class="unit-cell"></span></td>
                                     <td class="col-type type-cell"><?= strtoupper($item['type']) ?></td>
                                     <td class="col-price price-cell">Rs. <?= number_format($item['price_per_unit'], 2) ?></td>
                                     <td class="col-supplier"><?= htmlspecialchars($item['supplier_name'] ?? 'N/A') ?></td>

@@ -50,9 +50,13 @@ function getStockStatus($quantity, $unit, $type = '') {
         if ($quantity <= 10) return 'Low';
         if ($quantity < 30) return 'Medium';
         return 'High';
-    } else if ($unit == 'g' && ($type == 'box' || $type == 'sachet' || $type == 'bars')) {
+    } else if ($unit == 'g' && ($type == 'box' || $type == 'sachet' || $type == 'bars' || $type == 'packets ')) {
         if ($quantity <= 10) return 'Low';
-        if ($quantity < 30) return 'Medium';
+        if ($quantity > 10 && $quantity <= 30) return 'Medium';
+        return 'High';
+    } else if ($unit == 'g' || $unit == 'g' || $type == 'packets') {
+        if ($quantity <= 10) return 'Low';
+        if ($quantity > 10 && $quantity <= 30) return 'Medium';
         return 'High';
     } else if (($unit == 'l' || $unit == 'ml') && $type == 'bottle') {
         if ($quantity <= 10) return 'Low';
@@ -612,7 +616,7 @@ function getStockStatus($quantity, $unit, $type = '') {
                                         <td>&ge; 30 units</td>
                                     </tr>
                                     <tr>
-                                        <td><i class="fas fa-weight-hanging me-1"></i> Grams (boxes/sachets/bars)</td>
+                                        <td><i class="fas fa-weight-hanging me-1"></i> Grams (boxes/sachets/bars/packets)</td>
                                         <td>&le; 10 units</td>
                                         <td>11 - 29 units</td>
                                         <td>&ge; 30 units</td>
