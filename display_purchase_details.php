@@ -65,6 +65,92 @@ if ($_SERVER["REQUEST_METHOD"] == "GET" && isset($_GET['search_term']) && isset(
     exit;
 }
 
+// AJAX request for expiry details
+if ($_SERVER["REQUEST_METHOD"] == "GET" && isset($_GET['get_expiry_details']) && isset($_GET['item_id'])) {
+    $item_id = (int)$_GET['item_id'];
+    
+    // Get expiry details
+    $expiry_details = getExpiryDetails($conn, $item_id);
+    
+    if (count($expiry_details) > 0) {
+        echo '<div class="table-responsive">';
+        echo '<table class="table table-striped table-hover">';
+        echo '<thead class="table-dark">';
+        echo '<tr>';
+        echo '<th><i class="fas fa-calendar me-1"></i> Expiry Date</th>';
+        echo '<th><i class="fas fa-cubes me-1"></i> Batch Quantity</th>';
+        echo '<th><i class="fas fa-warehouse me-1"></i> Current Quantity</th>';
+        echo '<th><i class="fas fa-tag me-1"></i> Unit Price</th>';
+        echo '<th><i class="fas fa-calendar-plus me-1"></i> Purchase Date</th>';
+        echo '<th><i class="fas fa-info-circle me-1"></i> Status</th>';
+        echo '</tr>';
+        echo '</thead>';
+        echo '<tbody>';
+        
+        $currentDate = new DateTime();
+        
+        foreach ($expiry_details as $detail) {
+            $status = '';
+            $statusClass = '';
+            $rowClass = '';
+            
+            if (!empty($detail['expire_date'])) {
+                $expireDate = new DateTime($detail['expire_date']);
+                $interval = $currentDate->diff($expireDate);
+                
+                if ($expireDate < $currentDate) {
+                    $status = 'Expired';
+                    $statusClass = 'status-expired';
+                    $rowClass = 'table-danger';
+                } elseif ($interval->days <= 7) {
+                    $status = 'Expires in ' . $interval->days . ' days';
+                    $statusClass = 'status-expiring';
+                    $rowClass = 'table-warning';
+                } elseif ($interval->days <= 30) {
+                    $status = 'Expires in ' . $interval->days . ' days';
+                    $statusClass = 'status-expiring';
+                    $rowClass = 'table-warning';
+                } else {
+                    $status = 'Active (' . $interval->days . ' days left)';
+                    $statusClass = 'status-active';
+                    $rowClass = 'table-success';
+                }
+            } else {
+                $status = 'No expiry date';
+                $statusClass = 'status-none';
+                $rowClass = '';
+            }
+            
+            // Calculate current quantity for this specific batch
+            // For now, we'll show the original batch quantity
+            // You might want to implement batch-specific tracking later
+            $current_batch_qty = $detail['batch_quantity']; // This should be calculated based on your inventory system
+            
+            echo '<tr class="' . $rowClass . '">';
+            echo '<td>' . (!empty($detail['expire_date']) ? date('d M Y', strtotime($detail['expire_date'])) : 'No expiry') . '</td>';
+            echo '<td>' . $detail['batch_quantity'] . '</td>';
+            echo '<td>' . $current_batch_qty . '</td>';
+            echo '<td>Rs.' . number_format($detail['avg_price'], 2) . '</td>';
+            echo '<td>' . date('d M Y', strtotime($detail['first_purchase']));
+            if ($detail['first_purchase'] != $detail['last_purchase']) {
+                echo ' - ' . date('d M Y', strtotime($detail['last_purchase']));
+            }
+            echo '</td>';
+            echo '<td><span class="status-badge ' . $statusClass . '">' . $status . '</span></td>';
+            echo '</tr>';
+        }
+        
+        echo '</tbody>';
+        echo '</table>';
+        echo '</div>';
+    } else {
+        echo '<div class="alert alert-info">No expiry details found for this item.</div>';
+    }
+    
+    exit;
+}
+
+
 // Initialize filter variables
 $start_date = isset($_GET['start_date']) ? $_GET['start_date'] : '';
 $end_date = isset($_GET['end_date']) ? $_GET['end_date'] : '';
@@ -115,6 +201,105 @@ function getCurrentQuantity($conn, $item_id) {
     return 0;
 }
 
+// Function to calculate current quantity for an item with specific expire date
+function getCurrentQuantityByExpireDate($conn, $item_id, $expire_date) {
+    // Get total purchased quantity for this item with this expire date
+    $sql = "SELECT COALESCE(SUM(quantity), 0) as total_purchased 
+            FROM item_purchases 
+            WHERE item_id = ? AND expire_date = ?";
+    
+    $stmt = $conn->prepare($sql);
+    if ($stmt) {
+        $stmt->bind_param("is", $item_id, $expire_date);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        
+        if ($result && $row = $result->fetch_assoc()) {
+            $total_purchased = $row['total_purchased'];
+            
+            // For tracking sales/usage by expire date, you might need to modify your purchases table
+            // to include expire_date tracking. For now, we'll use a simplified approach
+            // where we assume FIFO (First In, First Out) for sales
+            
+            // Get total sold/used quantity from member purchases for this item
+            $sql2 = "SELECT COALESCE(SUM(quantity), 0) as total_sold 
+                     FROM purchases 
+                     WHERE item_id = ?";
+            
+            $stmt2 = $conn->prepare($sql2);
+            if ($stmt2) {
+                $stmt2->bind_param("i", $item_id);
+                $stmt2->execute();
+                $result2 = $stmt2->get_result();
+                
+                if ($result2 && $row2 = $result2->fetch_assoc()) {
+                    $total_sold = $row2['total_sold'];
+                    
+                    // For now, we'll distribute the sold quantity proportionally
+                    // across all available stock with different expire dates
+                    $sql3 = "SELECT COALESCE(SUM(quantity), 0) as total_available 
+                             FROM item_purchases 
+                             WHERE item_id = ?";
+                    
+                    $stmt3 = $conn->prepare($sql3);
+                    if ($stmt3) {
+                        $stmt3->bind_param("i", $item_id);
+                        $stmt3->execute();
+                        $result3 = $stmt3->get_result();
+                        
+                        if ($result3 && $row3 = $result3->fetch_assoc()) {
+                            $total_available = $row3['total_available'];
+                            
+                            if ($total_available > 0) {
+                                // Calculate proportional usage
+                                $usage_ratio = $total_sold / $total_available;
+                                $used_from_this_batch = $total_purchased * $usage_ratio;
+                                return max(0, $total_purchased - $used_from_this_batch);
+                            }
+                        }
+                    }
+                }
+            }
+            
+            return $total_purchased;
+        }
+    }
+    
+    return 0;
+}
+
+function getExpiryDetails($conn, $item_id) {
+    $sql = "SELECT 
+                ip.expire_date,
+                SUM(ip.quantity) as batch_quantity,
+                AVG(ip.price_per_unit) as avg_price,
+                MIN(ip.purchase_date) as first_purchase,
+                MAX(ip.purchase_date) as last_purchase
+            FROM item_purchases ip
+            WHERE ip.item_id = ?
+            GROUP BY ip.expire_date
+            ORDER BY ip.expire_date ASC";
+    
+    $stmt = $conn->prepare($sql);
+    $details = [];
+    
+    if ($stmt) {
+        $stmt->bind_param("i", $item_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        
+        if ($result) {
+            while ($row = $result->fetch_assoc()) {
+                $details[] = $row;
+            }
+        }
+    }
+    
+    return $details;
+}
+
+// Function to get all purchases with item and supplier details (grouped by item)
+// Function to get all purchases with item and supplier details (grouped by item and expire date)
 // Function to get all purchases with item and supplier details (grouped by item)
 function getPurchaseDetails($conn, $start_date = '', $end_date = '', $supplier_filter = '', $item_filter = '', $min_price = '', $max_price = '') {
     $sql = "SELECT 
@@ -131,7 +316,9 @@ function getPurchaseDetails($conn, $start_date = '', $end_date = '', $supplier_f
                 SUM(ip.total_price) as total_price,
                 MIN(ip.purchase_date) as first_purchase_date,
                 MAX(ip.purchase_date) as last_purchase_date,
-                MIN(ip.expire_date) as earliest_expire_date
+                MIN(ip.expire_date) as earliest_expire_date,
+                MAX(ip.expire_date) as latest_expire_date,
+                COUNT(DISTINCT ip.expire_date) as expire_date_count
             FROM 
                 item_purchases ip
             JOIN 
@@ -203,8 +390,11 @@ function getPurchaseDetails($conn, $start_date = '', $end_date = '', $supplier_f
     
     if ($result && $result->num_rows > 0) {
         while($row = $result->fetch_assoc()) {
-            // Calculate current quantity for each item
+            // Calculate current quantity for each item (sum of all expiry dates)
             $row['current_quantity'] = getCurrentQuantity($conn, $row['item_id']);
+            
+            // Get detailed expiry information
+            $row['expiry_details'] = getExpiryDetails($conn, $row['item_id']);
             
             // Calculate total units (quantity * unit_size)
             $row['total_units'] = $row['total_quantity'] * $row['unit_size'];
@@ -585,7 +775,7 @@ $purchases = getPurchaseDetails($conn, $start_date, $end_date, $supplier_filter,
                         <th style="font-size: 12px; font-weight: bold;"><i class="fas fa-warehouse me-1"></i> Current Qty</th>
                         <th style="font-size: 12px; font-weight: bold;"><i class="fas fa-tag me-1"></i> Price/Unit</th>
                         <th style="font-size: 12px; font-weight: bold;"><i class="fas fa-money-bill-wave me-1"></i> Total Price</th>
-                        <th style="font-size: 12px; font-weight: bold;"><i class="fas fa-hourglass-end me-1"></i> Expire Date</th>
+                       
                         <th style="font-size: 12px; font-weight: bold;"><i class="fas fa-info-circle me-1"></i> Status</th>
                     </tr>
                 </thead>
@@ -662,6 +852,8 @@ $purchases = getPurchaseDetails($conn, $start_date, $end_date, $supplier_filter,
                                 $currentQtyDisplay = $purchase['current_quantity'];
                                 if (isset($purchase['unit']) && strtolower($purchase['unit']) == 'kg') {
                                     $currentQtyDisplay .= ' kg';
+                                } else {
+                                    $currentQtyDisplay .= ' ' . ($purchase['type'] ?? 'units');
                                 }
                                 echo $currentQtyDisplay; 
                                 ?>
@@ -669,32 +861,30 @@ $purchases = getPurchaseDetails($conn, $start_date, $end_date, $supplier_filter,
                         </td>
                         <td style="font-size: 17px;">Rs.<?php echo number_format($purchase['price_per_unit'], 2); ?></td>
                         <td style="font-size: 17px;">Rs.<?php echo number_format($purchase['total_price'], 2); ?></td>
-                        <td style="font-size: 17px;"><?php echo !empty($purchase['expire_date']) ? date('d M Y', strtotime($purchase['expire_date'])) : 'N/A'; ?></td>
-                        <td style="font-size: 17px;"><span class="status-badge <?php echo $statusClass; ?>"><?php echo $status; ?></span></td>
+                        <td style="font-size: 17px;">
+                            <button type="button" class="btn btn-sm btn-info" onclick="showExpiryDetails(<?php echo $purchase['item_id']; ?>, '<?php echo addslashes($purchase['item_name']); ?>')">
+                                <i class="fas fa-eye me-1"></i>
+                                View Status
+                                <?php if ($purchase['expire_date_count'] > 1): ?>
+                                    <span class="badge bg-warning ms-1"><?php echo $purchase['expire_date_count']; ?></span>
+                                <?php endif; ?>
+                            </button>
+                        </td>
                     </tr>
                     <?php endforeach; ?>
                     
                     <?php if (count($purchases) > 0): ?>
                     <tr class="total-row animate__animated animate__fadeIn">
+                        
+                        <td><strong><?php 
+                            
+                        ?></strong></td>
+                        <td></td>
+                        <td><strong><?php 
+                            
+                        ?></strong></td>
+                        <td></td>
                         <td colspan="3" class="text-end"><strong>Total:</strong></td>
-                        <td><strong><?php 
-                            $totalQtyDisplay = $totalQuantity;
-                            if (isset($purchases[0]['unit']) && strtolower($purchases[0]['unit']) == 'kg') {
-                                $totalQtyDisplay .= ' kg';
-                            } else {
-                                $totalQtyDisplay .= ' units';
-                            }
-                            echo $totalQtyDisplay; 
-                        ?></strong></td>
-                        <td></td>
-                        <td><strong><?php 
-                            $totalCurrentQtyDisplay = $totalCurrentQuantity;
-                            if (isset($purchases[0]['unit']) && strtolower($purchases[0]['unit']) == 'kg') {
-                                $totalCurrentQtyDisplay .= ' kg';
-                            }
-                            echo $totalCurrentQtyDisplay; 
-                        ?></strong></td>
-                        <td></td>
                         <td><strong>Rs.<?php echo number_format($totalAmount, 2); ?></strong></td>
                         <td colspan="2"></td>
                     </tr>
@@ -858,6 +1048,54 @@ $purchases = getPurchaseDetails($conn, $start_date, $end_date, $supplier_filter,
                 }
             );
         });
+
+        function showExpiryDetails(itemId, itemName) {
+    $('#itemName').text(itemName);
+    $('#expiryDetailsContent').html('<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading...</div>');
+    
+    // Show modal
+    $('#expiryModal').modal('show');
+    
+    // Fetch expiry details via AJAX
+    $.ajax({
+        url: window.location.href,
+        type: 'GET',
+        data: {
+            get_expiry_details: 1,
+            item_id: itemId
+        },
+        success: function(response) {
+            $('#expiryDetailsContent').html(response);
+        },
+        error: function() {
+            $('#expiryDetailsContent').html('<div class="alert alert-danger">Error loading expiry details.</div>');
+        }
+    });
+}
+
     </script>
+
+        <div class="modal fade" id="expiryModal" tabindex="-1" aria-labelledby="expiryModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="expiryModalLabel">
+                    <i class="fas fa-calendar-alt me-2"></i>
+                    Expiry Details for: <span id="itemName"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="expiryDetailsContent">
+                    <!-- Content will be loaded here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 </body>
 </html>
