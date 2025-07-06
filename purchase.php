@@ -27,28 +27,34 @@ if (isset($_GET['action'])) {
     
     if ($_GET['action'] == 'get_item_info' && isset($_GET['id'])) {
         $stmt = $pdo->prepare("
-            SELECT i.*, 
-       GROUP_CONCAT(DISTINCT s.supplier_name SEPARATOR ', ') as supplier_names
-FROM items i
-LEFT JOIN supplier s ON i.supplier_id = s.supplier_id
-WHERE i.item_id = ?
-GROUP BY i.item_id
-        ");
+        SELECT i.*, 
+               GROUP_CONCAT(DISTINCT s.supplier_name SEPARATOR ', ') as supplier_names,
+               ip.expire_date,
+               ip.purchase_date as batch_date
+        FROM items i
+        LEFT JOIN supplier s ON i.supplier_id = s.supplier_id
+        LEFT JOIN item_purchases ip ON i.item_id = ip.item_id
+        WHERE i.item_id = ?
+        GROUP BY i.item_id
+    ");
         $stmt->execute([$_GET['id']]);
         $item = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        // Also check if there are other items with the same name from different suppliers
-        $stmt = $pdo->prepare("
-            SELECT COUNT(*) as count 
-            FROM items 
-            WHERE item_name = (SELECT item_name FROM items WHERE item_id = ?) 
-            AND item_id != ?
-        ");
-        $stmt->execute([$_GET['id'], $_GET['id']]);
-        $sameNameCount = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        $item['has_multiple_suppliers'] = ($sameNameCount['count'] > 0);
-        
+        // Check for items with same name but different prices/expiry dates
+        if ($item) {
+            $stmt = $pdo->prepare("
+                SELECT COUNT(*) as count,
+                       GROUP_CONCAT(DISTINCT CONCAT('Rs. ', FORMAT(price_per_unit, 2)) SEPARATOR ', ') as different_prices,
+                       GROUP_CONCAT(DISTINCT ip.expire_date SEPARATOR ', ') as expire_dates
+                FROM items i
+                LEFT JOIN item_purchases ip ON i.item_id = ip.item_id
+                WHERE i.item_name = ? AND i.item_id != ?
+            ");
+            $stmt->execute([$item['item_name'], $_GET['id']]);
+            $variants = $stmt->fetch(PDO::FETCH_ASSOC);
+            $item['has_multiple_variants'] = ($variants['count'] > 0);
+            $item['different_prices'] = $variants['different_prices'];
+            $item['expire_dates'] = $variants['expire_dates'];
+        }
         echo json_encode($item ? $item : null);
         exit;
     }
@@ -71,16 +77,23 @@ GROUP BY i.item_id
     if ($_GET['action'] == 'search_items' && isset($_GET['term'])) {
         $term = '%' . $_GET['term'] . '%';
         $stmt = $pdo->prepare("
-            SELECT item_id as id, 
-                   CONCAT(item_name, ' (', unit_size, ' ', 
-                         CASE WHEN unit = 'kg' THEN unit ELSE CONCAT(unit, ' ', type) END, 
-                         ')') as label,
-                   current_quantity
-            FROM items 
-            WHERE item_name LIKE ? AND current_quantity > 0
-            ORDER BY item_name
-            LIMIT 10
-        ");
+        SELECT i.item_id as id, 
+               CONCAT(i.item_name, ' (', i.unit_size, ' ', 
+                     CASE WHEN i.unit = 'kg' THEN i.unit ELSE CONCAT(i.unit, ' ', i.type) END, 
+                     ') - Rs. ', FORMAT(i.price_per_unit, 2),
+                     CASE WHEN ip.expire_date IS NOT NULL THEN CONCAT(' [Exp: ', ip.expire_date, ']') ELSE '' END,
+                     ' - Stock: ', i.current_quantity) as label,
+               i.current_quantity,
+               i.price_per_unit,
+               ip.expire_date,
+               s.supplier_name
+        FROM items i 
+        LEFT JOIN item_purchases ip ON i.item_id = ip.item_id 
+        LEFT JOIN supplier s ON i.supplier_id = s.supplier_id
+        WHERE i.item_name LIKE ? AND i.current_quantity > 0
+        ORDER BY i.item_name, i.price_per_unit, ip.expire_date
+        LIMIT 20
+    ");
         $stmt->execute([$term]);
         $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
         echo json_encode($results);
@@ -711,6 +724,32 @@ $transactions = $pdo->query("
                 max-width: none !important;
             }
         }
+
+        .custom-item-dropdown {
+            font-family: 'Poppins', sans-serif;
+            margin-top: 2px;
+            min-width: 250px;
+            max-width: 400px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: #fff;
+            position: absolute;
+            z-index: 1001;
+        }
+        .custom-item-suggestion {
+            padding: 8px 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+            white-space: pre-line;
+            transition: background 0.15s;
+        }
+        .custom-item-suggestion:last-child {
+            border-bottom: none;
+        }
+        .custom-item-suggestion:hover {
+            background: #f5f5f5;
+        }
     </style>
 </head>
 <body>
@@ -908,13 +947,12 @@ $transactions = $pdo->query("
             document.getElementById('memberInfo').style.display = 'none';
         });
         
-        // AJAX item search
+        // AJAX item search (replace the old searchItems and datalist logic)
         function searchItems(term, callback) {
             if (term.length < 2) {
                 callback([]);
                 return;
             }
-            
             fetch(`?action=search_items&term=${encodeURIComponent(term)}`)
                 .then(response => response.json())
                 .then(data => callback(data))
@@ -922,6 +960,60 @@ $transactions = $pdo->query("
                     console.error('Error:', error);
                     callback([]);
                 });
+        }
+        
+        // Enhanced: Custom dropdown for item suggestions
+        function showItemSuggestions(input, items, onSelect) {
+            // Remove any existing dropdown
+            let oldDropdown = input.parentNode.querySelector('.custom-item-dropdown');
+            if (oldDropdown) oldDropdown.remove();
+            if (!items.length) return;
+            // Create dropdown
+            let dropdown = document.createElement('div');
+            dropdown.className = 'custom-item-dropdown';
+            dropdown.style.position = 'absolute';
+            dropdown.style.background = '#fff';
+            dropdown.style.border = '1px solid #ddd';
+            dropdown.style.borderRadius = '4px';
+            dropdown.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
+            dropdown.style.zIndex = 1001;
+            dropdown.style.width = input.offsetWidth + 'px';
+            dropdown.style.maxHeight = '300px';
+            dropdown.style.overflowY = 'auto';
+            dropdown.style.left = 0;
+            dropdown.style.top = (input.offsetHeight + 2) + 'px';
+            dropdown.style.fontSize = '15px';
+            dropdown.style.padding = '0';
+            dropdown.style.marginTop = '2px';
+            // Add items
+            items.forEach(item => {
+                let div = document.createElement('div');
+                div.className = 'custom-item-suggestion';
+                div.style.padding = '8px 12px';
+                div.style.cursor = 'pointer';
+                div.style.borderBottom = '1px solid #f0f0f0';
+                div.style.whiteSpace = 'pre-line';
+                div.innerHTML =
+                    `<strong>${item.label.split(' - ')[0]}</strong><br>` +
+                    `<span style='color:#667eea;'>${item.supplier_name ? 'Supplier: ' + item.supplier_name + '<br>' : ''}</span>` +
+                    `<span>Price: <b>Rs. ${Number(item.price_per_unit).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</b></span><br>` +
+                    `<span>Stock: <b>${item.current_quantity}</b></span>` +
+                    (item.expire_date ? `<br><span style='color:#e53e3e;'>Expiry: ${item.expire_date}</span>` : '');
+                div.addEventListener('mousedown', function(e) {
+                    e.preventDefault();
+                    onSelect(item);
+                    dropdown.remove();
+                });
+                dropdown.appendChild(div);
+            });
+            // Remove on click outside
+            document.addEventListener('mousedown', function handler(e) {
+                if (!dropdown.contains(e.target) && e.target !== input) {
+                    dropdown.remove();
+                    document.removeEventListener('mousedown', handler);
+                }
+            });
+            input.parentNode.appendChild(dropdown);
         }
         
         // Add new item row
@@ -959,83 +1051,62 @@ $transactions = $pdo->query("
             const totalDisplay = row.querySelector('.item-total');
             const removeBtn = row.querySelector('.remove-item-btn');
             
-            // Create a unique datalist for this row
-            const datalistId = 'item_list_' + row.dataset.id;
-            const datalist = document.createElement('datalist');
-            datalist.id = datalistId;
-            itemSearch.setAttribute('list', datalistId);
-            row.appendChild(datalist);
-            
-            // Handle item search
+            // Custom dropdown logic
             itemSearch.addEventListener('input', function() {
-                searchItems(this.value.trim(), function(data) {
-                    datalist.innerHTML = '';
-                    data.forEach(item => {
-                        const option = document.createElement('option');
-                        option.value = item.label;
-                        option.setAttribute('data-id', item.id);
-                        datalist.appendChild(option);
+                let term = this.value.trim();
+                if (term.length < 2) {
+                    showItemSuggestions(this, [], () => {});
+                    return;
+                }
+                searchItems(term, function(data) {
+                    showItemSuggestions(itemSearch, data, function(item) {
+                        itemSearch.value = item.label.split(' - ')[0];
+                        itemIdInput.value = item.id;
+                        priceDisplay.textContent = 'Rs. ' + Number(item.price_per_unit).toLocaleString();
+                        // Tooltip
+                        let tooltipText = `Available Quantity: ${item.current_quantity} ${item.unit ? item.unit + 's' : ''}\n`;
+                        if (item.type) tooltipText += `Type: ${item.type}\n`;
+                        if (item.expire_date) tooltipText += `Expiry Date: ${item.expire_date}\n`;
+                        if (item.supplier_name) tooltipText += `Supplier: ${item.supplier_name}\n`;
+                        itemSearch.title = tooltipText;
+                        quantityInput.max = item.current_quantity;
+                        quantityInput.placeholder = `Max: ${item.current_quantity}`;
+                        calculateRowTotal(row);
                     });
                 });
             });
-            
-            // Handle item selection
-            itemSearch.addEventListener('change', function() {
-                const options = datalist.querySelectorAll('option');
-                for (let option of options) {
-                    if (option.value === this.value) {
-                        const itemId = option.getAttribute('data-id');
-                        itemIdInput.value = itemId;
-                        // Get item details
-                        fetch('?action=get_item_info&id=' + itemId)
-                            .then(response => response.json())
-                            .then(data => {
-                                if (data) {
-                                    priceDisplay.textContent = 'Rs. ' + data.price_per_unit.toLocaleString();
-                                    // Set unit from item data if available
-                                    
-                                    
-                                    // Create a tooltip with additional info
-                                    let tooltipText = `Available Quantity: ${data.current_quantity} ${data.unit}s\nType: ${data.type}`;
-                                    
-                                    if (data.has_multiple_suppliers) {
-                                        tooltipText += "\nNote: This item is available from multiple suppliers";
-                                    }
-                                    
-                                    // Update the search input with the tooltip
-                                    itemSearch.title = tooltipText;
-                                    
-                                    // Show a notification if multiple suppliers
-                                    if (data.has_multiple_suppliers) {
-                                        alert("Note: This item is available from multiple suppliers. Please verify you're selecting the correct one.");
-                                    }
-                                    
-                                    // Update quantity input max value
-                                    quantityInput.max = data.current_quantity;
-                                    quantityInput.placeholder = `Max: ${data.current_quantity}`;
-                                    
-                                    calculateRowTotal(row);
-                                }
-                            });
-                        return;
-                    }
+            // On focus, show suggestions for current value
+            itemSearch.addEventListener('focus', function() {
+                if (this.value.trim().length >= 2) {
+                    let term = this.value.trim();
+                    searchItems(term, function(data) {
+                        showItemSuggestions(itemSearch, data, function(item) {
+                            itemSearch.value = item.label.split(' - ')[0];
+                            itemIdInput.value = item.id;
+                            priceDisplay.textContent = 'Rs. ' + Number(item.price_per_unit).toLocaleString();
+                            let tooltipText = `Available Quantity: ${item.current_quantity} ${item.unit ? item.unit + 's' : ''}\n`;
+                            if (item.type) tooltipText += `Type: ${item.type}\n`;
+                            if (item.expire_date) tooltipText += `Expiry Date: ${item.expire_date}\n`;
+                            if (item.supplier_name) tooltipText += `Supplier: ${item.supplier_name}\n`;
+                            itemSearch.title = tooltipText;
+                            quantityInput.max = item.current_quantity;
+                            quantityInput.placeholder = `Max: ${item.current_quantity}`;
+                            calculateRowTotal(row);
+                        });
+                    });
                 }
-                
-                // If no match found, clear the values
-                itemIdInput.value = '';
-                priceDisplay.textContent = 'Rs. 0.00';
-                itemSearch.title = '';
-                quantityInput.max = '';
-                quantityInput.placeholder = 'Qty';
-                
-                calculateRowTotal(row);
             });
-            
+            // On blur, remove dropdown after a short delay
+            itemSearch.addEventListener('blur', function() {
+                setTimeout(() => {
+                    let dd = row.querySelector('.custom-item-dropdown');
+                    if (dd) dd.remove();
+                }, 200);
+            });
             // Handle quantity changes
             quantityInput.addEventListener('input', function() {
                 calculateRowTotal(row);
             });
-            
             // Remove row button
             removeBtn.addEventListener('click', function() {
                 row.remove();
