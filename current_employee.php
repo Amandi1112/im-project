@@ -84,7 +84,7 @@ $result = $conn->query($sql);
         }
         
         .home-btn {
-            background: linear-gradient(to right, #28a745, #218838);
+            background: linear-gradient(to right, rgb(2, 11, 35),rgb(9, 6, 35));
             color: white;
             padding: 10px 20px;
             border: none;
@@ -97,7 +97,7 @@ $result = $conn->query($sql);
         }
         
         .home-btn:hover {
-            background: linear-gradient(to right, #218838, #1e7e34);
+            background: linear-gradient(to right,rgb(2, 11, 35), rgb(2, 11, 35));
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
         }
@@ -209,10 +209,10 @@ $result = $conn->query($sql);
         <table>
             <thead>
                 <tr>
-                    <th style="font-weight: bold; color: black; font-size: 20px; color:white;">Name</th>
-                    <th style="font-weight: bold; color: black; font-size: 20px;">Email</th>
-                    <th style="font-weight: bold; color: black; font-size: 20px;">Position</th>
-                    <th style="font-weight: bold; color: black; font-size: 20px;">Actions</th>
+                    <th style="font-weight: bold; color: black; font-size: 20px; color:black;">Name</th>
+                    <th style="font-weight: bold; color: black; font-size: 20px;color:black;">Email</th>
+                    <th style="font-weight: bold; color: black; font-size: 20px; color:black;">Position</th>
+                    <th style="font-weight: bold; color: black; font-size: 20px; color:black;">Actions</th>
                 </tr>
             </thead>
             <tbody style="font-weight: bold; color: black; font-size: 17px;">

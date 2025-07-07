@@ -447,7 +447,12 @@ $transactions = $pdo->query("
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cooperative Shop - Credit Purchase System</title>
+    <title>Member Purchases</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.13.2/themes/base/jquery-ui.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
         body {
@@ -492,7 +497,7 @@ $transactions = $pdo->query("
         }
         
         button {
-            background: linear-gradient(to right, #28a745, #218838);
+            background: linear-gradient(to right, rgb(2, 11, 40),rgb(2, 11, 40));
             box-shadow: 0 4px 10px rgba(40, 167, 69, 0.3);
             color: white;
             padding: 10px 15px;
@@ -503,7 +508,7 @@ $transactions = $pdo->query("
         }
         
         button:hover {
-            background: linear-gradient(to right, #218838, #1e7e34);
+            background: linear-gradient(to right,rgb(2, 15, 18),rgb(2, 15, 18));
             transform: translateY(-2px);
             box-shadow: 0 6px 15px rgba(40, 167, 69, 0.4);
         }
@@ -555,7 +560,7 @@ $transactions = $pdo->query("
         }
         
         th {
-            background: linear-gradient(to right, #667eea, #764ba2);
+            background: linear-gradient(to right, #667eea,rgb(2, 11, 35));
             color: white;
         }
         
@@ -725,6 +730,26 @@ $transactions = $pdo->query("
             }
         }
 
+        .floating-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+        
+        .floating-btn:hover {
+            transform: translateY(-3px) scale(1.1);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+
         .custom-item-dropdown {
             font-family: 'Poppins', sans-serif;
             margin-top: 2px;
@@ -754,8 +779,8 @@ $transactions = $pdo->query("
 </head>
 <body>
     <div class="container">
-        <h1 style="font-size:50px;">Cooperative Shop Credit Purchase System</h1>
-        
+        <h1 style="font-size:50px; text-align: center;">Member Purchases</h1>
+
         <?php if (isset($success)): ?>
             <div class="alert alert-success"><?php echo $success; ?></div>
         <?php endif; ?>
@@ -768,7 +793,7 @@ $transactions = $pdo->query("
             <h2 style="font-size:30px;">New Purchase</h2>
             <form method="POST" action="">
                 <input type="hidden" name="make_purchase" value="1">
-                
+                <br>
                 <div class="form-group">
                     <label for="member_search" style="font-size:20px;">Search Member</label>
                     <input type="text" id="member_search" name="member_search" list="member_list" 
@@ -797,9 +822,9 @@ $transactions = $pdo->query("
                         </div>
                     </div>
                 </div>
-                
+                <br>
                 <div class="form-group">
-                    <h3>Items</h3>
+                    <h3 style="font-size:20px;">Items</h3>
                     <div id="items-container">
                         <!-- Items will be added here dynamically -->
                     </div>
@@ -875,7 +900,10 @@ $transactions = $pdo->query("
     <br>
     <!-- Reset Section -->
     
-    
+    <a href="home.php" class="btn btn-primary floating-btn animate__animated animate__fadeInUp">
+        <i class="fas fa-home"></i>
+    </a>
+
     <script>
         // Load member info when selected
         function loadMemberInfo(memberId) {

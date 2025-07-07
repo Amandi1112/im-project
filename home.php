@@ -59,7 +59,7 @@ $recentActivities = [
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
     <style>
         :root {
-            --primary-color:rgb(64, 86, 137);
+            --primary-color:rgb(43, 70, 132);
             --primary-light: rgba(10, 36, 99, 0.1);
             --secondary-color: #3e92cc;
             --accent-color: #2ecc71;
@@ -728,9 +728,10 @@ $recentActivities = [
     <div class="container">
         <header class="header">
             <div class="d-flex align-items-center">
-                <div class="user-avatar">
-                    <i class="fas fa-store"></i>
-                </div>
+                
+                <div style="margin-right: 18px;"></div>
+                <img src="images/logo.jpeg" alt="T&C Co-op City Shop Logo" class="header-logo animate__animated animate__pulse" style="border-radius: 50%; border: 3px solid #3e92cc; box-shadow: 0 4px 16px rgba(62,146,204,0.15); width: 80px; height: 80px; object-fit: cover; animation-iteration-count: infinite;">
+                <div style="margin-right: 18px;"></div>
                 <h1 class="header-title" style="color:black;">T&C Co-op City Shop</h1>
             </div>
             <div class="user-menu">
@@ -751,8 +752,8 @@ $recentActivities = [
 
         <div class="welcome-banner animate__animated animate__fadeIn">
             <div class="welcome-content">
-                <h2 class="welcome-title">Welcome to the Admin Dashboard</h2>
-                <p class="welcome-text" style="font-size: 20px;">Manage your co-op shop operations efficiently. Monitor real-time statistics, track inventory, and streamline member services with our comprehensive tools.</p>
+                <h2 class="welcome-title" style="color:white; font-weight:bold; font-size:35px;">Welcome to the Admin Dashboard</h2>
+                <p class="welcome-text" style="font-size: 20px; font-weight: bold; color:white;">Manage your co-op shop operations efficiently. Monitor real-time statistics, track inventory, and streamline member services with our comprehensive tools.</p>
                 <div class="mt-3">
                     <span class="time-badge">
                         <i class="far fa-calendar me-1"></i><?php echo $currentDate; ?>
@@ -842,7 +843,7 @@ $recentActivities = [
                             <i class="fas fa-users"></i>
                         </div>
                         <div class="metric-value" id="totalMembers"><?php echo $totalMembers; ?></div>
-                        <div class="metric-label" style="font-size: 20px; font-weight: bold; color:black;">Active Members</div>
+                        <div class="metric-label animate__animated animate__pulse" style="font-size: 20px; font-weight: bold; color:black; animation-duration: 1.5s; animation-iteration-count: infinite;">Active Members</div>
                     </div>
 
                     <div class="metric-card">
@@ -850,7 +851,7 @@ $recentActivities = [
                             <i class="fas fa-handshake"></i>
                         </div>
                         <div class="metric-value" id="totalSuppliers"><?php echo $totalSuppliers; ?></div>
-                        <div class="metric-label" style="font-size: 20px; font-weight: bold; color:black;">Active Suppliers</div>
+                        <div class="metric-label animate__animated animate__pulse" style="font-size: 20px; font-weight: bold; color:black; animation-duration: 1.5s; animation-iteration-count: infinite;">Active Suppliers</div>
                     </div>
 
                     <div class="metric-card">
@@ -858,16 +859,10 @@ $recentActivities = [
                             <i class="fas fa-boxes"></i>
                         </div>
                         <div class="metric-value" id="totalInventoryLevel"><?php echo $totalInventoryLevel; ?></div>
-                        <div class="metric-label" style="font-size: 20px; font-weight: bold; color:black;">Inventory Items</div>
+                        <div class="metric-label animate__animated animate__pulse" style="font-size: 20px; font-weight: bold; color:black; animation-duration: 1.5s; animation-iteration-count: infinite;">Inventory Items</div>
                     </div>
 
-                    <div class="metric-card">
-                        <div class="metric-icon">
-                            <i class="fas fa-chart-line"></i>
-                        </div>
-                        <div class="metric-value">+0%</div>
-                        <div class="metric-label" style="font-size: 20px; font-weight: bold; color:black;">Monthly Growth</div>
-                    </div>
+                    
                 </div>
 
             </div>
