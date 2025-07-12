@@ -52,6 +52,11 @@ if (isset($_SESSION['success'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>View and Delete Suppliers</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap">
+    
+   
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -70,13 +75,13 @@ if (isset($_SESSION['success'])) {
         }
         
         .container {
-            width: 100%;
-            max-width: 1200px;
-            margin: 20px auto;
-            padding: 30px;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 15px;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            width: 98%;
+            max-width: 1800px;
+            margin: 30px auto;
+            padding: 60px 40px;
+            background: rgba(255, 255, 255, 0.97);
+            border-radius: 18px;
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.22);
             transform: translateY(0);
             transition: all 0.3s ease;
         }
@@ -85,7 +90,26 @@ if (isset($_SESSION['success'])) {
             transform: translateY(-5px);
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
         }
+        .floating-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 0 0 rgba(102,126,234,0.5), 0 5px 20px rgba(0,0,0,0.2);
+            animation: glowPulse 2s infinite alternate;
+            transition: all 0.3s;
+            z-index: 1000;
+        }
         
+        .floating-btn:hover {
+            transform: translateY(-3px) scale(1.1);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
         h2 {
             color: #333;
             margin-bottom: 30px;
@@ -110,11 +134,12 @@ if (isset($_SESSION['success'])) {
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
+            margin-top: 30px;
+            font-size: 1.45em;
         }
         
         th, td {
-            padding: 12px 15px;
+            padding: 22px 28px;
             text-align: left;
             border-bottom: 1px solid #e0e0e0;
         }
@@ -122,10 +147,10 @@ if (isset($_SESSION['success'])) {
         th {
             background-color: #f8f9fa;
             color: #333;
-            font-weight: 600;
+            font-weight: 700;
             text-transform: uppercase;
-            font-size: 14px;
-            letter-spacing: 0.5px;
+            font-size: 1.1em;
+            letter-spacing: 0.7px;
         }
         
         tr:hover {
@@ -179,7 +204,7 @@ if (isset($_SESSION['success'])) {
         }
         
         .btn-secondary {
-            background: linear-gradient(to right, #4CAF50, #2E7D32);
+            background: linear-gradient(to right,rgb(31, 42, 32), #2E7D32);
             color: white;
             box-shadow: 0 4px 10px rgba(76, 175, 80, 0.3);
         }
@@ -293,7 +318,7 @@ if (isset($_SESSION['success'])) {
 </head>
 <body style="font-weight: bold;">
     <div class="container">
-        <h2>Registered Suppliers</h2>
+        <h2 style="font-size: 35px;">Registered Suppliers</h2>
         
         <?php
         $sql = "SELECT supplier_id, supplier_name, address, nic, contact_number FROM supplier";
@@ -301,16 +326,16 @@ if (isset($_SESSION['success'])) {
         
         if ($result->num_rows > 0) {
             echo "<table>";
-            echo "<thead><tr><th>Supplier ID</th><th>Supplier Name</th><th>Address</th><th>NIC</th><th>Contact Number</th><th>Actions</th></tr></thead>";
+            echo "<thead><tr><th style='font-size:20px;'>Supplier ID</th><th style='font-size:20px;'>Supplier Name</th><th style='font-size:20px;'>Address</th><th style='font-size:20px;'>NIC</th><th style='font-size:20px;'>Contact Number</th><th style='font-size:20px;'>Actions</th></tr></thead>";
             echo "<tbody>";
             
             while($row = $result->fetch_assoc()) {
                 echo "<tr>";
-                echo "<td>" . $row["supplier_id"] . "</td>";
-                echo "<td>" . $row["supplier_name"] . "</td>";
-                echo "<td>" . $row["address"] . "</td>";
-                echo "<td>" . $row["nic"] . "</td>";
-                echo "<td>" . $row["contact_number"] . "</td>";
+                echo "<td style='font-size:20px;'>" . $row["supplier_id"] . "</td>";
+                echo "<td style='font-size:20px;'>" . $row["supplier_name"] . "</td>";
+                echo "<td style='font-size:20px;'>" . $row["address"] . "</td>";
+                echo "<td style='font-size:20px;'>" . $row["nic"] . "</td>";
+                echo "<td style='font-size:20px;'>" . $row["contact_number"] . "</td>";
                 echo "<td>";
                 echo "<form method='post' style='display: inline;'>";
                 echo "<input type='hidden' name='action' value='delete'>";
@@ -327,8 +352,8 @@ if (isset($_SESSION['success'])) {
         ?>
         
         <div class="btn-group">
-            <a href="supplier.php" class="btn btn-primary">Supplier Registration</a>
-            <a href="new2.php" class="btn btn-secondary">Item Purchases</a>
+            <a href="supplier.php" class="btn btn-primary" style="font-size: 20px;">Supplier Registration</a>
+            <a href="new2.php" class="btn btn-secondary" style="font-size: 20px;">Item Purchases</a>
         </div>
     </div>
 
@@ -349,6 +374,9 @@ if (isset($_SESSION['success'])) {
             <p><?php echo $success; ?></p>
         </div>
     </div>
+    <a href="home.php" class="btn btn-primary floating-btn animate__animated animate__fadeInUp">
+        <i class="fas fa-home"></i>
+    </a>
 
     <script>
         // Show popups if there are messages

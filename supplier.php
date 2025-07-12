@@ -256,7 +256,7 @@ $conn->close();
         }
         
         .btn-primary {
-            background: linear-gradient(to right, #667eea, #764ba2);
+            background: linear-gradient(to right,rgb(28, 30, 42), #764ba2);
             color: white;
             box-shadow: 0 3px 8px rgba(102, 126, 234, 0.3);
         }
@@ -267,13 +267,13 @@ $conn->close();
         }
         
         .btn-secondary {
-            background: linear-gradient(to right, #4CAF50, #2E7D32);
+            background: linear-gradient(to right,rgb(32, 66, 33), #2E7D32);
             color: white;
             box-shadow: 0 3px 8px rgba(76, 175, 80, 0.3);
         }
         
         .btn-secondary:hover {
-            background: linear-gradient(to right, #2E7D32, #4CAF50);
+            background: linear-gradient(to right,rgb(31, 42, 32), #4CAF50);
             box-shadow: 0 5px 12px rgba(76, 175, 80, 0.4);
         }
         

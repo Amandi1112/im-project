@@ -640,6 +640,7 @@ $items = $conn->query("SELECT * FROM items ORDER BY item_name");
             background: linear-gradient(90deg, #e0e7ff 0%, #f3e8ff 100%);
             color: #667eea;
         }
+        
 
         /* --- Glassmorphism Modal --- */
         #purchasesModal {
@@ -775,15 +776,126 @@ $items = $conn->query("SELECT * FROM items ORDER BY item_name");
     <div class="container">
         <h2 class="mb-4">Supplier Purchases & Payments</h2>
 
-        <?php if (isset($_GET['success']) && $_GET['success'] == 'purchase'): ?>
-            <div class="alert alert-success">Purchase added successfully!</div>
-        <?php elseif (isset($_GET['success']) && $_GET['success'] == 'payment'): ?>
-            <div class="alert alert-success">Payment recorded successfully!</div>
-        <?php endif; ?>
 
-        <?php if (isset($error_message)): ?>
-            <div class="alert alert-danger"><?php echo $error_message; ?></div>
-        <?php endif; ?>
+        <!-- Popup Messages -->
+        <div class="popup-container success-popup" id="successPopup">
+            <div class="popup">
+                <span class="close">&times;</span>
+                <h3>Success</h3>
+                <p id="successMessage"></p>
+            </div>
+        </div>
+        <div class="popup-container error-popup" id="errorPopup">
+            <div class="popup">
+                <span class="close">&times;</span>
+                <h3>Error</h3>
+                <p id="errorMessage"></p>
+            </div>
+        </div>
+
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Show success popup if needed
+            <?php if (isset($_GET['success']) && $_GET['success'] == 'purchase'): ?>
+                document.getElementById('successMessage').textContent = 'Purchase added successfully!';
+                document.getElementById('successPopup').classList.add('active');
+            <?php elseif (isset($_GET['success']) && $_GET['success'] == 'payment'): ?>
+                document.getElementById('successMessage').textContent = 'Payment recorded successfully!';
+                document.getElementById('successPopup').classList.add('active');
+            <?php endif; ?>
+            <?php if (isset($error_message)): ?>
+                document.getElementById('errorMessage').textContent = <?php echo json_encode($error_message); ?>;
+                document.getElementById('errorPopup').classList.add('active');
+            <?php endif; ?>
+            // Close popups
+            document.querySelectorAll('.popup .close').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    this.closest('.popup-container').classList.remove('active');
+                    window.location.href = window.location.href.split('?')[0];
+                });
+            });
+            // Close popup when clicking outside
+            document.querySelectorAll('.popup-container').forEach(function(popup) {
+                popup.addEventListener('click', function(e) {
+                    if (e.target === this) {
+                        this.classList.remove('active');
+                        window.location.href = window.location.href.split('?')[0];
+                    }
+                });
+            });
+        });
+        </script>
+    <style>
+        /* Popup styles */
+        .popup-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        .popup-container.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .popup {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            width: 350px;
+            max-width: 90%;
+            position: relative;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+        }
+        .popup-container.active .popup {
+            transform: translateY(0);
+        }
+        .popup h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+        .popup p {
+            margin-bottom: 20px;
+            color: #555;
+        }
+        .popup .close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 20px;
+            cursor: pointer;
+            color: #666;
+            transition: all 0.3s ease;
+        }
+        .popup .close:hover {
+            color: #ff4757;
+            transform: rotate(90deg);
+        }
+        .error-popup .popup {
+            border-top: 4px solid #ff4757;
+            background: #ff4757;
+        }
+        .success-popup .popup {
+            border-top: 4px solid #2ed573;
+            background: #2ed573;
+        }
+        .error-popup .popup h3,
+        .error-popup .popup p,
+        .success-popup .popup h3,
+        .success-popup .popup p {
+            color: white !important;
+        }
+    </style>
 
         <ul class="nav nav-tabs" id="myTab" role="tablist">
             <li class="nav-item" role="presentation">

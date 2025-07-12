@@ -149,6 +149,26 @@ function getStockStatus($quantity, $unit, $type = '') {
             margin-bottom: 2rem;
             box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
         }
+        .floating-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 0 0 rgba(102,126,234,0.5), 0 5px 20px rgba(0,0,0,0.2);
+            animation: glowPulse 2s infinite alternate;
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+        
+        .floating-btn:hover {
+            transform: translateY(-3px) scale(1.1);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
 
         .card {
             border: none;
@@ -468,7 +488,11 @@ function getStockStatus($quantity, $unit, $type = '') {
             <div class="row align-items-center">
                 <div class="col-md-6 d-flex align-items-center">
 
-                    <h2 class="mb-0" style="color: white; font-weight: bold;"><i class="fas fa-boxes me-2"></i>Inventory Overview</h2>
+                    <div class="w-100 d-flex justify-content-center">
+                        <div class="w-100 d-flex justify-content-center">
+                            <h2 class="mb-0 text-center w-100" style="color: white; font-weight: bold; font-size: 38px;"><i class="fas fa-boxes me-2"></i>Inventory Overview</h2>
+                        </div>
+                    </div>
                 </div>
                 <div class="col-md-6 text-end">
                     <span class="header-badge">
@@ -480,53 +504,42 @@ function getStockStatus($quantity, $unit, $type = '') {
     </header>
 
     <!-- Main Content -->
-    <div class="container">
-        <!-- Inventory Charts Row -->
+    <div class="container" style="max-width:1800px; padding:60px 40px; background:rgba(255,255,255,0.97); border-radius:18px; box-shadow:0 18px 40px rgba(0,0,0,0.22); margin:30px auto;">
+        
         <div class="row mb-4">
             <div class="col-md-8">
-                <div class="card current-inventory-card">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0"><i class="fas fa-box-open me-2"></i>Current Inventory</h5>
-                        <div>
-                            <a href="display_purchase_details.php" class="btn btn-light">View All</a>
-                        </div>
+                <div class="card current-inventory-card" style="background:rgba(255,255,255,0.97); border-radius:18px; box-shadow:0 10px 25px rgba(0,0,0,0.08);">
+                    <div class="card-header d-flex justify-content-between align-items-center" style="background:white; color:#1e293b; border-bottom:1px solid #e2e8f0; font-weight:600; font-size:1.3em;">
+                        <span style="font-size: 30px;"><i class="fas fa-box-open me-2"></i>Current Inventory</span>
+                        <a href="display_purchase_details.php" class="btn btn-primary" style="padding:12px 28px; border-radius:10px; font-size:1.1em;">View All</a>
                     </div>
                     <div class="card-body">
                         <div class="search-box mb-3">
                             <i class="fas fa-search"></i>
                             <input type="text" id="searchItems" class="form-control" placeholder="Search items...">
                         </div>
-
                         <div class="table-responsive">
                             <table class="table" id="itemsTable">
                                 <thead>
                                     <tr>
-                                        <th>Item Name</th>
-                                        <th>Price/Unit</th>
-                                        <th>Qty (Unit)</th>
-                                        <th>Status</th>
+                                        <th style="font-size:20px;">Item Name</th>
+                                        <th style="font-size:20px;">Price/Unit</th>
+                                        <th style="font-size:20px;">Qty (Unit)</th>
+                                        <th style="font-size:20px;">Status</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <?php
-                                    // Fetch items with supplier name and quantity status
-                                    $sql = "SELECT i.item_id, i.item_code, i.item_name, i.price_per_unit,
-                                    i.current_quantity, s.supplier_name, i.unit, i.type
-                                    FROM items i
-                                    LEFT JOIN supplier s ON i.supplier_id = s.supplier_id
-                                    ORDER BY i.current_quantity ASC";
+                                    $sql = "SELECT i.item_id, i.item_code, i.item_name, i.price_per_unit, i.current_quantity, s.supplier_name, i.unit, i.type FROM items i LEFT JOIN supplier s ON i.supplier_id = s.supplier_id ORDER BY i.current_quantity ASC";
                                     $result = $conn->query($sql);
-
                                     if ($result->num_rows > 0) {
                                         while($row = $result->fetch_assoc()) {
                                             $quantity = intval($row['current_quantity']);
                                             $unit = $row['unit'];
                                             $type = isset($row['type']) ? $row['type'] : '';
-                                            $status = getStockStatus($quantity, $unit, $type); // Pass type here
+                                            $status = getStockStatus($quantity, $unit, $type);
                                             $statusClass = '';
                                             $dotClass = '';
-
-
                                             if ($status == 'Low') {
                                                 $statusClass = 'badge-low pulse-warning';
                                                 $dotClass = 'status-dot-low';
@@ -537,12 +550,11 @@ function getStockStatus($quantity, $unit, $type = '') {
                                                 $statusClass = 'badge-high';
                                                 $dotClass = 'status-dot-high';
                                             }
-
                                             echo "<tr data-id='" . htmlspecialchars($row["item_id"]) . "'>";
-                                            echo "<td>" . htmlspecialchars($row["item_name"]) . "</td>";
-                                            echo "<td>Rs." . formatCurrency($row["price_per_unit"]) . "/unit" . "</td>";
-                                            echo "<td>" . $quantity . (strtolower($unit) == 'kg' ? 'kg' : '') . (!empty($type) ? " <span class='text-muted' style='font-size:13px;'>(" . htmlspecialchars($type) . ")</span>" : "") . "</td>";
-                                            echo "<td><span class='badge " . $statusClass . "'><span class='status-dot " . $dotClass . "'></span>" . $status . "</span></td>";
+                                            echo "<td style='font-size:20px;'>" . htmlspecialchars($row["item_name"]) . "</td>";
+                                            echo "<td style='font-size:20px;'>Rs." . formatCurrency($row["price_per_unit"]) . "/unit" . "</td>";
+                                            echo "<td style='font-size:20px;'>" . $quantity . (strtolower($unit) == 'kg' ? 'kg' : '') . (!empty($type) ? " <span class='text-muted' style='font-size:13px;'>(" . htmlspecialchars($type) . ")</span>" : "") . "</td>";
+                                            echo "<td style='font-size:20px;'><span class='badge " . $statusClass . "'><span class='status-dot " . $dotClass . "'></span>" . $status . "</span></td>";
                                             echo "</tr>";
                                         }
                                     } else {
@@ -556,9 +568,9 @@ function getStockStatus($quantity, $unit, $type = '') {
                 </div>
             </div>
             <div class="col-md-4">
-                <div class="card inventory-distribution-card">
-                    <div class="card-header">
-                        <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Inventory Distribution</h5>
+                <div class="card inventory-distribution-card" style="background:rgba(255,255,255,0.97); border-radius:18px; box-shadow:0 10px 25px rgba(0,0,0,0.08);">
+                    <div class="card-header" style="background:white; color:#1e293b; border-bottom:1px solid #e2e8f0; font-weight:600; font-size:1.3em;">
+                        <span style="font-size:30px;"><i class="fas fa-chart-pie me-2"></i>Inventory Distribution</span>
                     </div>
                     <div class="card-body">
                         <div class="chart-container">
@@ -566,7 +578,7 @@ function getStockStatus($quantity, $unit, $type = '') {
                         </div>
                         <div class="chart-legend">
                             <div class="chart-legend-item">
-                                <span class="chart-legend-color" style="background-color: var(--danger);" ></span>
+                                <span class="chart-legend-color" style="background-color: var(--danger);"></span>
                                 Low Stock
                             </div>
                             <div class="chart-legend-item">
@@ -582,59 +594,52 @@ function getStockStatus($quantity, $unit, $type = '') {
                 </div>
             </div>
         </div>
-
         <div class="row mb-4">
             <div class="col-md-12">
-                <div class="card stock-thresholds-card">
-                    <div class="card-header">
-                        <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Stock Level Thresholds</h5>
+                <div class="card stock-thresholds-card" style="background:rgba(255,255,255,0.97); border-radius:18px; box-shadow:0 10px 25px rgba(0,0,0,0.08);">
+                    <div class="card-header" style="background:white; color:#1e293b; border-bottom:1px solid #e2e8f0; font-weight:600; font-size:1.3em;">
+                        <span style="font-size: 30px;"><i class="fas fa-info-circle me-2"></i>Stock Level Thresholds</span>
                     </div>
                     <div class="card-body">
-                        <!-- Stock Thresholds Table (Updated for clarity and accuracy) -->
                         <div class="mb-4">
-                            <table class="table table-bordered table-sm mb-0" style="background: #f8fafc;">
+                            <table class="table table-bordered table-sm mb-0" style="background: #f8fafc; font-size:1.15em;">
                                 <thead class="table-light">
                                     <tr>
-                                        <th>Unit/Type</th>
-                                        <th>Low Stock</th>
-                                        <th>Medium Stock</th>
-                                        <th>High Stock</th>
+                                        <th style="font-size: 20px;">Unit/Type</th>
+                                        <th style="font-size: 20px;">Low Stock</th>
+                                        <th style="font-size: 20px;">Medium Stock</th>
+                                        <th style="font-size: 20px;">High Stock</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    
                                     <tr>
-                                        <td><i class="fas fa-weight me-1"></i> KG</td>
-                                        <td>&le; 10 units</td>
-                                        <td>11 - 29 units</td>
-                                        <td>&ge; 30 units</td>
+                                        <td style="font-size: 20px;"><i class="fas fa-weight me-1"></i> KG</td>
+                                        <td style="font-size: 20px;">&le; 10 units</td>
+                                        <td style="font-size: 20px;">11 - 29 units</td>
+                                        <td style="font-size: 20px;">&ge; 30 units</td>
                                     </tr>
                                     <tr>
-                                        <td><i class="fas fa-box me-1"></i> L or ml</td>
-                                        <td>&le; 10 units</td>
-                                        <td>11 - 29 units</td>
-                                        <td>&ge; 30 units</td>
+                                        <td style="font-size: 20px;"><i class="fas fa-box me-1"></i> L or ml</td>
+                                        <td style="font-size: 20px;">&le; 10 units</td>
+                                        <td style="font-size: 20px;">11 - 29 units</td>
+                                        <td style="font-size: 20px;">&ge; 30 units</td>
                                     </tr>
                                     <tr>
-                                        <td><i class="fas fa-weight-hanging me-1"></i> Grams (boxes/sachets/bars/packets)</td>
-                                        <td>&le; 10 units</td>
-                                        <td>11 - 29 units</td>
-                                        <td>&ge; 30 units</td>
+                                        <td style="font-size: 20px;"><i class="fas fa-weight-hanging me-1"></i> Grams (boxes/sachets/bars/packets)</td>
+                                        <td style="font-size: 20px;">&le; 10 units</td>
+                                        <td style="font-size: 20px;">11 - 29 units</td>
+                                        <td style="font-size: 20px;">&ge; 30 units</td>
                                     </tr>
-                                    <tr>
-                       
-
-                        
-
-                        
-
-                        <!-- General Notes -->
-                        <div class="mt-4 p-3 bg-light rounded">
-                            <h6 class="mb-2"><i class="fas fa-exclamation-triangle text-warning me-2"></i>Important Notes</h6>
-                            <ul class="mb-0 ps-3">
-                                <li>Items in <span class="text-danger fw-bold">Low Stock</span> require immediate attention</li>
-                                <li>Maintain <span class="text-success fw-bold">High Stock</span> levels for popular items</li>
-                                <li>Check stock levels weekly to ensure adequate inventory</li>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="mt-4 p-3 bg-light rounded"><br>
+                            <h6 class="mb-2" style="font-size:30px;"><i class="fas fa-exclamation-triangle text-warning me-2"></i>Important Notes</h6>
+                            <br>
+                            <ul class="mb-0 ps-3" style="font-size:1.05em;">
+                                <li style="font-size: 20px;">Items in <span class="text-danger fw-bold">Low Stock</span> require immediate attention</li>
+                                <li style="font-size: 20px;">Maintain <span class="text-success fw-bold">High Stock</span> levels for popular items</li>
+                                <li style="font-size: 20px;">Check stock levels weekly to ensure adequate inventory</li>
                             </ul>
                         </div>
                     </div>
@@ -642,6 +647,9 @@ function getStockStatus($quantity, $unit, $type = '') {
             </div>
         </div>
     </div>
+    <a href="home.php" class="btn btn-primary floating-btn animate__animated animate__fadeInUp">
+        <i class="fas fa-home"></i>
+    </a>
 
     <!-- Bootstrap JS Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

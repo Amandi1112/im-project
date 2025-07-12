@@ -812,7 +812,7 @@ ob_end_flush();
             padding: 25px;
             border-radius: 8px;
             max-height: 90vh;
-        overflow-y: auto;
+            overflow-y: auto;
             width: 90%;
             max-width: 600px;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
@@ -837,6 +837,60 @@ ob_end_flush();
             display: flex;
             justify-content: flex-end;
             gap: 10px;
+        }
+        
+        /* Column selector styles */
+        .column-selector {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .column-selector-btn {
+            background-color: var(--warning);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .column-selector-btn:hover {
+            background-color: var(--warning-dark);
+        }
+        
+        .column-selector-content {
+            display: none;
+            position: absolute;
+            background-color: white;
+            min-width: 200px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+            z-index: 1;
+            border-radius: 6px;
+            padding: 10px;
+            right: 0;
+        }
+        
+        .column-selector:hover .column-selector-content {
+            display: block;
+        }
+        
+        .column-option {
+            display: flex;
+            align-items: center;
+            padding: 8px 10px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        
+        .column-option:hover {
+            background-color: var(--secondary);
+        }
+        
+        .column-option input {
+            margin-right: 10px;
         }
         
         @media (max-width: 768px) {
@@ -876,6 +930,53 @@ ob_end_flush();
                 <button id="exportPdfBtn" class="btn btn-info" style="font-size: 15px;">
                     <i class="fas fa-file-pdf"></i> Export PDF
                 </button>
+                <div class="column-selector">
+                    <button class="btn btn-warning column-selector-btn" style="font-size: 15px;">
+                        <i class="fas fa-columns"></i> Columns
+                    </button>
+                    <div class="column-selector-content">
+                        <div class="column-option">
+                            <input type="checkbox" id="col-id" checked data-column="0">
+                            <label for="col-id">Membership No.</label>
+                        </div>
+                        <div class="column-option">
+                            <input type="checkbox" id="col-name" checked data-column="1">
+                            <label for="col-name">Full Name</label>
+                        </div>
+                        <div class="column-option">
+                            <input type="checkbox" id="col-nic" checked data-column="2">
+                            <label for="col-nic">NIC</label>
+                        </div>
+                        <div class="column-option">
+                            <input type="checkbox" id="col-age" checked data-column="3">
+                            <label for="col-age">Age</label>
+                        </div>
+                        <div class="column-option">
+                            <input type="checkbox" id="col-occupation" checked data-column="4">
+                            <label for="col-occupation">Occupation</label>
+                        </div>
+                        <div class="column-option">
+                            <input type="checkbox" id="col-income" checked data-column="5">
+                            <label for="col-income">Monthly Income</label>
+                        </div>
+                        <div class="column-option">
+                            <input type="checkbox" id="col-credit-limit" checked data-column="6">
+                            <label for="col-credit-limit">Credit Limit</label>
+                        </div>
+                        <div class="column-option">
+                            <input type="checkbox" id="col-credit-used" checked data-column="7">
+                            <label for="col-credit-used">Credit Used</label>
+                        </div>
+                        <div class="column-option">
+                            <input type="checkbox" id="col-available-credit" checked data-column="8">
+                            <label for="col-available-credit">Available Credit</label>
+                        </div>
+                        <div class="column-option">
+                            <input type="checkbox" id="col-actions" checked data-column="9">
+                            <label for="col-actions">Actions</label>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -992,6 +1093,41 @@ ob_end_flush();
         let currentPage = 1;
         const perPage = 10;
 
+        // Function to toggle columns
+        function toggleColumns() {
+            $('.column-option input').each(function() {
+                const columnIndex = $(this).data('column');
+                const isChecked = $(this).is(':checked');
+                
+                // Toggle both header and body cells
+                $('table th').eq(columnIndex).toggle(isChecked);
+                $('table td:nth-child(' + (columnIndex + 1) + ')').toggle(isChecked);
+            });
+        }
+
+        // Initialize column selector
+        $('.column-option input').change(function() {
+            toggleColumns();
+            
+            // Save column preferences to localStorage
+            const columnPrefs = {};
+            $('.column-option input').each(function() {
+                const columnId = $(this).attr('id');
+                columnPrefs[columnId] = $(this).is(':checked');
+            });
+            localStorage.setItem('columnPreferences', JSON.stringify(columnPrefs));
+        });
+
+        // Load saved column preferences
+        const savedPrefs = localStorage.getItem('columnPreferences');
+        if (savedPrefs) {
+            const columnPrefs = JSON.parse(savedPrefs);
+            for (const [id, isChecked] of Object.entries(columnPrefs)) {
+                $(`#${id}`).prop('checked', isChecked);
+            }
+            toggleColumns(); // Apply saved preferences
+        }
+
         // Function to load members
         function loadMembers(page = 1, search = '', filterColumn = '', filterValue = '') {
         $.ajax({
@@ -1058,6 +1194,9 @@ ob_end_flush();
                             $('#searchForm [name="filter_column"]').val(),
                             $('#searchForm [name="filter_value"]').val());
                     });
+                    
+                    // Apply column visibility preferences
+                    toggleColumns();
                 },
                 error: function() {
                     alert('Failed to load members');
@@ -1078,20 +1217,20 @@ ob_end_flush();
         });
 
         // PDF Export
-$('#exportPdfBtn').click(function() {
-    const search = $('[name="search"]').val();
-    const filterColumn = $('[name="filter_column"]').val();
-    const filterValue = $('[name="filter_value"]').val();
-    
-    // Create URL parameters
-    let params = new URLSearchParams();
-    params.append('export', 'pdf');
-    if (search) params.append('search', search);
-    if (filterColumn) params.append('filter_column', filterColumn);
-    if (filterValue) params.append('filter_value', filterValue);
-    
-    window.location.href = `?${params.toString()}`;
-});
+        $('#exportPdfBtn').click(function() {
+            const search = $('[name="search"]').val();
+            const filterColumn = $('[name="filter_column"]').val();
+            const filterValue = $('[name="filter_value"]').val();
+            
+            // Create URL parameters
+            let params = new URLSearchParams();
+            params.append('export', 'pdf');
+            if (search) params.append('search', search);
+            if (filterColumn) params.append('filter_column', filterColumn);
+            if (filterValue) params.append('filter_value', filterValue);
+            
+            window.location.href = `?${params.toString()}`;
+        });
 
         $(document).on('click', '.edit-btn', function() {
         const memberId = $(this).data('id');
