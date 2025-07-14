@@ -1,72 +1,68 @@
 <?php
 // Database Configuration
-$DB_HOST = 'localhost';
-$DB_NAME = 'mywebsite';
-$DB_USER = 'root';
-$DB_PASS = '';
+define('DB_HOST', 'localhost');
+define('DB_NAME', 'mywebsite');
+define('DB_USER', 'root');
+define('DB_PASS', '');
 
 require('fpdf/fpdf.php'); // Include FPDF library
 
 class MemberManager {
     private $conn;
 
-    public function __construct($database_connection) {
+    public function __construct(PDO $database_connection) {
         $this->conn = $database_connection;
     }
 
-    // Get total number of members
-    public function getTotalMembers($searchTerm = '', $filterColumn = '', $filterValue = '') {
+    /**
+     * Get total number of members with optional search and filter
+     */
+    public function getTotalMembers(string $searchTerm = '', string $filterColumn = '', string $filterValue = ''): int {
         $whereClause = $this->buildWhereClause($searchTerm, $filterColumn, $filterValue);
         
         $sql = "SELECT COUNT(*) as total FROM members {$whereClause}";
         $stmt = $this->conn->prepare($sql);
         
-        if (!empty($searchTerm)) {
-            $searchParam = "%{$searchTerm}%";
-            $stmt->bindValue(':search1', $searchParam, PDO::PARAM_STR);
-            $stmt->bindValue(':search2', $searchParam, PDO::PARAM_STR);
-            $stmt->bindValue(':search3', $searchParam, PDO::PARAM_STR);
-            $stmt->bindValue(':search4', $searchParam, PDO::PARAM_STR);
-            $stmt->bindValue(':search5', $searchParam, PDO::PARAM_STR);
-        }
-        
-        if (!empty($filterColumn) && !empty($filterValue)) {
-            $stmt->bindValue(':filter', $filterValue);
-        }
+        $this->bindSearchParams($stmt, $searchTerm);
+        $this->bindFilterParams($stmt, $filterColumn, $filterValue);
         
         $stmt->execute();
-        return $stmt->fetch(PDO::FETCH_ASSOC)['total'];
+        return (int)$stmt->fetch(PDO::FETCH_ASSOC)['total'];
     }
 
-    // Calculate current credit balance for a member
-        public function calculateCreditBalance($memberId) {
-            $stmt = $this->conn->prepare("
-                SELECT SUM(total_price) as total_purchases 
-                FROM purchases 
-                WHERE member_id = :member_id
-            ");
-            $stmt->bindParam(':member_id', $memberId, PDO::PARAM_STR);
-            $stmt->execute();
-            
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            $totalPurchases = $result['total_purchases'] ?? 0;
-            
-            return $totalPurchases;
-        }
+    /**
+     * Calculate current credit balance for a member
+     */
+    public function calculateCreditBalance(string $memberId): float {
+        $stmt = $this->conn->prepare("
+            SELECT SUM(total_price) as total_purchases 
+            FROM purchases 
+            WHERE member_id = :member_id
+        ");
+        $stmt->bindParam(':member_id', $memberId, PDO::PARAM_STR);
+        $stmt->execute();
+        
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return (float)($result['total_purchases'] ?? 0);
+    }
 
-        // Get member with calculated credit balance
-        public function getMemberWithCreditBalance($id) {
-            $member = $this->getMemberById($id);
-            if ($member) {
-                $creditUsed = $this->calculateCreditBalance($id);
-                $member['credit_used'] = $creditUsed;
-                $member['available_credit'] = $member['credit_limit'] - $creditUsed;
-            }
-            return $member;
+    /**
+     * Get member with calculated credit balance
+     */
+    public function getMemberWithCreditBalance(string $id): ?array {
+        $member = $this->getMemberById($id);
+        if ($member) {
+            $creditUsed = $this->calculateCreditBalance($id);
+            $member['credit_used'] = $creditUsed;
+            $member['available_credit'] = $member['credit_limit'] - $creditUsed;
         }
+        return $member;
+    }
 
-    // Build dynamic WHERE clause for search and filter
-    private function buildWhereClause($searchTerm = '', $filterColumn = '', $filterValue = '') {
+    /**
+     * Build dynamic WHERE clause for search and filter
+     */
+    private function buildWhereClause(string $searchTerm = '', string $filterColumn = '', string $filterValue = ''): string {
         $whereClauses = [];
         
         if (!empty($searchTerm)) {
@@ -86,56 +82,80 @@ class MemberManager {
         return !empty($whereClauses) ? 'WHERE ' . implode(' AND ', $whereClauses) : '';
     }
 
-    // Fetch members with pagination and search
-            public function getMembers($page = 1, $perPage = 10, $searchTerm = '', $filterColumn = '', $filterValue = '', $sortColumn = 'id', $sortOrder = 'DESC') {
-            $allowedColumns = ['id', 'full_name', 'age', 'monthly_income', 'registration_date'];
-            $sortColumn = in_array($sortColumn, $allowedColumns) ? $sortColumn : 'id';
-            $sortOrder = strtoupper($sortOrder) === 'ASC' ? 'ASC' : 'DESC';
-            
-            $offset = ($page - 1) * $perPage;
-            $whereClause = $this->buildWhereClause($searchTerm, $filterColumn, $filterValue);
-            
-            $sql = "
-                SELECT
-                    m.id, m.full_name, m.bank_membership_number,
-                    m.address, m.nic, m.date_of_birth, m.age, m.telephone_number,
-                    m.occupation, m.monthly_income, m.credit_limit, m.registration_date,
-                    COALESCE(SUM(p.total_price), 0) as credit_used,
-                    (m.credit_limit - COALESCE(SUM(p.total_price), 0)) as available_credit
-                FROM members m
-                LEFT JOIN purchases p ON m.id = p.member_id
-                {$whereClause}
-                GROUP BY m.id, m.full_name, m.bank_membership_number, m.address, m.nic, 
-                        m.date_of_birth, m.age, m.telephone_number, m.occupation, 
-                        m.monthly_income, m.credit_limit, m.registration_date
-                ORDER BY m.{$sortColumn} {$sortOrder}
-                LIMIT :limit OFFSET :offset
-            ";
-            
-            $stmt = $this->conn->prepare($sql);
-            
-            if (!empty($searchTerm)) {
-                $searchParam = "%{$searchTerm}%";
-                $stmt->bindValue(':search1', $searchParam, PDO::PARAM_STR);
-                $stmt->bindValue(':search2', $searchParam, PDO::PARAM_STR);
-                $stmt->bindValue(':search3', $searchParam, PDO::PARAM_STR);
-                $stmt->bindValue(':search4', $searchParam, PDO::PARAM_STR);
-                $stmt->bindValue(':search5', $searchParam, PDO::PARAM_STR);
+    /**
+     * Bind search parameters to PDO statement
+     */
+    private function bindSearchParams(PDOStatement $stmt, string $searchTerm = ''): void {
+        if (!empty($searchTerm)) {
+            $searchParam = "%{$searchTerm}%";
+            for ($i = 1; $i <= 5; $i++) {
+                $stmt->bindValue(":search{$i}", $searchParam, PDO::PARAM_STR);
             }
-            
-            if (!empty($filterColumn) && !empty($filterValue)) {
-                $stmt->bindValue(':filter', $filterValue);
-            }
-            
-            $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
-            $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-            
-            $stmt->execute();
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
+    }
 
-    // Export members to PDF
-    public function exportMembersToPdf($searchTerm = '', $filterColumn = '', $filterValue = '') {
+    /**
+     * Bind filter parameters to PDO statement
+     */
+    private function bindFilterParams(PDOStatement $stmt, string $filterColumn = '', string $filterValue = ''): void {
+        if (!empty($filterColumn) && !empty($filterValue)) {
+            $stmt->bindValue(':filter', $filterValue);
+        }
+    }
+
+    /**
+     * Fetch members with pagination, search, filter, and sorting
+     */
+    public function getMembers(
+        int $page = 1, 
+        int $perPage = 10, 
+        string $searchTerm = '', 
+        string $filterColumn = '', 
+        string $filterValue = '', 
+        string $sortColumn = 'id', 
+        string $sortOrder = 'DESC'
+    ): array {
+        // Validate and sanitize sort parameters
+        $allowedColumns = ['id', 'full_name', 'age', 'monthly_income', 'registration_date'];
+        $sortColumn = in_array($sortColumn, $allowedColumns) ? $sortColumn : 'id';
+        $sortOrder = strtoupper($sortOrder) === 'ASC' ? 'ASC' : 'DESC';
+        
+        $offset = ($page - 1) * $perPage;
+        $whereClause = $this->buildWhereClause($searchTerm, $filterColumn, $filterValue);
+        
+        $sql = "
+            SELECT
+                m.id, m.full_name, m.bank_membership_number,
+                m.address, m.nic, m.date_of_birth, m.age, m.telephone_number,
+                m.occupation, m.monthly_income, m.credit_limit, m.registration_date,
+                COALESCE(SUM(p.total_price), 0) as credit_used,
+                (m.credit_limit - COALESCE(SUM(p.total_price), 0)) as available_credit
+            FROM members m
+            LEFT JOIN purchases p ON m.id = p.member_id
+            {$whereClause}
+            GROUP BY m.id, m.full_name, m.bank_membership_number, m.address, m.nic, 
+                    m.date_of_birth, m.age, m.telephone_number, m.occupation, 
+                    m.monthly_income, m.credit_limit, m.registration_date
+            ORDER BY m.{$sortColumn} {$sortOrder}
+            LIMIT :limit OFFSET :offset
+        ";
+        
+        $stmt = $this->conn->prepare($sql);
+        
+        $this->bindSearchParams($stmt, $searchTerm);
+        $this->bindFilterParams($stmt, $filterColumn, $filterValue);
+        
+        $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Export members to PDF
+     */
+    public function exportMembersToPdf(string $searchTerm = '', string $filterColumn = '', string $filterValue = ''): array {
         $whereClause = $this->buildWhereClause($searchTerm, $filterColumn, $filterValue);
         
         $sql = "
@@ -151,76 +171,99 @@ class MemberManager {
         
         $stmt = $this->conn->prepare($sql);
         
-        if (!empty($searchTerm)) {
-            $searchParam = "%{$searchTerm}%";
-            $stmt->bindValue(':search1', $searchParam, PDO::PARAM_STR);
-            $stmt->bindValue(':search2', $searchParam, PDO::PARAM_STR);
-            $stmt->bindValue(':search3', $searchParam, PDO::PARAM_STR);
-            $stmt->bindValue(':search4', $searchParam, PDO::PARAM_STR);
-            $stmt->bindValue(':search5', $searchParam, PDO::PARAM_STR);
-        }
-        
-        if (!empty($filterColumn) && !empty($filterValue)) {
-            $stmt->bindValue(':filter', $filterValue);
-        }
+        $this->bindSearchParams($stmt, $searchTerm);
+        $this->bindFilterParams($stmt, $filterColumn, $filterValue);
         
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    // Helper method to shorten text for PDF display
-    public function shortenText($text, $maxLength) {
+    /**
+     * Helper method to shorten text for PDF display
+     */
+    public function shortenText(string $text, int $maxLength): string {
         if (strlen($text) > $maxLength) {
             return substr($text, 0, $maxLength - 3) . '...';
         }
         return $text;
     }
 
-    // Get member by ID
-    public function getMemberById($id) {
+    /**
+     * Get member by ID
+     */
+    public function getMemberById(string $id): ?array {
         $stmt = $this->conn->prepare("SELECT * FROM members WHERE id = :id LIMIT 1");
         $stmt->bindParam(':id', $id, PDO::PARAM_STR);
         $stmt->execute();
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
     }
 
-    // Update member details
-        // Update the existing updateMember method to remove credit_limit parameter
-                public function updateMember($id, $data) {
-            $birthdate = new DateTime($data['date_of_birth']);
-            $today = new DateTime('today');
-            $age = $today->diff($birthdate)->y;
+    /**
+     * Update member details
+     */
+    public function updateMember(string $id, array $data): array {
+    // First get the current member data to check credit used
+    $currentMember = $this->getMemberWithCreditBalance($id);
+    if (!$currentMember) {
+        return ['success' => false, 'error' => 'Member not found'];
+    }
 
-            $stmt = $this->conn->prepare("
-                UPDATE members SET
-                    full_name = :full_name,
-                    bank_membership_number = :bank_membership_number,
-                    address = :address,
-                    nic = :nic,
-                    date_of_birth = :date_of_birth,
-                    age = :age,
-                    telephone_number = :telephone_number,
-                    occupation = :occupation,
-                    monthly_income = :monthly_income
-                WHERE id = :id LIMIT 1
-            ");
+    // If credit used is not zero, don't allow income update
+    if ((float)$currentMember['credit_used'] != 0 && 
+        isset($data['monthly_income']) && 
+        $data['monthly_income'] != $currentMember['monthly_income']) {
+        return ['success' => false, 'error' => 'Cannot update income when credit has been used'];
+    }
 
-            $stmt->bindParam(':id', $id, PDO::PARAM_STR);
-            $stmt->bindParam(':full_name', $data['full_name'], PDO::PARAM_STR);
-            $stmt->bindParam(':bank_membership_number', $data['bank_membership_number'], PDO::PARAM_STR);
-            $stmt->bindParam(':address', $data['address'], PDO::PARAM_STR);
-            $stmt->bindParam(':nic', $data['nic'], PDO::PARAM_STR);
-            $stmt->bindParam(':date_of_birth', $data['date_of_birth'], PDO::PARAM_STR);
-            $stmt->bindParam(':age', $age, PDO::PARAM_INT);
-            $stmt->bindParam(':telephone_number', $data['telephone_number'], PDO::PARAM_STR);
-            $stmt->bindParam(':occupation', $data['occupation'], PDO::PARAM_STR);
-            $stmt->bindParam(':monthly_income', $data['monthly_income'], PDO::PARAM_STR);
+    // Calculate age from date of birth
+    $birthdate = new DateTime($data['date_of_birth']);
+    $today = new DateTime('today');
+    $age = $today->diff($birthdate)->y;
 
-            return $stmt->execute();
+    try {
+        // Calculate new credit limit (30% of monthly income) if income is being updated
+        $newCreditLimit = $currentMember['credit_limit'];
+        if (isset($data['monthly_income']) && $data['monthly_income'] != $currentMember['monthly_income']) {
+            $newCreditLimit = $data['monthly_income'] * 0.3;
         }
 
-    // Delete member by ID
-    public function deleteMember($id) {
+        $stmt = $this->conn->prepare("
+            UPDATE members SET
+                full_name = :full_name,
+                bank_membership_number = :bank_membership_number,
+                address = :address,
+                nic = :nic,
+                date_of_birth = :date_of_birth,
+                age = :age,
+                telephone_number = :telephone_number,
+                occupation = :occupation,
+                monthly_income = :monthly_income,
+                credit_limit = :credit_limit
+            WHERE id = :id LIMIT 1
+        ");
+
+        $stmt->bindParam(':id', $id, PDO::PARAM_STR);
+        $stmt->bindParam(':full_name', $data['full_name'], PDO::PARAM_STR);
+        $stmt->bindParam(':bank_membership_number', $data['bank_membership_number'], PDO::PARAM_STR);
+        $stmt->bindParam(':address', $data['address'], PDO::PARAM_STR);
+        $stmt->bindParam(':nic', $data['nic'], PDO::PARAM_STR);
+        $stmt->bindParam(':date_of_birth', $data['date_of_birth'], PDO::PARAM_STR);
+        $stmt->bindParam(':age', $age, PDO::PARAM_INT);
+        $stmt->bindParam(':telephone_number', $data['telephone_number'], PDO::PARAM_STR);
+        $stmt->bindParam(':occupation', $data['occupation'], PDO::PARAM_STR);
+        $stmt->bindParam(':monthly_income', $data['monthly_income'], PDO::PARAM_STR);
+        $stmt->bindParam(':credit_limit', $newCreditLimit);
+
+        $result = $stmt->execute();
+        return ['success' => $result, 'new_credit_limit' => $newCreditLimit];
+    } catch (Exception $e) {
+        return ['success' => false, 'error' => $e->getMessage()];
+    }
+}
+    /**
+     * Delete member by ID
+     */
+    public function deleteMember(string $id): bool {
         $stmt = $this->conn->prepare("DELETE FROM members WHERE id = :id LIMIT 1");
         $stmt->bindParam(':id', $id, PDO::PARAM_STR);
         return $stmt->execute();
@@ -231,11 +274,12 @@ class MemberManager {
 ob_start();
 
 try {
-    $pdo = new PDO("mysql:host={$DB_HOST};dbname={$DB_NAME}", $DB_USER, $DB_PASS);
+    $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
     $memberManager = new MemberManager($pdo);
 
-    // PDF Export Handler - PROFESSIONAL VERSION
+    // PDF Export Handler
     if (isset($_GET['export']) && $_GET['export'] === 'pdf') {
         $searchTerm = $_GET['search'] ?? '';
         $filterColumn = $_GET['filter_column'] ?? '';
@@ -243,27 +287,24 @@ try {
 
         $members = $memberManager->exportMembersToPdf($searchTerm, $filterColumn, $filterValue);
 
-        // Create Professional PDF with Corporate Design
+        // Create PDF with professional design
         $pdf = new FPDF('L','mm','A4');
         $pdf->AddPage();
         $pdf->SetAutoPageBreak(true, 20);
 
-        // ========== PROFESSIONAL COLOR SCHEME ========== //
-        $corporateBlue = array(23, 37, 84);      // #172554 - Deep professional blue
-        $accentBlue = array(59, 130, 246);       // #3B82F6 - Modern blue accent
-        $lightBlue = array(239, 246, 255);       // #EFF6FF - Very light blue
-        $darkGray = array(31, 41, 55);           // #1F2937 - Professional dark gray
-        $mediumGray = array(107, 114, 128);      // #6B7280 - Medium gray
-        $lightGray = array(243, 244, 246);       // #F3F4F6 - Light gray background
-        $successGreen = array(16, 185, 129);     // #10B981 - Professional green
-        $warningOrange = array(245, 158, 11);    // #F59E0B - Professional orange
+        // Color scheme
+        $corporateBlue = [23, 37, 84];      // #172554
+        $accentBlue = [59, 130, 246];      // #3B82F6
+        $lightBlue = [239, 246, 255];      // #EFF6FF
+        $darkGray = [31, 41, 55];          // #1F2937
+        $mediumGray = [107, 114, 128];     // #6B7280
+        $lightGray = [243, 244, 246];       // #F3F4F6
 
-        // ========== HEADER SECTION WITH LOGO SPACE ========== //
-        // Main header background with gradient effect
+        // Header Section
         $pdf->SetFillColor($corporateBlue[0], $corporateBlue[1], $corporateBlue[2]);
         $pdf->Rect(10, 10, 277, 35, 'F');
         
-        // Logo placeholder (you can add actual logo here)
+        // Logo placeholder
         $pdf->SetFillColor(255, 255, 255);
         $pdf->Rect(15, 15, 25, 25, 'F');
         $pdf->SetTextColor($corporateBlue[0], $corporateBlue[1], $corporateBlue[2]);
@@ -271,7 +312,7 @@ try {
         $pdf->SetXY(15, 25);
         $pdf->Cell(25, 8, 'LOGO', 0, 0, 'C');
 
-        // Organization name and details
+        // Organization details
         $pdf->SetTextColor(255, 255, 255);
         $pdf->SetFont('Arial','B',18);
         $pdf->SetXY(45, 15);
@@ -289,7 +330,7 @@ try {
         $pdf->SetXY(45, 33);
         $pdf->Cell(0, 4, 'Established 1995 | Licensed by Department of Cooperative Development', 0, 1, 'L');
 
-        // Report title box with modern design
+        // Report title box
         $pdf->SetFillColor($accentBlue[0], $accentBlue[1], $accentBlue[2]);
         $pdf->Rect(200, 12, 82, 31, 'F');
         
@@ -306,11 +347,10 @@ try {
         $pdf->SetXY(200, 34);
         $pdf->Cell(82, 5, 'Total Records: ' . count($members), 0, 1, 'C');
 
-        // ========== REPORT SUMMARY SECTION ========== //
-        // ========== PROFESSIONAL TABLE SECTION ========== //
+        // Table Section
         $pdf->SetY(50);
 
-        // Professional column widths for landscape A4
+        // Column widths
         $colWidths = [
             'coop_no' => 20,
             'name' => 28,
@@ -324,12 +364,11 @@ try {
             'reg_date' => 24
         ];
 
-        // Table header with professional styling
+        // Table header
         $pdf->SetFont('Arial','B',9);
         $pdf->SetFillColor($corporateBlue[0], $corporateBlue[1], $corporateBlue[2]);
         $pdf->SetTextColor(255, 255, 255);
         
-        // Header row
         $pdf->Cell($colWidths['coop_no'], 10, 'RegNo.', 1, 0, 'C', true);
         $pdf->Cell($colWidths['name'], 10, 'Full Name', 1, 0, 'C', true);
         $pdf->Cell($colWidths['nic'], 10, 'NIC Number', 1, 0, 'C', true);
@@ -341,13 +380,12 @@ try {
         $pdf->Cell($colWidths['credit'], 10, 'Credit Limit', 1, 0, 'C', true);
         $pdf->Cell($colWidths['reg_date'], 10, 'Reg. Date', 1, 1, 'C', true);
 
-        // Table data with professional alternating colors
+        // Table data
         $pdf->SetTextColor($darkGray[0], $darkGray[1], $darkGray[2]);
         $pdf->SetFont('Arial','',8);
 
         $rowNum = 0;
         foreach ($members as $member) {
-            // Check if we need a new page
             if ($pdf->GetY() > 180) {
                 $pdf->AddPage();
                 
@@ -388,10 +426,9 @@ try {
             $rowNum++;
         }
 
-        // ========== PROFESSIONAL FOOTER ========== //
+        // Footer Section
         $pdf->Ln(10);
         
-        // Footer information box
         $pdf->SetFillColor($lightBlue[0], $lightBlue[1], $lightBlue[2]);
         $pdf->Rect(10, $pdf->GetY(), 277, 25, 'F');
         
@@ -421,7 +458,7 @@ try {
         $pdf->Cell(0, 5, 'Pahala Karawita Cooperative Society - Members Directory Report', 0, 1, 'C');
         $pdf->Cell(0, 5, 'Page ' . $pdf->PageNo() . ' | Generated on ' . date('Y-m-d H:i:s') . ' | Confidential Document', 0, 0, 'C');
 
-        // Output the professional PDF
+        // Output PDF
         $filename = 'Members_Directory_' . date('Y-m-d_H-i-s') . '.pdf';
         $pdf->Output($filename, 'D');
         exit;
@@ -429,11 +466,12 @@ try {
 
     // Handle Get Member by ID
     if (isset($_GET['action']) && $_GET['action'] === 'get_member' && isset($_GET['id'])) {
+        header('Content-Type: application/json');
+        
         $id = $_GET['id'];
-        $member = $memberManager->getMemberById($id);
+        $member = $memberManager->getMemberWithCreditBalance($id);
         
         if ($member) {
-            header('Content-Type: application/json');
             echo json_encode($member);
         } else {
             header('HTTP/1.1 404 Not Found');
@@ -442,9 +480,11 @@ try {
         exit;
     }
 
-    // AJAX Request Handler
+    // AJAX Request Handler for paginated data
     if (isset($_GET['page'])) {
-        $page = $_GET['page'] ?? 1;
+        header('Content-Type: application/json');
+        
+        $page = (int)($_GET['page'] ?? 1);
         $searchTerm = $_GET['search'] ?? '';
         $filterColumn = $_GET['filter_column'] ?? '';
         $filterValue = $_GET['filter_value'] ?? '';
@@ -452,7 +492,6 @@ try {
         $members = $memberManager->getMembers($page, 10, $searchTerm, $filterColumn, $filterValue);
         $totalMembers = $memberManager->getTotalMembers($searchTerm, $filterColumn, $filterValue);
 
-        header('Content-Type: application/json');
         echo json_encode([
             'members' => $members,
             'total' => $totalMembers
@@ -460,52 +499,46 @@ try {
         exit;
     }
 
-// Handle Edit Member
-if (isset($_POST['action']) && $_POST['action'] === 'edit') {
-    try {
-        $id = $_POST['id'];
-        $data = [
-            'full_name' => $_POST['full_name'],
-            'bank_membership_number' => $_POST['bank_membership_number'],
-            'address' => $_POST['address'],
-            'nic' => $_POST['nic'],
-            'date_of_birth' => $_POST['date_of_birth'],
-            'telephone_number' => $_POST['telephone_number'],
-            'occupation' => $_POST['occupation'],
-            'monthly_income' => $_POST['monthly_income']
-        ];
+    // Handle Edit Member
+    if (isset($_POST['action']) && $_POST['action'] === 'edit') {
+        header('Content-Type: application/json');
+        
+        try {
+            $id = $_POST['id'];
+            $data = [
+                'full_name' => $_POST['full_name'],
+                'bank_membership_number' => $_POST['bank_membership_number'],
+                'address' => $_POST['address'],
+                'nic' => $_POST['nic'],
+                'date_of_birth' => $_POST['date_of_birth'],
+                'telephone_number' => $_POST['telephone_number'],
+                'occupation' => $_POST['occupation'],
+                'monthly_income' => $_POST['monthly_income']
+            ];
 
-        $result = $memberManager->updateMember($id, $data);
-
-        echo json_encode(['success' => $result]);
-    } catch (Exception $e) {
-        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+            $result = $memberManager->updateMember($id, $data);
+            echo json_encode($result);
+        } catch (Exception $e) {
+            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+        }
+        exit;
     }
-    exit;
-}
 
     // Handle Delete Member
     if (isset($_POST['action']) && $_POST['action'] === 'delete') {
+        header('Content-Type: application/json');
+        
         $id = $_POST['id'];
         $result = $memberManager->deleteMember($id);
 
-        header('Content-Type: application/json');
         echo json_encode(['success' => $result]);
         exit;
     }
 } catch (Exception $e) {
+    header('Content-Type: application/json');
     header('HTTP/1.1 500 Internal Server Error');
     echo json_encode(['error' => $e->getMessage()]);
     exit;
-}
-
-// Add error reporting for debugging
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
-
-// Set content type for AJAX requests early
-if (isset($_GET['page']) || (isset($_POST['action']) && in_array($_POST['action'], ['edit', 'delete'])) || (isset($_GET['action']) && $_GET['action'] === 'get_member')) {
-    header('Content-Type: application/json');
 }
 
 // Ensure output buffering is cleared
@@ -517,61 +550,64 @@ ob_end_flush();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registered Members</title>
+    <title>Registered Members | Cooperative Management System</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     <style>
         :root {
-            --primary: #667eea;
-            --primary-dark: #5a67d8;
-            --secondary: #edf2f7;
-            --danger: #e53e3e;
-            --danger-dark: #c53030;
-            --success: #48bb78;
-            --success-dark: #38a169;
-            --warning: #ed8936;
-            --warning-dark: #dd6b20;
-            --info: #4299e1;
-            --info-dark: #3182ce;
-            --light: #f7fafc;
-            --dark: #2d3748;
-            --gray: #718096;
-            --gray-light: #e2e8f0;
+            --primary: #4f46e5;
+            --primary-dark: #4338ca;
+            --primary-light: #a5b4fc;
+            --secondary: #f3f4f6;
+            --danger: #ef4444;
+            --danger-dark: #dc2626;
+            --success: #10b981;
+            --success-dark: #059669;
+            --warning: #f59e0b;
+            --warning-dark: #d97706;
+            --info: #3b82f6;
+            --info-dark: #2563eb;
+            --light: #f9fafb;
+            --dark: #1f2937;
+            --gray: #6b7280;
+            --gray-light: #e5e7eb;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
         }
         
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Poppins', sans-serif;
         }
         
         body {
             font-family: 'Poppins', sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, #e2e8f0 100%);
-            min-height: 100vh;
+            background-color: #f5f7fa;
             color: var(--dark);
+            line-height: 1.6;
         }
         
         .container {
             max-width: 1800px;
-            margin: 20px auto;
-            padding: 20px;
-            background-color: rgba(255, 255, 255, 0.95);
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            margin: 2rem auto;
+            padding: 2rem;
+            background-color: white;
+            border-radius: 1rem;
+            box-shadow: var(--shadow-lg);
         }
         
         h1, h2, h3, h4 {
             color: var(--dark);
             font-weight: 600;
+            margin-bottom: 1rem;
         }
         
         h2 {
-            margin-bottom: 20px;
             position: relative;
-            padding-bottom: 10px;
+            padding-bottom: 0.5rem;
+            font-size: 2rem;
         }
         
         h2::after {
@@ -579,42 +615,42 @@ ob_end_flush();
             position: absolute;
             bottom: 0;
             left: 0;
-            width: 100px;
-            height: 3px;
+            width: 5rem;
+            height: 0.25rem;
             background: linear-gradient(to right, var(--primary), var(--primary-dark));
-            border-radius: 3px;
+            border-radius: 0.25rem;
         }
         
         .header-section {
-            background-color: rgba(237, 242, 247, 0.7);
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
-            gap: 15px;
+            gap: 1rem;
+            padding: 1.5rem;
+            background-color: rgba(239, 246, 255, 0.7);
+            border-radius: 0.75rem;
+            margin-bottom: 1.5rem;
         }
         
         .btn {
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-weight: 500;
-            text-decoration: none;
             display: inline-flex;
             align-items: center;
-            gap: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            color: white;
+            box-shadow: var(--shadow);
         }
         
         .btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+            box-shadow: var(--shadow-lg);
         }
         
         .btn-primary {
@@ -629,115 +665,108 @@ ob_end_flush();
             background: linear-gradient(to right, var(--success), var(--success-dark));
         }
         
-        .btn-success:hover {
-            background: linear-gradient(to right, var(--success-dark), var(--success));
-        }
-        
         .btn-danger {
             background: linear-gradient(to right, var(--danger), var(--danger-dark));
-        }
-        
-        .btn-danger:hover {
-            background: linear-gradient(to right, var(--danger-dark), var(--danger));
         }
         
         .btn-warning {
             background: linear-gradient(to right, var(--warning), var(--warning-dark));
         }
         
-        .btn-warning:hover {
-            background: linear-gradient(to right, var(--warning-dark), var(--warning));
-        }
-        
         .btn-info {
             background: linear-gradient(to right, var(--info), var(--info-dark));
         }
         
-        .btn-info:hover {
-            background: linear-gradient(to right, var(--info-dark), var(--info));
-        }
-        
         .search-section {
-            background-color: rgba(237, 242, 247, 0.7);
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
+            padding: 1.5rem;
+            background-color: rgba(239, 246, 255, 0.7);
+            border-radius: 0.75rem;
+            margin-bottom: 1.5rem;
         }
         
         .search-form {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
+            gap: 1rem;
         }
         
         .form-group {
-            margin-bottom: 15px;
+            margin-bottom: 1rem;
         }
         
         .form-label {
             display: block;
-            margin-bottom: 5px;
+            margin-bottom: 0.5rem;
             font-weight: 500;
             color: var(--dark);
         }
         
         .form-control {
             width: 100%;
-            padding: 10px 15px;
+            padding: 0.75rem 1rem;
             border: 1px solid var(--gray-light);
-            border-radius: 6px;
+            border-radius: 0.5rem;
             transition: all 0.3s;
-            font-size: 14px;
+            font-size: 1rem;
         }
         
         .form-control:focus {
             outline: none;
             border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+        }
+        
+        .form-control:disabled {
+            cursor: not-allowed;
+            opacity: 0.8;
+            background-color: #f3f4f6;
         }
         
         .table-container {
             overflow-x: auto;
-            border-radius: 8px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
+            border-radius: 0.75rem;
+            box-shadow: var(--shadow);
+            margin-bottom: 1.5rem;
         }
         
         .table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 14px;
+            font-size: 0.95rem;
         }
         
         .table th {
             background: linear-gradient(to right, var(--primary), var(--primary-dark));
             color: white;
-            font-weight: 500;
-            padding: 12px 15px;
+            padding: 1rem;
             text-align: left;
+            font-weight: 500;
         }
         
         .table td {
-            padding: 12px 15px;
+            padding: 1rem;
             border-bottom: 1px solid var(--gray-light);
         }
         
         .table tr:hover {
-            background-color: rgba(102, 126, 234, 0.05);
+            background-color: rgba(79, 70, 229, 0.05);
         }
         
         .action-btn {
-            padding: 6px 12px;
-            border-radius: 4px;
-            font-size: 13px;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
             font-weight: 500;
             transition: all 0.2s;
             border: none;
             cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
         }
         
         .action-btn + .action-btn {
-            margin-left: 8px;
+            margin-left: 0.5rem;
         }
         
         .edit-btn {
@@ -745,30 +774,23 @@ ob_end_flush();
             color: white;
         }
         
-        .edit-btn:hover {
-            background-color: var(--info-dark);
-        }
-        
         .delete-btn {
             background-color: var(--danger);
             color: white;
         }
         
-        .delete-btn:hover {
-            background-color: var(--danger-dark);
-        }
-        
         .pagination {
             display: flex;
             justify-content: center;
-            gap: 5px;
-            margin-top: 20px;
+            gap: 0.5rem;
+            margin-top: 1.5rem;
+            flex-wrap: wrap;
         }
         
         .page-btn {
-            padding: 8px 12px;
-            border-radius: 4px;
-            background-color: var(--gray-light);
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            background-color: var(--secondary);
             color: var(--dark);
             border: none;
             cursor: pointer;
@@ -809,13 +831,13 @@ ob_end_flush();
         
         .modal-content {
             background-color: white;
-            padding: 25px;
-            border-radius: 8px;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
             max-height: 90vh;
             overflow-y: auto;
             width: 90%;
             max-width: 600px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            box-shadow: var(--shadow-lg);
             transform: translateY(-20px);
             transition: all 0.3s;
         }
@@ -825,18 +847,18 @@ ob_end_flush();
         }
         
         .modal-header {
-            margin-bottom: 20px;
-            padding-bottom: 10px;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
             border-bottom: 1px solid var(--gray-light);
         }
         
         .modal-footer {
-            margin-top: 20px;
-            padding-top: 10px;
+            margin-top: 1.5rem;
+            padding-top: 1rem;
             border-top: 1px solid var(--gray-light);
             display: flex;
             justify-content: flex-end;
-            gap: 10px;
+            gap: 0.75rem;
         }
         
         /* Column selector styles */
@@ -848,28 +870,25 @@ ob_end_flush();
         .column-selector-btn {
             background-color: var(--warning);
             color: white;
-            padding: 8px 15px;
-            border-radius: 6px;
+            padding: 0.75rem 1.25rem;
+            border-radius: 0.5rem;
             cursor: pointer;
             transition: all 0.3s;
-            display: flex;
+            display: inline-flex;
             align-items: center;
-            gap: 5px;
-        }
-        
-        .column-selector-btn:hover {
-            background-color: var(--warning-dark);
+            gap: 0.5rem;
+            border: none;
         }
         
         .column-selector-content {
             display: none;
             position: absolute;
             background-color: white;
-            min-width: 200px;
-            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+            min-width: 220px;
+            box-shadow: var(--shadow-lg);
             z-index: 1;
-            border-radius: 6px;
-            padding: 10px;
+            border-radius: 0.5rem;
+            padding: 0.75rem;
             right: 0;
         }
         
@@ -880,9 +899,9 @@ ob_end_flush();
         .column-option {
             display: flex;
             align-items: center;
-            padding: 8px 10px;
+            padding: 0.5rem 0.75rem;
             cursor: pointer;
-            border-radius: 4px;
+            border-radius: 0.375rem;
         }
         
         .column-option:hover {
@@ -890,12 +909,26 @@ ob_end_flush();
         }
         
         .column-option input {
-            margin-right: 10px;
+            margin-right: 0.75rem;
         }
         
+        /* Credit status colors */
+        .credit-positive {
+            color: var(--success);
+        }
+        
+        .credit-warning {
+            color: var(--warning);
+        }
+        
+        .credit-danger {
+            color: var(--danger);
+        }
+        
+        /* Responsive styles */
         @media (max-width: 768px) {
             .container {
-                padding: 15px;
+                padding: 1rem;
             }
             
             .header-section {
@@ -908,13 +941,12 @@ ob_end_flush();
             }
             
             .table th, .table td {
-                padding: 8px 10px;
-                font-size: 13px;
+                padding: 0.75rem;
             }
             
             .action-btn {
-                padding: 5px 8px;
-                font-size: 12px;
+                padding: 0.375rem 0.75rem;
+                font-size: 0.8125rem;
             }
         }
     </style>
@@ -922,16 +954,16 @@ ob_end_flush();
 <body>
     <div class="container">
         <div class="header-section">
-            <h2 style="font-family: 'Poppins', sans-serif; font-size: 35px;">Registered Members</h2>
+            <h2>Registered Members</h2>
             <div class="btn-group">
-                <a href="member.php" class="btn btn-success" style="font-size: 15px;">
+                <a href="member.php" class="btn btn-success">
                     <i class="fas fa-plus"></i> Add New Member
                 </a>
-                <button id="exportPdfBtn" class="btn btn-info" style="font-size: 15px;">
+                <button id="exportPdfBtn" class="btn btn-info">
                     <i class="fas fa-file-pdf"></i> Export PDF
                 </button>
                 <div class="column-selector">
-                    <button class="btn btn-warning column-selector-btn" style="font-size: 15px;">
+                    <button class="btn btn-warning column-selector-btn">
                         <i class="fas fa-columns"></i> Columns
                     </button>
                     <div class="column-selector-content">
@@ -982,19 +1014,19 @@ ob_end_flush();
 
         <div class="search-section">
             <form id="searchForm" class="search-form">
-                <div class="form-group" style="font-size: 17px; font-weight: bold;">
-                    <input type="text" name="search" placeholder="Search Members" class="form-control">
+                <div class="form-group">
+                    <input type="text" name="search" placeholder="Search Members..." class="form-control">
                 </div>
                 <div class="form-group">
                     <select name="filter_column" class="form-control">
                         <option value="">Select Filter</option>
                         <option value="nic">NIC</option>
                         <option value="telephone_number">Telephone Number</option>
+                        <option value="bank_membership_number">Bank Membership No.</option>
                     </select>
                 </div>
-              
                 <div class="form-group">
-                    <button type="submit" class="btn btn-primary" style="font-size: 15px;">
+                    <button type="submit" class="btn btn-primary">
                         <i class="fas fa-search"></i> Search
                     </button>
                 </div>
@@ -1002,7 +1034,7 @@ ob_end_flush();
         </div>
 
         <div class="table-container">
-            <table class="table" style="font-size:20px;">
+            <table class="table">
                 <thead>
                     <tr>
                         <th>Membership No.</th>
@@ -1017,7 +1049,7 @@ ob_end_flush();
                         <th>Actions</th>
                     </tr>
                 </thead>
-                <tbody id="membersTableBody" style="font-weight: bold;">
+                <tbody id="membersTableBody">
                     <!-- Members will be dynamically loaded here -->
                 </tbody>
             </table>
@@ -1030,68 +1062,85 @@ ob_end_flush();
 
     <!-- Edit Member Modal -->
     <div id="editModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3>Edit Member</h3>
-        </div>
-        <form id="editMemberForm">
-            <input type="hidden" name="id" id="editMemberId">
-            <div class="form-group">
-                <label for="editFullName" class="form-label">Full Name</label>
-                <input type="text" id="editFullName" name="full_name" required class="form-control">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit Member Details</h3>
             </div>
-            <div class="form-group">
-                <label for="editBankMembershipNumber" class="form-label">Bank Membership Number</label>
-                <input type="text" id="editBankMembershipNumber" name="bank_membership_number" required class="form-control">
-            </div>
-            <div class="form-group">
-                <label for="editAddress" class="form-label">Address</label>
-                <textarea id="editAddress" name="address" required class="form-control" rows="3"></textarea>
-            </div>
-            <div class="form-group">
-                <label for="editNic" class="form-label">NIC</label>
-                <input type="text" id="editNic" name="nic" required class="form-control">
-            </div>
-            <div class="form-group">
-                <label for="editDateOfBirth" class="form-label">Date of Birth</label>
-                <input type="date" id="editDateOfBirth" name="date_of_birth" required class="form-control">
-            </div>
-            <div class="form-group">
-                <label for="editTelephoneNumber" class="form-label">Telephone Number</label>
-                <input type="tel" id="editTelephoneNumber" name="telephone_number" required class="form-control">
-            </div>
-            <div class="form-group">
-                <label for="editOccupation" class="form-label">Occupation</label>
-                <input type="text" id="editOccupation" name="occupation" class="form-control">
-            </div>
-            <div class="form-group">
-                <label for="editMonthlyIncome" class="form-label">Monthly Income</label>
-                <input type="number" id="editMonthlyIncome" name="monthly_income" required step="0.01" class="form-control">
-            </div>
-            <!-- Credit information display (read-only) -->
-            <div class="form-group">
-                <label class="form-label">Credit Information</label>
-                <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; border: 1px solid #e9ecef;">
-                    <p><strong>Credit Limit:</strong> Rs. <span id="displayCreditLimit">0.00</span></p>
-                    <p><strong>Credit Used:</strong> Rs. <span id="displayCreditUsed">0.00</span></p>
-                    <p><strong>Available Credit:</strong> Rs. <span id="displayAvailableCredit">0.00</span></p>
+            <form id="editMemberForm">
+                <input type="hidden" name="id" id="editMemberId">
+                <div class="form-group">
+                    <label for="editFullName" class="form-label">Full Name</label>
+                    <input type="text" id="editFullName" name="full_name" required class="form-control">
                 </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" id="closeEditModal" class="btn btn-danger">Cancel</button>
-                <button type="submit" class="btn btn-success">Save Changes</button>
-            </div>
-        </form>
+                <div class="form-group">
+                    <label for="editBankMembershipNumber" class="form-label">Bank Membership Number</label>
+                    <input type="text" id="editBankMembershipNumber" name="bank_membership_number" required class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="editAddress" class="form-label">Address</label>
+                    <textarea id="editAddress" name="address" required class="form-control" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="editNic" class="form-label">NIC</label>
+                    <input type="text" id="editNic" name="nic" required class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="editDateOfBirth" class="form-label">Date of Birth</label>
+                    <input type="date" id="editDateOfBirth" name="date_of_birth" required class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="editTelephoneNumber" class="form-label">Telephone Number</label>
+                    <input type="tel" id="editTelephoneNumber" name="telephone_number" required class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="editOccupation" class="form-label">Occupation</label>
+                    <input type="text" id="editOccupation" name="occupation" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="editMonthlyIncome" class="form-label">Monthly Income (Rs.)</label>
+                    <input type="number" id="editMonthlyIncome" name="monthly_income" required step="0.01" class="form-control">
+                </div>
+                
+                <!-- Credit Information Display -->
+                <div class="form-group">
+                    <label class="form-label">Credit Information</label>
+                    <div style="background-color: #f8f9fa; padding: 1rem; border-radius: 0.5rem; border: 1px solid #e9ecef;">
+                        <p><strong>Credit Limit:</strong> Rs. <span id="displayCreditLimit">0.00</span></p>
+                        <p><strong>Credit Used:</strong> Rs. <span id="displayCreditUsed">0.00</span></p>
+                        <p><strong>Available Credit:</strong> Rs. <span id="displayAvailableCredit">0.00</span></p>
+                    </div>
+                </div>
+                
+                <div class="modal-footer">
+                    <button type="button" id="closeEditModal" class="btn btn-danger">Cancel</button>
+                    <button type="submit" class="btn btn-success">Save Changes</button>
+                </div>
+            </form>
+        </div>
     </div>
-</div>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
     <script>
     $(document).ready(function() {
         let currentPage = 1;
         const perPage = 10;
+
+        // Initialize Select2 for dropdowns
+        $('select').select2({
+            width: '100%',
+            placeholder: $(this).data('placeholder')
+        });
+
+        // Function to determine credit status class
+        function getCreditStatusClass(availableCredit, creditLimit) {
+            if (availableCredit < 0) {
+                return 'credit-danger';
+            } else if (availableCredit < (creditLimit * 0.2)) {
+                return 'credit-warning';
+            }
+            return 'credit-positive';
+        }
 
         // Function to toggle columns
         function toggleColumns() {
@@ -1130,76 +1179,120 @@ ob_end_flush();
 
         // Function to load members
         function loadMembers(page = 1, search = '', filterColumn = '', filterValue = '') {
-        $.ajax({
-            url: '',
-            method: 'GET',
-            data: {
-                page: page,
-                search: search,
-                filter_column: filterColumn,
-                filter_value: filterValue
-            },
-            dataType: 'json',
-            success: function(response) {
-                const tableBody = $('#membersTableBody');
-                tableBody.empty();
+            $.ajax({
+                url: window.location.href,
+                method: 'GET',
+                data: {
+                    page: page,
+                    search: search,
+                    filter_column: filterColumn,
+                    filter_value: filterValue
+                },
+                dataType: 'json',
+                success: function(response) {
+                    currentPage = page;
+                    const tableBody = $('#membersTableBody');
+                    tableBody.empty();
 
-                response.members.forEach(member => {
-                    // Color coding for available credit
-                    let creditColor = 'green';
-                    if (member.available_credit < 0) {
-                        creditColor = 'red';
-                    } else if (member.available_credit < (member.credit_limit * 0.2)) {
-                        creditColor = 'orange';
-                    }
+                    response.members.forEach(member => {
+                        // Determine credit status
+                        const creditStatusClass = getCreditStatusClass(
+                            member.available_credit, 
+                            member.credit_limit
+                        );
 
-                    tableBody.append(`
-                        <tr>
-                            <td>${member.id}</td>
-                            <td>${member.full_name}</td>
-                            <td>${member.nic}</td>
-                            <td>${member.age}</td>
-                            <td>${member.occupation || 'N/A'}</td>
-                            <td>Rs. ${parseFloat(member.monthly_income).toLocaleString()}</td>
-                            <td>Rs. ${parseFloat(member.credit_limit).toLocaleString()}</td>
-                            <td>Rs. ${parseFloat(member.credit_used).toLocaleString()}</td>
-                            <td style="color: ${creditColor}; font-weight: bold;">Rs. ${parseFloat(member.available_credit).toLocaleString()}</td>
-                            <td>
-                                <button class="action-btn edit-btn" data-id="${member.id}">
-                                    <i class="fas fa-edit"></i> Edit
-                                </button>
-                                <button class="action-btn delete-btn" data-id="${member.id}">
-                                    <i class="fas fa-trash"></i> Delete
-                                </button>
-                            </td>
-                        </tr>
-                    `);
-                });
+                        tableBody.append(`
+                            <tr>
+                                <td>${member.id}</td>
+                                <td>${member.full_name}</td>
+                                <td>${member.nic}</td>
+                                <td>${member.age}</td>
+                                <td>${member.occupation || 'N/A'}</td>
+                                <td>Rs. ${parseFloat(member.monthly_income).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                                <td>Rs. ${parseFloat(member.credit_limit).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                                <td>Rs. ${parseFloat(member.credit_used).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                                <td class="${creditStatusClass}">Rs. ${parseFloat(member.available_credit).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                                <td>
+                                    <button class="action-btn edit-btn" data-id="${member.id}">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </button>
+                                    <button class="action-btn delete-btn" data-id="${member.id}">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </button>
+                                </td>
+                            </tr>
+                        `);
+                    });
 
                     // Pagination
                     const pagination = $('#pagination');
                     pagination.empty();
 
                     const totalPages = Math.ceil(response.total / perPage);
-                    for (let i = 1; i <= totalPages; i++) {
+                    
+                    // Previous button
+                    if (page > 1) {
                         pagination.append(`
-                            <button class="page-btn ${i === page ? 'active' : ''}">${i}</button>
+                            <button class="page-btn" data-page="${page - 1}">
+                                <i class="fas fa-chevron-left"></i> Previous
+                            </button>
+                        `);
+                    }
+                    
+                    // Page numbers
+                    const maxVisiblePages = 5;
+                    let startPage = Math.max(1, page - Math.floor(maxVisiblePages / 2));
+                    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+                    
+                    if (endPage - startPage + 1 < maxVisiblePages) {
+                        startPage = Math.max(1, endPage - maxVisiblePages + 1);
+                    }
+                    
+                    if (startPage > 1) {
+                        pagination.append(`
+                            <button class="page-btn" data-page="1">1</button>
+                            ${startPage > 2 ? '<span>...</span>' : ''}
+                        `);
+                    }
+                    
+                    for (let i = startPage; i <= endPage; i++) {
+                        pagination.append(`
+                            <button class="page-btn ${i === page ? 'active' : ''}" data-page="${i}">${i}</button>
+                        `);
+                    }
+                    
+                    if (endPage < totalPages) {
+                        pagination.append(`
+                            ${endPage < totalPages - 1 ? '<span>...</span>' : ''}
+                            <button class="page-btn" data-page="${totalPages}">${totalPages}</button>
+                        `);
+                    }
+                    
+                    // Next button
+                    if (page < totalPages) {
+                        pagination.append(`
+                            <button class="page-btn" data-page="${page + 1}">
+                                Next <i class="fas fa-chevron-right"></i>
+                            </button>
                         `);
                     }
 
                     // Pagination click handler
                     $('.page-btn').click(function() {
-                        const pageNum = parseInt($(this).text());
-                        loadMembers(pageNum, $('#searchForm [name="search"]').val(),
+                        const pageNum = $(this).data('page');
+                        loadMembers(pageNum, 
+                            $('#searchForm [name="search"]').val(),
                             $('#searchForm [name="filter_column"]').val(),
-                            $('#searchForm [name="filter_value"]').val());
+                            $('#searchForm [name="filter_value"]').val()
+                        );
                     });
                     
                     // Apply column visibility preferences
                     toggleColumns();
                 },
-                error: function() {
-                    alert('Failed to load members');
+                error: function(xhr, status, error) {
+                    console.error('Error loading members:', error);
+                    alert('Failed to load members. Please try again.');
                 }
             });
         }
@@ -1222,7 +1315,6 @@ ob_end_flush();
             const filterColumn = $('[name="filter_column"]').val();
             const filterValue = $('[name="filter_value"]').val();
             
-            // Create URL parameters
             let params = new URLSearchParams();
             params.append('export', 'pdf');
             if (search) params.append('search', search);
@@ -1232,53 +1324,73 @@ ob_end_flush();
             window.location.href = `?${params.toString()}`;
         });
 
+        // Edit Member Modal
         $(document).on('click', '.edit-btn', function() {
-        const memberId = $(this).data('id');
-        
-        $('#editMemberForm')[0].reset();
-        
-        $.ajax({
-            url: window.location.href,
-            method: 'GET',
-            data: { 
-                action: 'get_member',
-                id: memberId
-            },
-            dataType: 'json',
-            success: function(member) {
-                if (member.error) {
-                    alert(member.error);
-                    return;
-                }
-                
-                // Set form values (excluding credit_limit)
-                $('#editMemberId').val(member.id);
-                $('#editFullName').val(member.full_name);
-                $('#editBankMembershipNumber').val(member.bank_membership_number);
-                $('#editAddress').val(member.address);
-                $('#editNic').val(member.nic);
-                $('#editDateOfBirth').val(member.date_of_birth);
-                $('#editTelephoneNumber').val(member.telephone_number);
-                $('#editOccupation').val(member.occupation);
-                $('#editMonthlyIncome').val(member.monthly_income);
-                
-                // Display credit information (read-only)
-                $('#displayCreditLimit').text(parseFloat(member.credit_limit || 0).toLocaleString());
-                $('#displayCreditUsed').text(parseFloat(member.credit_used || 0).toLocaleString());
-                $('#displayAvailableCredit').text(parseFloat(member.available_credit || member.credit_limit || 0).toLocaleString());
-                
-                $('#editModal').addClass('show');
-            },
-            error: function(xhr, status, error) {
-                console.error('Error details:', xhr.responseText);
-                alert('Error loading member data: ' + error);
+    const memberId = $(this).data('id');
+    
+    $('#editMemberForm')[0].reset();
+    
+    $.ajax({
+        url: window.location.href,
+        method: 'GET',
+        data: { 
+            action: 'get_member',
+            id: memberId
+        },
+        dataType: 'json',
+        success: function(member) {
+            if (member.error) {
+                alert(member.error);
+                return;
             }
-        });
+            
+            // Set form values
+            $('#editMemberId').val(member.id);
+            $('#editFullName').val(member.full_name);
+            $('#editBankMembershipNumber').val(member.bank_membership_number);
+            $('#editAddress').val(member.address);
+            $('#editNic').val(member.nic);
+            $('#editDateOfBirth').val(member.date_of_birth);
+            $('#editTelephoneNumber').val(member.telephone_number);
+            $('#editOccupation').val(member.occupation);
+            $('#editMonthlyIncome').val(member.monthly_income);
+            
+            // Disable income field if credit used isn't zero
+            if (parseFloat(member.credit_used || 0) !== 0) {
+                $('#editMonthlyIncome').prop('disabled', true)
+                    .attr('title', 'Cannot update income when credit has been used')
+                    .css('background-color', '#f3f4f6');
+            } else {
+                $('#editMonthlyIncome').prop('disabled', false)
+                    .removeAttr('title')
+                    .css('background-color', '');
+            }
+            
+            // Display credit information with calculation note
+            $('#displayCreditLimit').html(`
+                Rs. ${parseFloat(member.credit_limit || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                <small class="text-muted">(30% of income)</small>
+            `);
+            $('#displayCreditUsed').text(parseFloat(member.credit_used || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+            $('#displayAvailableCredit').text(parseFloat(member.available_credit || member.credit_limit || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+            
+            $('#editModal').addClass('show');
+        },
+        error: function(xhr, status, error) {
+            console.error('Error loading member:', error);
+            alert('Error loading member data. Please try again.');
+        }
     });
+});
 
-        // Updated form submission (removes credit_limit from data)
-            $('#editMemberForm').submit(function(e) {
+        // Edit Member Form Submission
+        $('#editMemberForm').submit(function(e) {
     e.preventDefault();
+    
+    // Show loading state
+    const submitBtn = $(this).find('button[type="submit"]');
+    submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Saving...');
+    
     const formData = $(this).serialize() + '&action=edit';
     
     $.ajax({
@@ -1293,59 +1405,72 @@ ob_end_flush();
                     $('#searchForm [name="search"]').val(),
                     $('#searchForm [name="filter_column"]').val(),
                     $('#searchForm [name="filter_value"]').val());
-                alert('Member updated successfully!');
+                
+                // Show success message with credit limit update info if applicable
+                let message = 'Member updated successfully!';
+                if (response.new_credit_limit !== undefined) {
+                    message += `\nCredit limit has been updated to Rs. ${parseFloat(response.new_credit_limit).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} (30% of new income)`;
+                }
+                alert(message);
             } else {
-                alert('Failed to update member: ' + (response.error || 'Unknown error'));
+                alert('Error: ' + (response.error || 'Failed to update member'));
             }
         },
         error: function(xhr, status, error) {
-            console.error('Error details:', xhr.responseText);
-            // Check if response is HTML (error page)
-            if (xhr.responseText.includes('<br />') || xhr.responseText.includes('<html>')) {
-                alert('Server error occurred. Check browser console for details.');
-                console.log('Server returned HTML instead of JSON:', xhr.responseText);
-            } else {
-                alert('Failed to update member: ' + error);
-            }
+            console.error('Error updating member:', error);
+            alert('Failed to update member. Please try again.');
+        },
+        complete: function() {
+            submitBtn.prop('disabled', false).html('Save Changes');
         }
     });
 });
 
         // Delete Member
         $(document).on('click', '.delete-btn', function() {
-    const memberId = $(this).data('id');
-    
-    if (confirm('Are you sure you want to delete this member?')) {
-        $.ajax({
-            url: window.location.href,
-            method: 'POST',
-            data: { 
-                action: 'delete',
-                id: memberId 
-            },
-            dataType: 'json',
-            success: function(response) {
-                if (response.success) {
-                    // Reload the current page of members
-                    loadMembers(currentPage, 
-                        $('#searchForm [name="search"]').val(),
-                        $('#searchForm [name="filter_column"]').val(),
-                        $('#searchForm [name="filter_value"]').val());
-                } else {
-                    alert('Failed to delete member');
-                }
-            },
-            error: function(xhr, status, error) {
-                console.error('Error details:', xhr.responseText);
-                alert('Failed to delete member: ' + error);
+            const memberId = $(this).data('id');
+            
+            if (confirm('Are you sure you want to delete this member? This action cannot be undone.')) {
+                $.ajax({
+                    url: window.location.href,
+                    method: 'POST',
+                    data: { 
+                        action: 'delete',
+                        id: memberId 
+                    },
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.success) {
+                            // Reload the current page of members
+                            loadMembers(currentPage, 
+                                $('#searchForm [name="search"]').val(),
+                                $('#searchForm [name="filter_column"]').val(),
+                                $('#searchForm [name="filter_value"]').val());
+                            
+                            // Show success message
+                            alert('Member deleted successfully!');
+                        } else {
+                            alert('Failed to delete member');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error deleting member:', error);
+                        alert('Failed to delete member. Please try again.');
+                    }
+                });
             }
         });
-    }
-});
 
         // Close Edit Modal
         $('#closeEditModal').click(function() {
             $('#editModal').removeClass('show');
+        });
+
+        // Close modal when clicking outside
+        $(window).click(function(e) {
+            if ($(e.target).hasClass('modal')) {
+                $('#editModal').removeClass('show');
+            }
         });
     });
     </script>
