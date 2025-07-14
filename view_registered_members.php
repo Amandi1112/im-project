@@ -1366,11 +1366,8 @@ ob_end_flush();
                     .css('background-color', '');
             }
             
-            // Display credit information with calculation note
-            $('#displayCreditLimit').html(`
-                Rs. ${parseFloat(member.credit_limit || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-                <small class="text-muted">(30% of income)</small>
-            `);
+            // Display credit information
+            $('#displayCreditLimit').text(parseFloat(member.credit_limit || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
             $('#displayCreditUsed').text(parseFloat(member.credit_used || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
             $('#displayAvailableCredit').text(parseFloat(member.available_credit || member.credit_limit || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
             
