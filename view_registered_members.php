@@ -15,22 +15,6 @@ class MemberManager {
     }
 
     /**
-     * Get total number of members with optional search and filter
-     */
-    public function getTotalMembers(string $searchTerm = '', string $filterColumn = '', string $filterValue = ''): int {
-        $whereClause = $this->buildWhereClause($searchTerm, $filterColumn, $filterValue);
-        
-        $sql = "SELECT COUNT(*) as total FROM members {$whereClause}";
-        $stmt = $this->conn->prepare($sql);
-        
-        $this->bindSearchParams($stmt, $searchTerm);
-        $this->bindFilterParams($stmt, $filterColumn, $filterValue);
-        
-        $stmt->execute();
-        return (int)$stmt->fetch(PDO::FETCH_ASSOC)['total'];
-    }
-
-    /**
      * Calculate current credit balance for a member
      */
     public function calculateCreditBalance(string $memberId): float {
@@ -62,67 +46,46 @@ class MemberManager {
     /**
      * Build dynamic WHERE clause for search and filter
      */
-    private function buildWhereClause(string $searchTerm = '', string $filterColumn = '', string $filterValue = ''): string {
-        $whereClauses = [];
-        
-        if (!empty($searchTerm)) {
-            $whereClauses[] = "(
-                full_name LIKE :search1 OR
-                bank_membership_number LIKE :search2 OR
-                id LIKE :search3 OR
-                nic LIKE :search4 OR
-                occupation LIKE :search5
-            )";
-        }
-        
-        if (!empty($filterColumn) && !empty($filterValue)) {
-            $whereClauses[] = "{$filterColumn} = :filter";
-        }
-        
-        return !empty($whereClauses) ? 'WHERE ' . implode(' AND ', $whereClauses) : '';
-    }
+   
 
     /**
      * Bind search parameters to PDO statement
      */
-    private function bindSearchParams(PDOStatement $stmt, string $searchTerm = ''): void {
-        if (!empty($searchTerm)) {
-            $searchParam = "%{$searchTerm}%";
-            for ($i = 1; $i <= 5; $i++) {
-                $stmt->bindValue(":search{$i}", $searchParam, PDO::PARAM_STR);
-            }
-        }
-    }
+    
 
     /**
      * Bind filter parameters to PDO statement
      */
-    private function bindFilterParams(PDOStatement $stmt, string $filterColumn = '', string $filterValue = ''): void {
-        if (!empty($filterColumn) && !empty($filterValue)) {
-            $stmt->bindValue(':filter', $filterValue);
-        }
-    }
+   
 
     /**
      * Fetch members with pagination, search, filter, and sorting
      */
     public function getMembers(
-        int $page = 1, 
-        int $perPage = 10, 
-        string $searchTerm = '', 
-        string $filterColumn = '', 
-        string $filterValue = '', 
-        string $sortColumn = 'id', 
-        string $sortOrder = 'DESC'
+        int $page = 1,
+        int $perPage = 10,
+        string $sortColumn = 'id',
+        string $sortOrder = 'DESC',
+        ?string $filterColumn = null,
+        ?string $filterValue = null
     ): array {
-        // Validate and sanitize sort parameters
         $allowedColumns = ['id', 'full_name', 'age', 'monthly_income', 'registration_date'];
         $sortColumn = in_array($sortColumn, $allowedColumns) ? $sortColumn : 'id';
         $sortOrder = strtoupper($sortOrder) === 'ASC' ? 'ASC' : 'DESC';
-        
         $offset = ($page - 1) * $perPage;
-        $whereClause = $this->buildWhereClause($searchTerm, $filterColumn, $filterValue);
-        
+
+        $where = '';
+        $params = [];
+        if ($filterColumn && $filterValue) {
+            if ($filterColumn === 'nic') {
+                $where = 'WHERE m.nic LIKE :filterValue';
+                $params[':filterValue'] = "%$filterValue%";
+            } elseif ($filterColumn === 'name') {
+                $where = 'WHERE m.full_name LIKE :filterValue';
+                $params[':filterValue'] = "%$filterValue%";
+            }
+        }
+
         $sql = "
             SELECT
                 m.id, m.full_name, m.bank_membership_number,
@@ -132,51 +95,66 @@ class MemberManager {
                 (m.credit_limit - COALESCE(SUM(p.total_price), 0)) as available_credit
             FROM members m
             LEFT JOIN purchases p ON m.id = p.member_id
-            {$whereClause}
+            $where
             GROUP BY m.id, m.full_name, m.bank_membership_number, m.address, m.nic, 
                     m.date_of_birth, m.age, m.telephone_number, m.occupation, 
                     m.monthly_income, m.credit_limit, m.registration_date
             ORDER BY m.{$sortColumn} {$sortOrder}
             LIMIT :limit OFFSET :offset
         ";
-        
+
         $stmt = $this->conn->prepare($sql);
-        
-        $this->bindSearchParams($stmt, $searchTerm);
-        $this->bindFilterParams($stmt, $filterColumn, $filterValue);
-        
+        foreach ($params as $key => $val) {
+            $stmt->bindValue($key, $val, PDO::PARAM_STR);
+        }
         $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
         $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-        
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     /**
+     * Get total number of members with optional search and filter
+     */
+    public function getTotalMembers(?string $filterColumn = null, ?string $filterValue = null): int {
+        $where = '';
+        $params = [];
+        if ($filterColumn && $filterValue) {
+            if ($filterColumn === 'nic') {
+                $where = 'WHERE nic LIKE :filterValue';
+                $params[':filterValue'] = "%$filterValue%";
+            } elseif ($filterColumn === 'name') {
+                $where = 'WHERE full_name LIKE :filterValue';
+                $params[':filterValue'] = "%$filterValue%";
+            }
+        }
+        $sql = "SELECT COUNT(*) as total FROM members $where";
+        $stmt = $this->conn->prepare($sql);
+        foreach ($params as $key => $val) {
+            $stmt->bindValue($key, $val, PDO::PARAM_STR);
+        }
+        $stmt->execute();
+        return (int)$stmt->fetch(PDO::FETCH_ASSOC)['total'];
+    }
+
+    /**
      * Export members to PDF
      */
-    public function exportMembersToPdf(string $searchTerm = '', string $filterColumn = '', string $filterValue = ''): array {
-        $whereClause = $this->buildWhereClause($searchTerm, $filterColumn, $filterValue);
-        
-        $sql = "
-            SELECT
-                id, full_name, bank_membership_number,
-                address, nic, date_of_birth, age, telephone_number,
-                occupation, monthly_income, credit_limit,
-                DATE(registration_date) as registration_date
-            FROM members
-            {$whereClause}
-            ORDER BY registration_date DESC
-        ";
-        
-        $stmt = $this->conn->prepare($sql);
-        
-        $this->bindSearchParams($stmt, $searchTerm);
-        $this->bindFilterParams($stmt, $filterColumn, $filterValue);
-        
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
+    public function exportMembersToPdf(): array {
+    $sql = "
+        SELECT
+            id, full_name, bank_membership_number,
+            address, nic, date_of_birth, age, telephone_number,
+            occupation, monthly_income, credit_limit,
+            DATE(registration_date) as registration_date
+        FROM members
+        ORDER BY registration_date DESC
+    ";
+    
+    $stmt = $this->conn->prepare($sql);
+    $stmt->execute();
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
 
     /**
      * Helper method to shorten text for PDF display
@@ -281,11 +259,7 @@ try {
 
     // PDF Export Handler
     if (isset($_GET['export']) && $_GET['export'] === 'pdf') {
-        $searchTerm = $_GET['search'] ?? '';
-        $filterColumn = $_GET['filter_column'] ?? '';
-        $filterValue = $_GET['filter_value'] ?? '';
-
-        $members = $memberManager->exportMembersToPdf($searchTerm, $filterColumn, $filterValue);
+    $members = $memberManager->exportMembersToPdf();
 
         // Create PDF with professional design
         $pdf = new FPDF('L','mm','A4');
@@ -310,7 +284,8 @@ try {
         $pdf->SetTextColor($corporateBlue[0], $corporateBlue[1], $corporateBlue[2]);
         $pdf->SetFont('Arial','B',14);
         $pdf->SetXY(15, 25);
-        $pdf->Cell(25, 8, 'LOGO', 0, 0, 'C');
+        // Add logo image (replace with your actual path if needed)
+        $pdf->Image('images/logo.jpeg', 15, 15, 25, 25);
 
         // Organization details
         $pdf->SetTextColor(255, 255, 255);
@@ -480,24 +455,36 @@ try {
         exit;
     }
 
-    // AJAX Request Handler for paginated data
-    if (isset($_GET['page'])) {
-        header('Content-Type: application/json');
-        
-        $page = (int)($_GET['page'] ?? 1);
-        $searchTerm = $_GET['search'] ?? '';
-        $filterColumn = $_GET['filter_column'] ?? '';
-        $filterValue = $_GET['filter_value'] ?? '';
-
-        $members = $memberManager->getMembers($page, 10, $searchTerm, $filterColumn, $filterValue);
-        $totalMembers = $memberManager->getTotalMembers($searchTerm, $filterColumn, $filterValue);
-
-        echo json_encode([
-            'members' => $members,
-            'total' => $totalMembers
-        ]);
+    // --- SUGGESTIONS ENDPOINT ---
+if (isset($_GET['suggest']) && isset($_GET['filter_column']) && isset($_GET['q'])) {
+    header('Content-Type: application/json');
+    $column = $_GET['filter_column'];
+    $q = $_GET['q'];
+    if ($column === 'nic' || $column === 'name') {
+        $field = $column === 'nic' ? 'nic' : 'full_name';
+        $stmt = $pdo->prepare("SELECT DISTINCT $field FROM members WHERE $field LIKE :q LIMIT 10");
+        $stmt->bindValue(':q', "%$q%", PDO::PARAM_STR);
+        $stmt->execute();
+        $results = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        echo json_encode($results);
         exit;
     }
+}
+
+    // AJAX Request Handler for paginated/filterable data
+    if (isset($_GET['page'])) {
+    header('Content-Type: application/json');
+    $page = (int)($_GET['page'] ?? 1);
+    $filterColumn = isset($_GET['filter_column']) ? $_GET['filter_column'] : null;
+    $filterValue = isset($_GET['filter_value']) ? $_GET['filter_value'] : null;
+    $members = $memberManager->getMembers($page, 10, 'id', 'DESC', $filterColumn, $filterValue);
+    $totalMembers = $memberManager->getTotalMembers($filterColumn, $filterValue);
+    echo json_encode([
+        'members' => $members,
+        'total' => $totalMembers
+    ]);
+    exit;
+}
 
     // Handle Edit Member
     if (isset($_POST['action']) && $_POST['action'] === 'edit') {
@@ -956,6 +943,18 @@ ob_end_flush();
         <div class="header-section">
             <h2>Registered Members</h2>
             <div class="btn-group">
+        <!-- Filter/Search Form -->
+        <form id="searchForm" class="search-form" style="margin-bottom: 1rem; display: flex; gap: 1rem; align-items: center;">
+            <label for="filter_column">Filter by:</label>
+            <select id="filter_column" name="filter_column" class="form-control" style="width: 150px;">
+                <option value="">Select</option>
+                <option value="nic">NIC</option>
+                <option value="name">Name</option>
+            </select>
+            <input type="text" id="filter_value" name="filter_value" class="form-control" placeholder="Enter value" style="width: 200px;" disabled>
+            <button type="submit" class="btn btn-primary">Search</button>
+            <button type="button" id="clearFilterBtn" class="btn btn-secondary">Clear</button>
+        </form>
                 <a href="member.php" class="btn btn-success">
                     <i class="fas fa-plus"></i> Add New Member
                 </a>
@@ -1012,26 +1011,7 @@ ob_end_flush();
             </div>
         </div>
 
-        <div class="search-section">
-            <form id="searchForm" class="search-form">
-                <div class="form-group">
-                    <input type="text" name="search" placeholder="Search Members..." class="form-control">
-                </div>
-                <div class="form-group">
-                    <select name="filter_column" class="form-control">
-                        <option value="">Select Filter</option>
-                        <option value="nic">NIC</option>
-                        <option value="telephone_number">Telephone Number</option>
-                        <option value="bank_membership_number">Bank Membership No.</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-search"></i> Search
-                    </button>
-                </div>
-            </form>
-        </div>
+        
 
         <div class="table-container">
             <table class="table">
@@ -1123,6 +1103,21 @@ ob_end_flush();
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
     $(document).ready(function() {
+        // Enable/disable filter value input
+        $('#filter_column').on('change', function() {
+            if ($(this).val()) {
+                $('#filter_value').prop('disabled', false).attr('placeholder', 'Enter ' + $(this).find('option:selected').text());
+            } else {
+                $('#filter_value').prop('disabled', true).val('').attr('placeholder', 'Enter value');
+            }
+        });
+
+        // Clear filter button
+        $('#clearFilterBtn').on('click', function() {
+            $('#filter_column').val('').trigger('change');
+            $('#filter_value').val('');
+            loadMembers(1);
+        });
         let currentPage = 1;
         const perPage = 10;
 
@@ -1178,13 +1173,14 @@ ob_end_flush();
         }
 
         // Function to load members
-        function loadMembers(page = 1, search = '', filterColumn = '', filterValue = '') {
+        function loadMembers(page = 1) {
+            const filterColumn = $('#filter_column').val();
+            const filterValue = $('#filter_value').val();
             $.ajax({
                 url: window.location.href,
                 method: 'GET',
                 data: {
                     page: page,
-                    search: search,
                     filter_column: filterColumn,
                     filter_value: filterValue
                 },
@@ -1280,11 +1276,7 @@ ob_end_flush();
                     // Pagination click handler
                     $('.page-btn').click(function() {
                         const pageNum = $(this).data('page');
-                        loadMembers(pageNum, 
-                            $('#searchForm [name="search"]').val(),
-                            $('#searchForm [name="filter_column"]').val(),
-                            $('#searchForm [name="filter_value"]').val()
-                        );
+                        loadMembers(pageNum);
                     });
                     
                     // Apply column visibility preferences
@@ -1303,25 +1295,12 @@ ob_end_flush();
         // Search form submission
         $('#searchForm').submit(function(e) {
             e.preventDefault();
-            const search = $('[name="search"]').val();
-            const filterColumn = $('[name="filter_column"]').val();
-            const filterValue = $('[name="filter_value"]').val();
-            loadMembers(1, search, filterColumn, filterValue);
+            loadMembers(1);
         });
 
         // PDF Export
         $('#exportPdfBtn').click(function() {
-            const search = $('[name="search"]').val();
-            const filterColumn = $('[name="filter_column"]').val();
-            const filterValue = $('[name="filter_value"]').val();
-            
-            let params = new URLSearchParams();
-            params.append('export', 'pdf');
-            if (search) params.append('search', search);
-            if (filterColumn) params.append('filter_column', filterColumn);
-            if (filterValue) params.append('filter_value', filterValue);
-            
-            window.location.href = `?${params.toString()}`;
+            window.location.href = '?export=pdf';
         });
 
         // Edit Member Modal
@@ -1467,6 +1446,74 @@ ob_end_flush();
         $(window).click(function(e) {
             if ($(e.target).hasClass('modal')) {
                 $('#editModal').removeClass('show');
+            }
+        });
+
+        // Autocomplete suggestions for filter_value
+        let suggestionXHR = null;
+        $('#filter_value').on('input', function() {
+            const filterColumn = $('#filter_column').val();
+            const query = $(this).val();
+            if (!filterColumn || !query) {
+                closeSuggestions();
+                return;
+            }
+            // Abort previous request if any
+            if (suggestionXHR) suggestionXHR.abort();
+            suggestionXHR = $.ajax({
+                url: window.location.href,
+                method: 'GET',
+                data: {
+                    suggest: 1,
+                    filter_column: filterColumn,
+                    q: query
+                },
+                dataType: 'json',
+                success: function(suggestions) {
+                    showSuggestions(suggestions);
+                }
+            });
+        });
+
+        // Show suggestions dropdown
+        function showSuggestions(suggestions) {
+            closeSuggestions();
+            if (!suggestions || suggestions.length === 0) return;
+            const $input = $('#filter_value');
+            const $list = $('<ul id="suggestionList"></ul>').css({
+                position: 'absolute',
+                zIndex: 9999,
+                background: '#fff',
+                border: '1px solid #ccc',
+                borderRadius: '0.25rem',
+                width: $input.outerWidth(),
+                left: $input.offset().left,
+                top: $input.offset().top + $input.outerHeight(),
+                listStyle: 'none',
+                margin: 0,
+                padding: '0.25rem 0',
+                maxHeight: '200px',
+                overflowY: 'auto'
+            });
+            suggestions.forEach(function(s) {
+                $list.append('<li class="suggestion-item" style="padding:0.5rem;cursor:pointer;">' + s + '</li>');
+            });
+            $('body').append($list);
+            $('.suggestion-item').on('mousedown', function(e) {
+                e.preventDefault();
+                $input.val($(this).text());
+                closeSuggestions();
+            });
+        }
+        function closeSuggestions() {
+            $('#suggestionList').remove();
+        }
+        $('#filter_value').on('blur', function() {
+            setTimeout(closeSuggestions, 150);
+        });
+        $('#filter_value').on('focus', function() {
+            if ($(this).val()) {
+                $(this).trigger('input');
             }
         });
     });
