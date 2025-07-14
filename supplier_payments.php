@@ -628,21 +628,7 @@ $data = array_column($supplierTotals, 'supplier_total');
             <canvas id="supplierChart" style="font-weight: bold; color:black;"></canvas>
         </div>
         
-        <div class="table-responsive">
-            <table class="table table-bordered table-hover" style="font-weight: bold; color:black;">
-            <thead class="thead-light">
-            <tr>
-                <th>Purchase Date</th>
-                <th>Item Name</th>
-                <th>Supplier</th>
-                <th>Quantity (Unit)</th>
-                <th>Price/Unit</th>
-                <th>Total Price</th>
-                <th>Expire Date</th>
-                <th>Status</th>
-            </tr>
-        </thead>
-        <tbody>
+        
     <?php 
     $totalQuantity = 0;
     $totalAmount = 0;
@@ -678,16 +664,7 @@ $data = array_column($supplierTotals, 'supplier_total');
         $totalQuantity += $purchase['quantity'];
         $totalAmount += $purchase['total_price'];
     ?>
-        <tr class="<?php echo $rowClass; ?>">
-            <td><?php echo date('d M Y', strtotime($purchase['purchase_date'])); ?></td>
-            <td><?php echo $purchase['item_name']; ?></td>
-            <td><?php echo $purchase['supplier_name']; ?></td>
-            <td><?php echo $purchase['quantity']; ?></td>
-            <td>Rs.<?php echo number_format($purchase['price_per_unit'], 2) . '/' . 'unit'; ?></td>
-            <td>Rs.<?php echo number_format($purchase['total_price'], 2); ?></td>
-            <td><?php echo !empty($purchase['expire_date']) ? date('d M Y', strtotime($purchase['expire_date'])) : 'N/A'; ?></td>
-            <td><?php echo ucwords($status); ?></td>
-            </tr>
+        
             <?php endforeach; ?>
     
     <?php if (count($purchases) > 0): ?>

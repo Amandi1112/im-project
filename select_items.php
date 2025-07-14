@@ -277,7 +277,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['selected_items'])) {
                                 <div class="item-meta">
                                     <span>Code: <?php echo htmlspecialchars($item['item_code']); ?></span>
                                     <span>Current Price: Rs.<?php echo number_format($item['price_per_unit'], 2); ?></span>
-                                    <span>Current Qty: <?php echo $item['current_quantity']; ?> <?php echo htmlspecialchars($item['unit']); ?></span>
+                                    
                                     <span>Unit Size: <?php echo $item['unit_size']; ?> <?php echo htmlspecialchars($item['unit']); ?></span>
                                 </div>
                             </div>

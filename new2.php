@@ -892,7 +892,7 @@ $message = isset($_GET['message']) ? $_GET['message'] : '';
                             <option value="box">Box</option>
                             <option value="sachet">Sachet</option>
                             <option value="bars">Bars</option>
-                            <option value="other">Other</option>
+                           
                         </select>
                     </div>
                 </div>

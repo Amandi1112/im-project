@@ -168,7 +168,16 @@ if (isset($_GET['generate_invoice'])) {
    $pdf->SetAutoPageBreak(true, 10);
 
    // Define colors
-   $headerBlue = array(47, 117, 181); // Blue header color
+// Color scheme
+$corporateBlue = [23, 37, 84];      // #172554
+$accentBlue = [59, 130, 246];      // #3B82F6
+$lightBlue = [239, 246, 255];      // #EFF6FF
+$darkGray = [31, 41, 55];          // #1F2937
+$mediumGray = [107, 114, 128];     // #6B7280
+$lightGray = [243, 244, 246];      // #F3F4F6
+
+// For compatibility with the rest of the code
+$headerBlue = $corporateBlue;
    $lightGray = array(240, 240, 240);  // Light gray for alternate rows
    $darkBlue = array(41, 128, 185);    // Dark blue for titles
    $darkText = array(51, 51, 51);      // Dark text color
