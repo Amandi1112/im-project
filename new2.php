@@ -383,6 +383,11 @@ $message = isset($_GET['message']) ? $_GET['message'] : '';
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+    <!-- Bootstrap CSS for modal -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<!-- Bootstrap JS for modal -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -594,6 +599,42 @@ $message = isset($_GET['message']) ? $_GET['message'] : '';
         .btn-light:hover {
             background: #e9ecef;
         }
+        /* Add to your existing CSS */
+.modal-content {
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 5px 30px rgba(0, 0, 0, 0.3);
+}
+
+.modal-header {
+    background: linear-gradient(to right, #667eea, #764ba2);
+    color: white;
+    border-bottom: none;
+}
+
+.modal-title {
+    font-weight: 600;
+}
+
+.modal-body {
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.table {
+    margin-bottom: 0;
+}
+
+.table th {
+    font-weight: 600;
+    background-color: #f8f9fa;
+    position: sticky;
+    top: 0;
+}
+
+.item-checkbox {
+    transform: scale(1.3);
+}
         
         .action-buttons {
             display: flex;
@@ -664,6 +705,33 @@ $message = isset($_GET['message']) ? $_GET['message'] : '';
         .floating-btn:hover {
             transform: translateY(-3px) scale(1.1);
             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+        /* Add to your existing CSS */
+        .table-warning {
+            background-color: rgba(255, 193, 7, 0.15) !important;
+        }
+
+        .table-warning:hover {
+            background-color: rgba(255, 193, 7, 0.25) !important;
+        }
+
+        .text-danger {
+            color: #dc3545 !important;
+        }
+
+        .fw-bold {
+            font-weight: 600 !important;
+        }
+
+        .badge {
+            font-size: 0.8rem;
+            font-weight: 500;
+            padding: 5px 10px;
+        }
+
+        /* Tooltip for low stock items */
+        [data-bs-toggle="tooltip"] {
+            cursor: pointer;
         }
         
         .items-container {
@@ -825,24 +893,27 @@ $message = isset($_GET['message']) ? $_GET['message'] : '';
     
     <!-- Supplier Section Template (Hidden) -->
     <template id="supplier-template">
-        <div class="supplier-section" data-supplier-id="{SUPPLIER_ID}">
-            <div class="remove-supplier"><i class="fas fa-times"></i></div>
-            <div class="supplier-header">
-                <h3>{SUPPLIER_NAME}</h3>
-                <div class="supplier-actions">
-                    <button type="button" class="btn btn-light add-existing-item">
-                        <i class="fas fa-list"></i> Add Existing Item
-                    </button>
-                    <button type="button" class="btn btn-light add-new-item">
-                        <i class="fas fa-plus"></i> Add New Item
-                    </button>
-                </div>
-            </div>
-            <div class="items-container">
-                <!-- Items for this supplier will be added here -->
+    <div class="supplier-section" data-supplier-id="{SUPPLIER_ID}">
+        <div class="remove-supplier"><i class="fas fa-times"></i></div>
+        <div class="supplier-header">
+            <h3>{SUPPLIER_NAME}</h3>
+            <div class="supplier-actions">
+                <button type="button" class="btn btn-light add-existing-item">
+                    <i class="fas fa-list"></i> Add Existing Item
+                </button>
+                <button type="button" class="btn btn-light add-from-stock">
+                    <i class="fas fa-warehouse"></i> Add From Stock
+                </button>
+                <button type="button" class="btn btn-light add-new-item">
+                    <i class="fas fa-plus"></i> Add New Item
+                </button>
             </div>
         </div>
-    </template>
+        <div class="items-container">
+            <!-- Items for this supplier will be added here -->
+        </div>
+    </div>
+</template>
     
     <!-- New Item Row Template (Hidden) -->
     <template id="new-item-template">
@@ -1222,6 +1293,120 @@ $('.supplier-section[data-supplier-id="' + supplierId + '"]').attr('data-supplie
                     }
                 });
             }
+            // --- Modal instance for stock items ---
+            // Create a single modal instance for #stockItemsModal
+            const stockItemsModal = new bootstrap.Modal(document.getElementById('stockItemsModal'));
+
+            // Add from stock button click handler
+            $(document).on('click', '.add-from-stock', function() {
+                const supplierSection = $(this).closest('.supplier-section');
+                const supplierId = supplierSection.data('supplier-id');
+
+                // Store the current supplier ID for later use
+                $('#stockItemsModal').data('supplier-id', supplierId);
+
+                // Fetch all items from stock
+                $.ajax({
+                    url: 'get_all_items.php',
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function(items) {
+                        // Add table and buttons if not present
+                        let tableHtml = '';
+                        tableHtml += '<div class="mb-2 d-flex gap-2">';
+                        tableHtml += '<button type="button" class="btn btn-sm btn-primary" id="selectAllStockItems"><i class="fas fa-check-double"></i> Select All</button>';
+                        tableHtml += '<button type="button" class="btn btn-sm btn-secondary" id="deselectAllStockItems"><i class="fas fa-times-circle"></i> Deselect All</button>';
+                        tableHtml += '<button type="button" class="btn btn-sm btn-warning" id="selectLowStockItems"><i class="fas fa-exclamation-triangle"></i> Select Low Stock</button>';
+                        tableHtml += '</div>';
+                        tableHtml += '<table class="table table-bordered" id="stockItemsTable">';
+                        tableHtml += '<thead><tr>';
+                        tableHtml += '<th></th><th>Item Name</th><th>Item Code</th><th>Price/Unit</th><th>Current Qty</th><th>Unit</th><th>Unit Size</th><th>Type</th>';
+                        tableHtml += '</tr></thead><tbody></tbody></table>';
+                        $('#stockItemsModal .table-responsive').html(tableHtml);
+
+                        const tbody = $('#stockItemsTable tbody');
+                        tbody.empty();
+
+                        items.forEach(item => {
+                            const isLowStock = item.low_stock;
+                            const rowClass = isLowStock ? 'table-warning' : '';
+                            const lowStockIcon = isLowStock ? '<i class="fas fa-exclamation-triangle text-danger me-2"></i>' : '';
+
+                            tbody.append(`
+                                <tr class="${rowClass}" ${isLowStock ? 'data-bs-toggle="tooltip" title="Low stock - consider restocking"' : ''}>
+                                    <td><input type="checkbox" class="item-checkbox" data-item='${JSON.stringify(item)}' ${isLowStock ? 'data-low-stock="1"' : ''}></td>
+                                    <td>${lowStockIcon}${item.item_name}</td>
+                                    <td>${item.item_code}</td>
+                                    <td>${item.price_per_unit}</td>
+                                    <td class="${isLowStock ? 'text-danger fw-bold' : ''}">${item.current_quantity}</td>
+                                    <td>${item.unit}</td>
+                                    <td>${item.unit_size}</td>
+                                    <td>${item.type}</td>
+                                </tr>
+                            `);
+                        });
+
+                        // Show the modal using the single instance
+                        stockItemsModal.show();
+
+                        // Button handlers for select/deselect/low stock
+                        $('#selectAllStockItems').off('click').on('click', function() {
+                            $('#stockItemsTable .item-checkbox').prop('checked', true);
+                        });
+                        $('#deselectAllStockItems').off('click').on('click', function() {
+                            $('#stockItemsTable .item-checkbox').prop('checked', false);
+                        });
+                        $('#selectLowStockItems').off('click').on('click', function() {
+                            $('#stockItemsTable .item-checkbox').prop('checked', false);
+                            $('#stockItemsTable .item-checkbox[data-low-stock="1"]').prop('checked', true);
+                        });
+                    },
+                    error: function() {
+                        showAlert('Failed to load items from stock', 'error');
+                    }
+                });
+            });
+
+            // Add selected items button handler
+            $('#addSelectedItems').click(function() {
+                const supplierId = $('#stockItemsModal').data('supplier-id');
+                const supplierSection = $(`.supplier-section[data-supplier-id="${supplierId}"]`);
+                const itemsContainer = supplierSection.find('.items-container');
+
+                // Get selected items
+                $('.item-checkbox:checked').each(function() {
+                    const item = $(this).data('item');
+
+                    // Get item index for this supplier
+                    if (!supplierCounts[supplierId]) {
+                        supplierCounts[supplierId] = 0;
+                    }
+
+                    // Clone new item template
+                    const template = document.getElementById('new-item-template').innerHTML;
+                    let newItemRow = template
+                        .replace(/{SUPPLIER_ID}/g, supplierId)
+                        .replace(/{ITEM_INDEX}/g, supplierCounts[supplierId])
+                        .replace(/{CURRENT_DATE}/g, currentDate);
+
+                    // Add to container
+                    itemsContainer.append(newItemRow);
+
+                    // Set values for the new item
+                    const newRow = itemsContainer.find('.item-row').last();
+                    newRow.find('.item-name').val(item.item_name);
+                    newRow.find('.price-per-unit').val(item.price_per_unit);
+                    newRow.find('.unit-select').val(item.unit);
+                    newRow.find('select[name*="[type]"]').val(item.type || 'other');
+                    newRow.find('input[name*="[unit_size]"]').val(item.unit_size || '1.00');
+
+                    // Increment item count
+                    supplierCounts[supplierId]++;
+                });
+
+                // Hide the modal using the single instance
+                stockItemsModal.hide();
+            });
             
             // Add new item to supplier
             $(document).on('click', '.add-new-item', function() {
@@ -1247,6 +1432,12 @@ $('.supplier-section[data-supplier-id="' + supplierId + '"]').attr('data-supplie
                 // Increment item count
                 supplierCounts[supplierId]++;
             });
+
+            // Initialize tooltips for low stock items
+const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+tooltipTriggerList.map(function (tooltipTriggerEl) {
+    return new bootstrap.Tooltip(tooltipTriggerEl);
+});
             
             // Add existing item to supplier - redirect to selection page
             // Add existing item to supplier - redirect to selection page
@@ -1513,5 +1704,46 @@ $(document).on('click', '.add-existing-item', function() {
             <?php endif; ?>
         });
     </script>
+    <!-- Stock Items Modal -->
+<div class="modal fade" id="stockItemsModal" tabindex="-1" aria-labelledby="stockItemsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+    <h5 class="modal-title" id="stockItemsModalLabel">
+        Select Items From Stock 
+        <span class="badge bg-warning text-dark ms-2">
+            <i class="fas fa-exclamation-triangle"></i> Low Stock Items Highlighted
+        </span>
+    </h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-hover" id="stockItemsTable">
+                        <thead>
+                            <tr>
+                                <th>Select</th>
+                                <th>Item Name</th>
+                                <th>Item Code</th>
+                                <th>Price/Unit</th>
+                                <th>Current Qty</th>
+                                <th>Unit</th>
+                                <th>Unit Size</th>
+                                <th>Type</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Stock items will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="addSelectedItems">Add Selected Items</button>
+            </div>
+        </div>
+    </div>
+</div>
 </body>
 </html>
