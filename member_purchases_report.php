@@ -45,7 +45,7 @@ class PDF extends FPDF {
     $header = array(
         'Purchase Date',
         'Item Name',
-        'Supplier',
+        'Supplier ID',
         'Qty',
         'Size',
         'Unit Price',
@@ -53,7 +53,7 @@ class PDF extends FPDF {
         'Expiry Date'
     );
     
-    $w = array(27, 25, 30, 20, 25, 25, 25, 20);
+    $w = array(27, 25, 25, 20, 25, 25, 25, 20);
     
     for($i=0; $i<count($header); $i++) {
         $this->Cell($w[$i],7,$header[$i],1,0,'C',true);
@@ -70,7 +70,7 @@ class PDF extends FPDF {
         $fill = false;
         
         // Use same widths as in TableHeader
-        $w = array(27, 25, 30, 20, 25, 25, 25, 20);
+        $w = array(27, 25, 25, 20, 25, 25, 25, 20);
         
         foreach($purchases as $purchase) {
             // Check if we need a new page
@@ -98,10 +98,10 @@ class PDF extends FPDF {
             // Get unit name
             $unitName = $this->getUnitName($purchase['unit']);
             
-            // Cells with adjusted widths
+            // Cells with adjusted widths - using supplier_id instead of supplier_name
             $this->Cell($w[0],6,$purchase_date,'LR',0,'C',$fill);
     $this->Cell($w[1],6,$this->StringLimit($purchase['item_name'], 35),'LR',0,'L',$fill);
-    $this->Cell($w[2],6,$this->StringLimit($purchase['supplier_name'], 20),'LR',0,'L',$fill);
+    $this->Cell($w[2],6,$purchase['supplier_id'],'LR',0,'C',$fill);
     $this->Cell($w[3],6,$purchase['quantity'] . ' units','LR',0,'C',$fill);
     $this->Cell($w[4],6,$purchase['unit_size'] . ' ' . $unitName,'LR',0,'C',$fill);
     $this->Cell($w[5],6,'Rs.'.number_format($purchase['price_per_unit'], 2),'LR',0,'R',$fill);
@@ -218,7 +218,7 @@ function getPurchaseDetails($conn, $start_date = '', $end_date = '', $supplier_f
                 ip.price_per_unit, 
                 ip.total_price, 
                 i.item_name, 
-                s.supplier_name,
+                s.supplier_id,
                 i.unit_size,
                 COALESCE(ip.unit, i.unit) AS unit
             FROM item_purchases ip

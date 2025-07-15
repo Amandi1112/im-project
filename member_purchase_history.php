@@ -508,31 +508,7 @@ $conn->close();
                 <div class="stat-icon"><i class="fas fa-dollar-sign"></i></div>
             </div>
             
-            <div class="stat-card">
-                <div class="stat-title">Avg Credit Utilization</div>
-                <div class="stat-value"><?php echo number_format($avgCreditUtilization, 1); ?>%</div>
-                <div class="stat-icon"><i class="fas fa-credit-card"></i></div>
-            </div>
             
-            <div class="stat-card">
-                <div class="stat-title">Monthly Growth</div>
-                <?php 
-                    $growth = 0;
-                    if (count($salesData) >= 2) {
-                        $current = end($salesData);
-                        $previous = prev($salesData);
-                        if ($previous > 0) {
-                            $growth = (($current - $previous) / $previous) * 100;
-                        }
-                    }
-                ?>
-                <div class="stat-value" style="color: <?php echo $growth >= 0 ? 'var(--success)' : 'var(--danger)'; ?>">
-                    <?php echo $growth >= 0 ? '+' : ''; ?><?php echo number_format($growth, 1); ?>%
-                </div>
-                <div class="stat-icon">
-                    <i class="fas <?php echo $growth >= 0 ? 'fa-chart-line' : 'fa-chart-line'; ?>"></i>
-                </div>
-            </div>
         </div>
         
         <div class="chart-container">
