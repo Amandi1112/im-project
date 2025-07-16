@@ -274,6 +274,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['item_name']) && isset(
         }
     }
     
+    // Get similar item names for suggestions
+    $sql = "SELECT DISTINCT item_name FROM items WHERE supplier_id = ? AND item_name LIKE ? AND item_name != ? LIMIT 5";
+    $stmt = $conn->prepare($sql);
+    $likeTerm = '%' . $itemName . '%';
+    $stmt->bind_param("sss", $supplierId, $likeTerm, $itemName);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    $suggestions = [];
+    while ($row = $result->fetch_assoc()) {
+        $suggestions[] = $row['item_name'];
+    }
+    $response['suggestions'] = $suggestions;
+    
     header('Content-Type: application/json');
     echo json_encode($response);
     exit;
@@ -334,6 +348,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['submit_purchases'])) {
             if ($existingItem) {
                 // Use existing item ID
                 $itemId = $existingItem['item_id'];
+                // Fix the item name to match exactly what's in the database
+                $itemName = $existingItem['item_name'];
             } else {
                 // Create new item entry (even if item name exists with different price/unit size)
                 $newItem = addNewItem($itemName, $pricePerUnit, $supplierId, $unit, $unitSize, $type, $conn);
@@ -810,6 +826,40 @@ $message = isset($_GET['message']) ? $_GET['message'] : '';
             transform: scale(1.1);
         }
         
+        /* Suggestions dropdown */
+        .suggestions-container {
+            position: relative;
+        }
+        
+        .suggestions-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 100%;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 0 0 4px 4px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            display: none;
+        }
+        
+        .suggestion-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .suggestion-item:hover {
+            background-color: #f5f5f5;
+        }
+        
+        .suggestion-item:last-child {
+            border-bottom: none;
+        }
+        
         @media (max-width: 768px) {
             .form-container {
                 padding: 20px;
@@ -921,9 +971,10 @@ $message = isset($_GET['message']) ? $_GET['message'] : '';
             <div class="row">
                 <!-- Item Name -->
                 <div class="col-md-3">
-                    <div class="mb-3">
+                    <div class="mb-3 suggestions-container">
                         <label class="form-label" style="font-size: 16px; font-weight: bold;">Item Name</label>
                         <input type="text" class="form-control item-name" name="supplier[{SUPPLIER_ID}][items][{ITEM_INDEX}][item_name]" required>
+                        <div class="suggestions-dropdown"></div>
                     </div>
                 </div>
                 <!-- Quantity -->
@@ -1628,8 +1679,38 @@ $(document).on('click', '.add-existing-item', function() {
                                 showAlert(`Item "${itemName}" already exists.`, 'info');
                             }
                         }
+                        
+                        // Show suggestions if available
+                        if (response.suggestions && response.suggestions.length > 0) {
+                            const dropdown = itemNameInput.siblings('.suggestions-dropdown');
+                            dropdown.empty();
+                            
+                            response.suggestions.forEach(suggestion => {
+                                dropdown.append(`<div class="suggestion-item">${suggestion}</div>`);
+                            });
+                            
+                            dropdown.show();
+                        }
                     }
                 });
+            });
+            
+            // Handle suggestion selection
+            $(document).on('click', '.suggestion-item', function() {
+                const suggestion = $(this).text();
+                const itemNameInput = $(this).parent().siblings('.item-name');
+                itemNameInput.val(suggestion);
+                $(this).parent().hide();
+                
+                // Trigger blur to check item details
+                itemNameInput.trigger('blur');
+            });
+            
+            // Hide suggestions when clicking outside
+            $(document).on('click', function(e) {
+                if (!$(e.target).closest('.suggestions-container').length) {
+                    $('.suggestions-dropdown').hide();
+                }
             });
             
             // Remove item row

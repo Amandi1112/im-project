@@ -14,27 +14,96 @@ try {
 
 // Configuration
 $low_stock_threshold = 10; // Items with quantity below this are considered low stock
+$medium_stock_threshold = 30; // Items with quantity below this (but above low) are medium stock
+
 
 // Function to get low stock items
-function getLowStockItems($pdo, $threshold) {
+function getAllItems($pdo, $lowThreshold, $mediumThreshold, $filter = 'all') {
     $sql = "SELECT i.item_id, i.item_code, i.item_name, i.price_per_unit, 
                    i.unit_size, i.current_quantity, i.unit, i.type,
                    s.supplier_name, s.contact_number, s.address
             FROM items i
-            LEFT JOIN supplier s ON i.supplier_id = s.supplier_id
-            WHERE i.current_quantity < :threshold
+            LEFT JOIN supplier s ON i.supplier_id = s.supplier_id";
+    
+    // Add WHERE clause based on filter
+    switch($filter) {
+        case 'low':
+            $sql .= " WHERE i.current_quantity <= :low_threshold";
+            break;
+        case 'medium':
+            $sql .= " WHERE i.current_quantity > :low_threshold AND i.current_quantity < :medium_threshold";
+            break;
+        case 'high':
+            $sql .= " WHERE i.current_quantity >= :medium_threshold";
+            break;
+        default:
+            // Show all items
+            break;
+    }
+    
+    $sql .= " ORDER BY i.current_quantity ASC";
+    
+    $stmt = $pdo->prepare($sql);
+    
+    // Bind parameters based on filter
+    if ($filter == 'low') {
+        $stmt->execute(['low_threshold' => $lowThreshold]);
+    } elseif ($filter == 'medium') {
+        $stmt->execute(['low_threshold' => $lowThreshold, 'medium_threshold' => $mediumThreshold]);
+    } elseif ($filter == 'high') {
+        $stmt->execute(['medium_threshold' => $mediumThreshold]);
+    } else {
+        $stmt->execute();
+    }
+    
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+function getStockStats($pdo, $lowThreshold, $mediumThreshold) {
+    $sql = "SELECT 
+                COUNT(CASE WHEN current_quantity <= :low_threshold THEN 1 END) as low_stock_count,
+                COUNT(CASE WHEN current_quantity > :low_threshold AND current_quantity < :medium_threshold THEN 1 END) as medium_stock_count,
+                COUNT(CASE WHEN current_quantity >= :medium_threshold THEN 1 END) as high_stock_count,
+                COUNT(*) as total_items
+            FROM items";
+    
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute(['low_threshold' => $lowThreshold, 'medium_threshold' => $mediumThreshold]);
+    return $stmt->fetch(PDO::FETCH_ASSOC);
+}
+
+// Function to determine stock level
+function getStockLevel($quantity, $lowThreshold, $mediumThreshold) {
+    if ($quantity <= $lowThreshold) {
+        return 'low';
+    } elseif ($quantity < $mediumThreshold) {
+        return 'medium';
+    } else {
+        return 'high';
+    }
+}
+// Function to get low stock items
+function getLowStockItems($pdo, $lowThreshold) {
+    $sql = "SELECT i.item_id, i.item_code, i.item_name, i.current_quantity, i.unit
+            FROM items i
+            WHERE i.current_quantity <= :low_threshold
             ORDER BY i.current_quantity ASC";
     
     $stmt = $pdo->prepare($sql);
-    $stmt->execute(['threshold' => $threshold]);
+    $stmt->execute(['low_threshold' => $lowThreshold]);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
+
 
 // Function to calculate suggested order quantity
 function calculateOrderQuantity($currentStock, $threshold) {
     $suggestedStock = $threshold * 5; // Order 5 times the threshold
     return max($suggestedStock - $currentStock, $threshold);
 }
+
+// Get filter from URL parameter
+$currentFilter = isset($_GET['filter']) ? $_GET['filter'] : 'all';
+
 
 // Handle PDF generation
 if (isset($_POST['generate_pdf'])) {
@@ -283,9 +352,9 @@ if (isset($_POST['generate_pdf'])) {
         exit;
     }
 }
-
-// Get low stock items for display
-$lowStockItems = getLowStockItems($pdo, $low_stock_threshold);
+// Get items based on current filter
+$items = getAllItems($pdo, $low_stock_threshold, $medium_stock_threshold, $currentFilter);
+$stats = getStockStats($pdo, $low_stock_threshold, $medium_stock_threshold);
 ?>
 
 <!DOCTYPE html>
@@ -666,6 +735,239 @@ $lowStockItems = getLowStockItems($pdo, $low_stock_threshold);
             box-shadow: 0 8px 25px rgba(46, 213, 115, 0.4);
         }
         
+        /* Enhanced Filter Styles */
+        .filter-container {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            margin-bottom: 25px;
+        }
+
+        .filter-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .filter-label {
+            font-weight: 600;
+            color: #495057;
+            margin-right: 10px;
+            font-size: 14px;
+        }
+
+        .filter-btn {
+            padding: 12px 20px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s;
+            cursor: pointer;
+            text-decoration: none;
+            color: #495057;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .filter-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .filter-btn.active {
+            color: white;
+            border-color: transparent;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        }
+
+        .filter-btn.active::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: rgba(255,255,255,0.5);
+        }
+
+        .filter-btn-all.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .filter-btn-low.active {
+            background: linear-gradient(135deg, #ff4d57 0%, #c44569 100%);
+        }
+
+        .filter-btn-medium.active {
+            background: linear-gradient(135deg, #ffa502 0%, #ff7675 100%);
+        }
+
+        .filter-btn-high.active {
+            background: linear-gradient(135deg, #2ed573 0%, #1dd1a1 100%);
+        }
+
+        .filter-count {
+            margin-left: 8px;
+            background: rgba(0,0,0,0.1);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .filter-btn.active .filter-count {
+            background: rgba(255,255,255,0.2);
+        }
+
+        /* Threshold Indicator */
+        .threshold-indicator {
+            margin-top: 20px;
+        }
+
+        .threshold-scale {
+            height: 30px;
+            background: #f5f5f5;
+            border-radius: 15px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .threshold-range {
+            position: absolute;
+            height: 100%;
+            top: 0;
+        }
+
+        .low-range {
+            background: linear-gradient(to right, #ff4d57, #ff7675);
+            left: 0;
+        }
+
+        .medium-range {
+            background: linear-gradient(to right, #ffa502, #ffcc00);
+            left: 0;
+        }
+
+        .high-range {
+            background: linear-gradient(to right, #2ed573, #1dd1a1);
+            left: 0;
+        }
+
+        .threshold-mark {
+            position: absolute;
+            top: -20px;
+            transform: translateX(-50%);
+            font-size: 11px;
+            font-weight: 600;
+            color: #555;
+            white-space: nowrap;
+        }
+
+        .threshold-mark::before {
+            content: '';
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            width: 2px;
+            height: 10px;
+            background: currentColor;
+            transform: translateX(-50%);
+        }
+
+        .threshold-mark.low {
+            color: #ff4d57;
+        }
+
+        .threshold-mark.medium {
+            color: #ffa502;
+        }
+
+        .threshold-mark.high {
+            color: #2ed573;
+        }
+
+        /* Current Filter Display */
+        .current-filter {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+
+        .filter-header {
+            font-size: 15px;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .filter-header i {
+            color: #667eea;
+        }
+
+        .filter-highlight {
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        .filter-highlight.all {
+            background: rgba(102, 126, 234, 0.2);
+            color: #667eea;
+        }
+
+        .filter-highlight.low {
+            background: rgba(255, 77, 87, 0.2);
+            color: #ff4d57;
+        }
+
+        .filter-highlight.medium {
+            background: rgba(255, 165, 2, 0.2);
+            color: #ffa502;
+        }
+
+        .filter-highlight.high {
+            background: rgba(46, 213, 115, 0.2);
+            color: #2ed573;
+        }
+
+        .filter-details {
+            font-size: 13px;
+            color: #6c757d;
+        }
+
+        .filter-percentage {
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .stock-medium {
+            background: rgba(255, 165, 2, 0.1) !important;
+            border-left: 4px solid #ffa502;
+        }
+        
+        .stock-high {
+            background: rgba(46, 213, 115, 0.1) !important;
+            border-left: 4px solid #2ed573;
+        }
+        
+        .badge-medium {
+            background: linear-gradient(to right, #ffa502, #ff7675);
+        }
+        
+        .badge-high {
+            background: linear-gradient(to right, #2ed573, #1dd1a1);
+        }
+
         @media (max-width: 768px) {
             .main-container {
                 padding: 10px;
@@ -703,6 +1005,16 @@ $lowStockItems = getLowStockItems($pdo, $low_stock_threshold);
             .quantity-input {
                 width: 60px;
             }
+            
+            .filter-buttons {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .filter-btn {
+                width: 100%;
+                justify-content: center;
+            }
         }
     </style>
 </head>
@@ -710,41 +1022,125 @@ $lowStockItems = getLowStockItems($pdo, $low_stock_threshold);
     <div class="main-container">
         <div class="container">
             <div class="header">
-                <h1><i class="fas fa-shopping-cart"></i> Purchase-Order Details</h1>
-                <p>Low Stock Items Management</p>
+                <h1><i class="fas fa-shopping-cart"></i> Purchase Order Management</h1>
+                <p>Complete Inventory Overview with Stock Level Filtering</p>
             </div>
             
             <div class="stats">
                 <div class="stats-grid">
                     <div class="stat-card">
-                        <div class="stat-number"><?php echo count($lowStockItems); ?></div>
+                        <div class="stat-number"><?php echo $stats['total_items']; ?></div>
+                        <div class="stat-label">Total Items</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number"><?php echo $stats['low_stock_count']; ?></div>
                         <div class="stat-label">Low Stock Items</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-number"><?php echo $low_stock_threshold; ?></div>
-                        <div class="stat-label">Stock Threshold</div>
+                        <div class="stat-number"><?php echo $stats['medium_stock_count']; ?></div>
+                        <div class="stat-label">Medium Stock Items</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-number"><?php echo count(array_unique(array_column($lowStockItems, 'supplier_name'))); ?></div>
-                        <div class="stat-label">Suppliers Involved</div>
+                        <div class="stat-number"><?php echo $stats['high_stock_count']; ?></div>
+                        <div class="stat-label">High Stock Items</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number"><?php echo count(array_unique(array_column($items, 'supplier_name'))); ?></div>
+                        <div class="stat-label">Suppliers</div>
                     </div>
                 </div>
             </div>
             
             <div class="main-content">
-                <?php if (!empty($lowStockItems)): ?>
-                    <div class="alert">
-                        <strong><i class="fas fa-exclamation-triangle"></i> Notice:</strong> The following items have stock levels below the threshold. Please review and generate a purchase order.
+                <!-- Enhanced Filter Controls -->
+                <div class="filter-container">
+                    <div class="filter-buttons">
+                        <span class="filter-label"><i class="fas fa-filter"></i> Filter by Stock Level:</span>
+                        
+                        <!-- All Items Filter -->
+                        <a href="?filter=all" class="filter-btn filter-btn-all <?php echo $currentFilter == 'all' ? 'active' : ''; ?>">
+                            <i class="fas fa-list"></i> All Items
+                            <span class="filter-count"><?php echo $stats['total_items']; ?></span>
+                        </a>
+                        
+                        <!-- Low Stock Filter -->
+                        <a href="?filter=low" class="filter-btn filter-btn-low <?php echo $currentFilter == 'low' ? 'active' : ''; ?>">
+                            <i class="fas fa-exclamation-triangle"></i> Low Stock
+                            <span class="filter-count"><?php echo $stats['low_stock_count']; ?></span>
+                        </a>
+                        
+                        <!-- Medium Stock Filter -->
+                        <a href="?filter=medium" class="filter-btn filter-btn-medium <?php echo $currentFilter == 'medium' ? 'active' : ''; ?>">
+                            <i class="fas fa-minus-circle"></i> Medium Stock
+                            <span class="filter-count"><?php echo $stats['medium_stock_count']; ?></span>
+                        </a>
+                        
+                        <!-- High Stock Filter -->
+                        <a href="?filter=high" class="filter-btn filter-btn-high <?php echo $currentFilter == 'high' ? 'active' : ''; ?>">
+                            <i class="fas fa-check-circle"></i> High Stock
+                            <span class="filter-count"><?php echo $stats['high_stock_count']; ?></span>
+                        </a>
                     </div>
                     
+                    <!-- Visual Threshold Indicator -->
+                    <div class="threshold-indicator">
+                        <div class="threshold-scale">
+                            <div class="threshold-mark low" style="left: <?php echo ($low_stock_threshold/$medium_stock_threshold)*100; ?>%">
+                                <span>Low (≤<?php echo $low_stock_threshold; ?>)</span>
+                            </div>
+                            <div class="threshold-mark medium" style="left: 100%">
+                                <span>High (≥<?php echo $medium_stock_threshold; ?>)</span>
+                            </div>
+                            <div class="threshold-range low-range" style="width: <?php echo ($low_stock_threshold/$medium_stock_threshold)*100; ?>%"></div>
+                            <div class="threshold-range medium-range" style="width: <?php echo 100 - ($low_stock_threshold/$medium_stock_threshold)*100; ?>%"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Enhanced Current Filter Display -->
+                <div class="current-filter">
+                    <div class="filter-header">
+                        <i class="fas fa-eye"></i>
+                        <strong>Current View:</strong> 
+                        <?php
+                        switch($currentFilter) {
+                            case 'low':
+                                echo "<span class='filter-highlight low'>Low Stock Items</span> (≤ {$low_stock_threshold} units)";
+                                break;
+                            case 'medium':
+                                echo "<span class='filter-highlight medium'>Medium Stock Items</span> (" . ($low_stock_threshold + 1) . " - " . ($medium_stock_threshold - 1) . " units)";
+                                break;
+                            case 'high':
+                                echo "<span class='filter-highlight high'>High Stock Items</span> (≥ {$medium_stock_threshold} units)";
+                                break;
+                            default:
+                                echo "<span class='filter-highlight all'>All Items</span>";
+                                break;
+                        }
+                        ?>
+                    </div>
+                    <div class="filter-details">
+                        Showing <?php echo count($items); ?> items out of <?php echo $stats['total_items']; ?> total
+                        <?php if($currentFilter != 'all'): ?>
+                            <span class="filter-percentage">
+                                (<?php echo round((count($items)/$stats['total_items'])*100); ?>% of inventory)
+                            </span>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                
+                <?php if (!empty($items)): ?>
                     <form method="POST" action="">
                         <div class="form-section">
                             <div class="form-controls">
                                 <div class="threshold-control">
-                                    <label for="threshold"><i class="fas fa-chart-line"></i> Stock Threshold:</label>
+                                    <label for="threshold"><i class="fas fa-chart-line"></i> Low Stock Threshold:</label>
                                     <input type="number" id="threshold" name="threshold" value="<?php echo $low_stock_threshold; ?>" min="1" max="100">
                                 </div>
-                               
+                                <div class="threshold-control">
+                                    <label for="medium_threshold"><i class="fas fa-chart-bar"></i> Medium Stock Threshold:</label>
+                                    <input type="number" id="medium_threshold" name="medium_threshold" value="<?php echo $medium_stock_threshold; ?>" min="1" max="200">
+                                </div>
                                 <button type="button" class="btn btn-warning" onclick="selectAll()">
                                     <i class="fas fa-check-square"></i> Select All
                                 </button>
@@ -762,10 +1158,9 @@ $lowStockItems = getLowStockItems($pdo, $low_stock_threshold);
                                             <th>Select</th>
                                             <th>Item Code</th>
                                             <th>Item Name</th>
-                                            <th>Unit size</th>
+                                            <th>Unit Size</th>
                                             <th>Current Stock</th>
                                             <th>Status</th>
-                                          
                                             <th>Order Quantity</th>
                                             <th>Unit Price</th>
                                             <th>Total Cost</th>
@@ -773,11 +1168,16 @@ $lowStockItems = getLowStockItems($pdo, $low_stock_threshold);
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <?php foreach ($lowStockItems as $item): ?>
+                                        <?php foreach ($items as $item): ?>
                                             <?php
-                                            $stockClass = $item['current_quantity'] <= ($low_stock_threshold / 2) ? 'stock-critical' : 'stock-low';
-                                            $badgeClass = $item['current_quantity'] <= ($low_stock_threshold / 2) ? 'badge-critical' : 'badge-low';
-                                            $suggestedQty = calculateOrderQuantity($item['current_quantity'], $low_stock_threshold);
+                                            $stockLevel = getStockLevel($item['current_quantity'], $low_stock_threshold, $medium_stock_threshold);
+                                            $stockClass = 'stock-' . $stockLevel;
+                                            $badgeClass = 'badge-' . $stockLevel;
+                                            $statusText = strtoupper($stockLevel);
+                                            
+                                            // Only calculate order quantity for low stock items
+                                            $suggestedQty = $stockLevel == 'low' ? 
+                                                calculateOrderQuantity($item['current_quantity'], $low_stock_threshold) : 0;
                                             ?>
                                             <tr class="<?php echo $stockClass; ?>">
                                                 <td>
@@ -794,13 +1194,12 @@ $lowStockItems = getLowStockItems($pdo, $low_stock_threshold);
                                                 </td>
                                                 <td>
                                                     <span class="stock-badge <?php echo $badgeClass; ?>">
-                                                        <?php echo $item['current_quantity'] <= ($low_stock_threshold / 2) ? 'CRITICAL' : 'LOW'; ?>
+                                                        <?php echo $statusText; ?>
                                                     </span>
                                                 </td>
-                                             
                                                 <td>
                                                     <input type="number" name="quantities[<?php echo $item['item_id']; ?>]" 
-                                                           value="<?php echo $suggestedQty; ?>" min="1" class="quantity-input">
+                                                           value="<?php echo $suggestedQty; ?>" min="0" class="quantity-input">
                                                 </td>
                                                 <td>
                                                     <span class="unit-price"><?php echo $item['price_per_unit']; ?></span>
@@ -831,9 +1230,9 @@ $lowStockItems = getLowStockItems($pdo, $low_stock_threshold);
                     </form>
                 <?php else: ?>
                     <div class="no-items">
-                        <i class="fas fa-check-circle"></i>
-                        <h2>All Items Well Stocked!</h2>
-                        <p>No items found with stock below the threshold of <?php echo $low_stock_threshold; ?> units.</p>
+                        <i class="fas fa-info-circle"></i>
+                        <h2>No Items Found</h2>
+                        <p>No items match the current filter criteria.</p>
                     </div>
                 <?php endif; ?>
             </div>
