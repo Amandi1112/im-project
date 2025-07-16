@@ -54,6 +54,7 @@ function getSoldItems($db) {
                 i.item_name,
                 p.price_per_unit,
                 i.current_quantity,
+                i.type,
                 p.unit,
                 s.supplier_name,
                 'sold' AS status,
@@ -614,44 +615,44 @@ $summary = getSummaryData($db);
             
             <div class="table-container">
                 <table id="soldTable">
-                    <thead>
-                        <tr>
-                            <th class="col-status" style="width:1px;"></th>
-                            <th class="col-name">Status</th>
-                            <th class="col-quantity">Item Name</th>
-                            <th class="col-type">Quantity</th>
-                            <th class="col-price">Unit</th>
-                            <th class="col-supplier">Price</th>
-                            <th class="col-details">Supplier</th>
-                            <th class="col-code">Details</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php if (empty($soldItems)): ?>
-                            <tr><td colspan="7" class="no-data">No sold items found</td></tr>
-                        <?php else: ?>
-                            <?php foreach ($soldItems as $item): ?>
-                                <tr class="sold-row">
-                                    <td class="col-status">
-                                        <span class="status-badge status-sold">Sold</span>
-                                    </td>
-                                    <td class="col-name"><?= htmlspecialchars($item['item_name']) ?></td>
-                                    <td class="col-quantity quantity-cell"><?= number_format($item['sold_quantity']) ?></td>
-                                    <td class="col-type type-cell"><?= strtoupper($item['type']) ?></td>
-                                    <td class="col-price price-cell">Rs. <?= number_format($item['price_per_unit'], 2) ?></td>
-                                    <td class="col-supplier"><?= htmlspecialchars($item['supplier_name'] ?? 'N/A') ?></td>
-                                    <td class="col-details">
-                                        <div class="sold-details">
-                                            <div><strong>Purchase #<?= $item['purchase_id'] ?></strong></div>
-                                            <div>Customer: <?= htmlspecialchars($item['full_name']) ?></div>
-                                            <div>Date: <?= date('M d, Y', strtotime($item['purchase_date'])) ?></div>
-                                        </div>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
+    <thead>
+        <tr>
+            <th class="col-status" style="width:1px;"></th>
+            <th class="col-name">Status</th>
+            <th class="col-name">Item Name</th>
+            <th class="col-quantity">Quantity</th>
+            <th class="col-type">Type</th>
+            <th class="col-price">Price</th>
+            <th class="col-supplier">Supplier</th>
+            <th class="col-details">Details</th>
+        </tr>
+    </thead>
+    <tbody>
+        <?php if (empty($soldItems)): ?>
+            <tr><td colspan="7" class="no-data">No sold items found</td></tr>
+        <?php else: ?>
+            <?php foreach ($soldItems as $item): ?>
+                <tr class="sold-row">
+                    <td class="col-status">
+                        <span class="status-badge status-sold">Sold</span>
+                    </td>
+                    <td class="col-name"><?= htmlspecialchars($item['item_name']) ?></td>
+                    <td class="col-quantity quantity-cell"><?= number_format($item['sold_quantity']) ?></td>
+                    <td class="col-type type-cell"><?= strtoupper($item['type'] ?? 'N/A') ?></td>
+                    <td class="col-price price-cell">Rs. <?= number_format($item['price_per_unit'], 2) ?></td>
+                    <td class="col-supplier"><?= htmlspecialchars($item['supplier_name'] ?? 'N/A') ?></td>
+                    <td class="col-details">
+                        <div class="sold-details">
+                            <div><strong>Purchase #<?= $item['purchase_id'] ?></strong></div>
+                            <div>Customer: <?= htmlspecialchars($item['full_name']) ?></div>
+                            <div>Date: <?= date('M d, Y', strtotime($item['purchase_date'])) ?></div>
+                        </div>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+        <?php endif; ?>
+    </tbody>
+</table>
             </div>
         </div>
     </div>
