@@ -400,10 +400,9 @@ $message = isset($_GET['message']) ? $_GET['message'] : '';
     <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
     <!-- Bootstrap CSS for modal -->
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-
-<!-- Bootstrap JS for modal -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap JS for modal -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -497,31 +496,30 @@ $message = isset($_GET['message']) ? $_GET['message'] : '';
         }
         
         /* Style for all form labels in item rows */
-.item-row .form-label {
-    font-weight: 600; /* Semi-bold */
-    font-size: 14px;
-    color: #495057;
-    min-width: 100px; /* Ensures labels don't wrap */
-    margin-bottom: 5px;
-    display: block;
-}
+        .item-row .form-label {
+            font-weight: 600; /* Semi-bold */
+            font-size: 14px;
+            color: #495057;
+            min-width: 100px; /* Ensures labels don't wrap */
+            margin-bottom: 5px;
+            display: block;
+        }
 
-/* Adjust column widths for better spacing */
-.item-row .col-md-1 {
-    flex: 0 0 12%; /* Slightly wider than before */
-    max-width: 12%;
-}
+        /* Adjust column widths for better spacing */
+        .item-row .col-md-1 {
+            flex: 0 0 12%; /* Slightly wider than before */
+            max-width: 12%;
+        }
 
-.item-row .col-md-2 {
-    flex: 0 0 18%; /* Adjusted for better alignment */
-    max-width: 18%;
-}
+        .item-row .col-md-2 {
+            flex: 0 0 18%; /* Adjusted for better alignment */
+            max-width: 18%;
+        }
 
-.item-row .col-md-3 {
-    flex: 0 0 25%; /* Wider for item name */
-    max-width: 25%;
-}
-
+        .item-row .col-md-3 {
+            flex: 0 0 25%; /* Wider for item name */
+            max-width: 25%;
+        }
 
         .item-row {
             margin-bottom: 15px;
@@ -615,42 +613,42 @@ $message = isset($_GET['message']) ? $_GET['message'] : '';
         .btn-light:hover {
             background: #e9ecef;
         }
-        /* Add to your existing CSS */
-.modal-content {
-    border-radius: 15px;
-    overflow: hidden;
-    box-shadow: 0 5px 30px rgba(0, 0, 0, 0.3);
-}
+        
+        .modal-content {
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 5px 30px rgba(0, 0, 0, 0.3);
+        }
 
-.modal-header {
-    background: linear-gradient(to right, #667eea, #764ba2);
-    color: white;
-    border-bottom: none;
-}
+        .modal-header {
+            background: linear-gradient(to right, #667eea, #764ba2);
+            color: white;
+            border-bottom: none;
+        }
 
-.modal-title {
-    font-weight: 600;
-}
+        .modal-title {
+            font-weight: 600;
+        }
 
-.modal-body {
-    max-height: 60vh;
-    overflow-y: auto;
-}
+        .modal-body {
+            max-height: 60vh;
+            overflow-y: auto;
+        }
 
-.table {
-    margin-bottom: 0;
-}
+        .table {
+            margin-bottom: 0;
+        }
 
-.table th {
-    font-weight: 600;
-    background-color: #f8f9fa;
-    position: sticky;
-    top: 0;
-}
+        .table th {
+            font-weight: 600;
+            background-color: #f8f9fa;
+            position: sticky;
+            top: 0;
+        }
 
-.item-checkbox {
-    transform: scale(1.3);
-}
+        .item-checkbox {
+            transform: scale(1.3);
+        }
         
         .action-buttons {
             display: flex;
@@ -722,7 +720,7 @@ $message = isset($_GET['message']) ? $_GET['message'] : '';
             transform: translateY(-3px) scale(1.1);
             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
         }
-        /* Add to your existing CSS */
+        
         .table-warning {
             background-color: rgba(255, 193, 7, 0.15) !important;
         }
@@ -905,14 +903,12 @@ $message = isset($_GET['message']) ? $_GET['message'] : '';
             
             <!-- Form for adding items by supplier -->
             <form method="post" action="" id="purchase-form">
-                <!-- Supplier selection textbox with autocomplete -->
+                <!-- Supplier selection button -->
                 <div class="mb-3">
                     <label class="form-label" style="font-size: 17px; font-weight: bold;">Select Supplier</label>
                     <div style="display: flex; gap: 10px;">
-                        <input type="text" id="supplier-name-input" class="form-control" placeholder="Start typing supplier name..." autocomplete="off" style="flex: 1;">
-                        <input type="hidden" id="supplier-id-input">
-                        <button type="button" id="add-supplier" class="btn btn-secondary">
-                            <i class="fas fa-plus"></i> Add Supplier
+                        <button type="button" id="select-supplier-btn" class="btn btn-primary" style="font-size: 17px;">
+                            <i class="fas fa-search"></i> Select Supplier
                         </button>
                     </div>
                 </div>
@@ -943,27 +939,28 @@ $message = isset($_GET['message']) ? $_GET['message'] : '';
     
     <!-- Supplier Section Template (Hidden) -->
     <template id="supplier-template">
-    <div class="supplier-section" data-supplier-id="{SUPPLIER_ID}">
-        <div class="remove-supplier"><i class="fas fa-times"></i></div>
-        <div class="supplier-header">
-            <h3>{SUPPLIER_NAME}</h3>
-            <div class="supplier-actions">
-                <button type="button" class="btn btn-light add-existing-item">
-                    <i class="fas fa-list"></i> Add Existing Item
-                </button>
-                <button type="button" class="btn btn-light add-from-stock">
-                    <i class="fas fa-warehouse"></i> Add From Stock
-                </button>
-                <button type="button" class="btn btn-light add-new-item">
-                    <i class="fas fa-plus"></i> Add New Item
-                </button>
+        <div class="supplier-section" data-supplier-id="{SUPPLIER_ID}">
+            <div class="remove-supplier"><i class="fas fa-times"></i></div>
+            <div class="supplier-header">
+                <h3>{SUPPLIER_NAME}</h3>
+                <!-- Inside the supplier template (around line 1100) -->
+                <div class="supplier-actions">
+                    <button type="button" class="btn btn-light add-existing-item" data-bs-toggle="tooltip" title="Select existing items that were previously purchased">
+                        <i class="fas fa-list"></i> Add Existing Item
+                    </button>
+                    <button type="button" class="btn btn-light add-from-stock" data-bs-toggle="tooltip" title="Select items from current stock inventory">
+                        <i class="fas fa-warehouse"></i> Add From Stock
+                    </button>
+                    <button type="button" class="btn btn-light add-new-item" data-bs-toggle="tooltip" title="Add completely new items not in stock">
+                        <i class="fas fa-plus"></i> Add New Item
+                    </button>
+                </div>
+            </div>
+            <div class="items-container">
+                <!-- Items for this supplier will be added here -->
             </div>
         </div>
-        <div class="items-container">
-            <!-- Items for this supplier will be added here -->
-        </div>
-    </div>
-</template>
+    </template>
     
     <!-- New Item Row Template (Hidden) -->
     <template id="new-item-template">
@@ -1014,7 +1011,6 @@ $message = isset($_GET['message']) ? $_GET['message'] : '';
                             <option value="box">Box</option>
                             <option value="sachet">Sachet</option>
                             <option value="bars">Bars</option>
-                           
                         </select>
                     </div>
                 </div>
@@ -1137,14 +1133,93 @@ $message = isset($_GET['message']) ? $_GET['message'] : '';
         </div>
     </template>
 
+    <!-- Supplier Selection Modal -->
+    <div class="modal fade" id="supplierSelectionModal" tabindex="-1" aria-labelledby="supplierSelectionModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="supplierSelectionModalLabel">Select Suppliers</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <input type="text" id="supplier-search" class="form-control" placeholder="Search suppliers...">
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="suppliersTable">
+                            <thead>
+                                <tr>
+                                    <th>Select</th>
+                                    <th>Supplier Name</th>
+                                    <th>Supplier ID</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($suppliers as $supplier): ?>
+                                <tr>
+                                    <td><input type="checkbox" class="supplier-checkbox" data-supplier-id="<?php echo $supplier['supplier_id']; ?>" data-supplier-name="<?php echo $supplier['supplier_name']; ?>"></td>
+                                    <td><?php echo $supplier['supplier_name']; ?></td>
+                                    <td><?php echo $supplier['supplier_id']; ?></td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="add-selected-suppliers">Add Selected Suppliers</button>
+                </div>
+            </div>
+        </div>
+    </div>
     
-<a href="home.php" class="btn btn-primary floating-btn animate__animated animate__fadeInUp">
+    <!-- Stock Items Modal -->
+    <div class="modal fade" id="stockItemsModal" tabindex="-1" aria-labelledby="stockItemsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="stockItemsModalLabel">
+                        Select Items From Stock 
+                        <span class="badge bg-warning text-dark ms-2">
+                            <i class="fas fa-exclamation-triangle"></i> Low Stock Items Highlighted
+                        </span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="stockItemsTable">
+                            <thead>
+                                <tr>
+                                    <th>Select</th>
+                                    <th>Item Name</th>
+                                    <th>Item Code</th>
+                                    <th>Price/Unit</th>
+                                    <th>Current Qty</th>
+                                    <th>Unit</th>
+                                    <th>Unit Size</th>
+                                    <th>Type</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Stock items will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="addSelectedItems">Add Selected Items</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <a href="home.php" class="btn btn-primary floating-btn">
         <i class="fas fa-home"></i>
     </a>
-    <!-- jQuery -->
-     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
-    <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+    
     <script>
         $(document).ready(function() {
             let supplierCounts = {}; // Track item count per supplier
@@ -1156,152 +1231,143 @@ $message = isset($_GET['message']) ? $_GET['message'] : '';
             supplierNames['<?php echo $supplier['supplier_id']; ?>'] = '<?php echo $supplier['supplier_name']; ?>';
             <?php endforeach; ?>
 
-            // Restore suppliers state if returning from select_items.php
-function restoreSupplierState() {
-    try {
-        const savedSuppliers = sessionStorage.getItem('currentSuppliers');
-        const savedCounts = sessionStorage.getItem('supplierCounts');
-        
-        if (savedSuppliers && savedCounts) {
-            const suppliers = JSON.parse(savedSuppliers);
-            supplierCounts = JSON.parse(savedCounts);
-            
-            suppliers.forEach(supplier => {
-                // Check if supplier section already exists
-                if ($('.supplier-section[data-supplier-id="' + supplier.id + '"]').length === 0) {
-                    // Add supplier section
+            // Initialize modals
+            const supplierSelectionModal = new bootstrap.Modal(document.getElementById('supplierSelectionModal'));
+            const stockItemsModal = new bootstrap.Modal(document.getElementById('stockItemsModal'));
+
+            // Show supplier selection modal
+            $('#select-supplier-btn').click(function() {
+                supplierSelectionModal.show();
+            });
+
+            // Supplier search functionality
+            $('#supplier-search').on('keyup', function() {
+                const value = $(this).val().toLowerCase();
+                $('#suppliersTable tbody tr').filter(function() {
+                    $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
+                });
+            });
+
+            // Add selected suppliers
+            $('#add-selected-suppliers').click(function() {
+                $('.supplier-checkbox:checked').each(function() {
+                    const supplierId = $(this).data('supplier-id');
+                    const supplierName = $(this).data('supplier-name');
+                    
+                    // Check if supplier already added
+                    if ($('.supplier-section[data-supplier-id="' + supplierId + '"]').length > 0) {
+                        return true; // continue to next iteration
+                    }
+                    
+                    // Initialize item count for this supplier
+                    if (!supplierCounts[supplierId]) {
+                        supplierCounts[supplierId] = 0;
+                    }
+                    
+                    // Clone supplier template
                     const template = document.getElementById('supplier-template').innerHTML;
                     let supplierSection = template
-                        .replace(/{SUPPLIER_ID}/g, supplier.id)
-                        .replace(/{SUPPLIER_NAME}/g, supplier.name);
+                        .replace(/{SUPPLIER_ID}/g, supplierId)
+                        .replace(/{SUPPLIER_NAME}/g, supplierName);
                     
+                    // Add to container
                     $('#suppliers-container').append(supplierSection);
-                }
-                
-                // Restore items for this supplier
-                const supplierSection = $('.supplier-section[data-supplier-id="' + supplier.id + '"]');
-                const itemsContainer = supplierSection.find('.items-container');
-                
-                supplier.items.forEach(item => {
-                    let template, newItemRow;
                     
-                    if (item.is_existing) {
-                        template = document.getElementById('existing-item-template').innerHTML;
-                        // You'll need to fetch and populate the item options here
-                        newItemRow = template
-                            .replace(/{SUPPLIER_ID}/g, supplier.id)
-                            .replace(/{ITEM_INDEX}/g, supplierCounts[supplier.id] || 0)
-                            .replace(/{CURRENT_DATE}/g, currentDate)
-                            .replace(/{ITEM_OPTIONS}/g, ''); // Will be populated by fetchSupplierItems
-                    } else {
-                        template = document.getElementById('new-item-template').innerHTML;
-                        newItemRow = template
-                            .replace(/{SUPPLIER_ID}/g, supplier.id)
-                            .replace(/{ITEM_INDEX}/g, supplierCounts[supplier.id] || 0)
-                            .replace(/{CURRENT_DATE}/g, currentDate);
-                    }
+                    // Ensure the data attribute is properly set
+                    $('.supplier-section[data-supplier-id="' + supplierId + '"]').attr('data-supplier-id', supplierId);
                     
-                    itemsContainer.append(newItemRow);
-                    
-                    // Set values for the restored item
-                    const newRow = itemsContainer.find('.item-row').last();
-                    if (item.is_existing) {
-                        newRow.find('.existing-item-select').val(item.item_name);
-                    } else {
-                        newRow.find('.item-name').val(item.item_name);
-                    }
-                    newRow.find('input[name*="[quantity]"]').val(item.quantity);
-                    newRow.find('input[name*="[unit_size]"]').val(item.unit_size);
-                    newRow.find('.price-per-unit').val(item.price_per_unit);
-                    newRow.find('.unit-select').val(item.unit);
-                    newRow.find('select[name*="[type]"]').val(item.type);
-                    newRow.find('input[name*="[purchase_date]"]').val(item.purchase_date);
-                    newRow.find('input[name*="[expire_date]"]').val(item.expire_date);
-                    
-                    // Increment item count
-                    if (!supplierCounts[supplier.id]) {
-                        supplierCounts[supplier.id] = 0;
-                    }
-                    supplierCounts[supplier.id]++;
+                    // Fetch existing items for this supplier
+                    fetchSupplierItems(supplierId);
                 });
                 
-                // Fetch existing items for this supplier (for existing item dropdowns)
-                fetchSupplierItems(supplier.id);
+                // Hide the modal
+                supplierSelectionModal.hide();
             });
-            
-            // Clear the stored state
-            sessionStorage.removeItem('currentSuppliers');
-            sessionStorage.removeItem('supplierCounts');
-        }
-    } catch(e) {
-        console.log('Error restoring supplier state:', e);
-    }
-}
 
-// Call restore function on page load
-restoreSupplierState();
-            
-            // Autocomplete for supplier name
-            $("#supplier-name-input").autocomplete({
-                source: function(request, response) {
-                    $.get(window.location.pathname, {
-                        search_supplier: request.term
-                    }, function(data) {
-                        response($.map(data, function(item) {
-                            return {
-                                label: item.supplier_name + ' (ID: ' + item.supplier_id + ')',
-                                value: item.supplier_name,
-                                id: item.supplier_id
-                            };
-                        }));
-                    }, 'json');
-                },
-                minLength: 2,
-                select: function(event, ui) {
-                    $("#supplier-id-input").val(ui.item.id);
-                    $("#supplier-name-input").val(ui.item.value);
-                    return false;
-                },
-                focus: function(event, ui) {
-                    $("#supplier-name-input").val(ui.item.label);
-                    return false;
+            // Restore suppliers state if returning from select_items.php
+            function restoreSupplierState() {
+                try {
+                    const savedSuppliers = sessionStorage.getItem('currentSuppliers');
+                    const savedCounts = sessionStorage.getItem('supplierCounts');
+                    
+                    if (savedSuppliers && savedCounts) {
+                        const suppliers = JSON.parse(savedSuppliers);
+                        supplierCounts = JSON.parse(savedCounts);
+                        
+                        suppliers.forEach(supplier => {
+                            // Check if supplier section already exists
+                            if ($('.supplier-section[data-supplier-id="' + supplier.id + '"]').length === 0) {
+                                // Add supplier section
+                                const template = document.getElementById('supplier-template').innerHTML;
+                                let supplierSection = template
+                                    .replace(/{SUPPLIER_ID}/g, supplier.id)
+                                    .replace(/{SUPPLIER_NAME}/g, supplier.name);
+                                
+                                $('#suppliers-container').append(supplierSection);
+                            }
+                            
+                            // Restore items for this supplier
+                            const supplierSection = $('.supplier-section[data-supplier-id="' + supplier.id + '"]');
+                            const itemsContainer = supplierSection.find('.items-container');
+                            
+                            supplier.items.forEach(item => {
+                                let template, newItemRow;
+                                
+                                if (item.is_existing) {
+                                    template = document.getElementById('existing-item-template').innerHTML;
+                                    // You'll need to fetch and populate the item options here
+                                    newItemRow = template
+                                        .replace(/{SUPPLIER_ID}/g, supplier.id)
+                                        .replace(/{ITEM_INDEX}/g, supplierCounts[supplier.id] || 0)
+                                        .replace(/{CURRENT_DATE}/g, currentDate)
+                                        .replace(/{ITEM_OPTIONS}/g, ''); // Will be populated by fetchSupplierItems
+                                } else {
+                                    template = document.getElementById('new-item-template').innerHTML;
+                                    newItemRow = template
+                                        .replace(/{SUPPLIER_ID}/g, supplier.id)
+                                        .replace(/{ITEM_INDEX}/g, supplierCounts[supplier.id] || 0)
+                                        .replace(/{CURRENT_DATE}/g, currentDate);
+                                }
+                                
+                                itemsContainer.append(newItemRow);
+                                
+                                // Set values for the restored item
+                                const newRow = itemsContainer.find('.item-row').last();
+                                if (item.is_existing) {
+                                    newRow.find('.existing-item-select').val(item.item_name);
+                                } else {
+                                    newRow.find('.item-name').val(item.item_name);
+                                }
+                                newRow.find('input[name*="[quantity]"]').val(item.quantity);
+                                newRow.find('input[name*="[unit_size]"]').val(item.unit_size);
+                                newRow.find('.price-per-unit').val(item.price_per_unit);
+                                newRow.find('.unit-select').val(item.unit);
+                                newRow.find('select[name*="[type]"]').val(item.type);
+                                newRow.find('input[name*="[purchase_date]"]').val(item.purchase_date);
+                                newRow.find('input[name*="[expire_date]"]').val(item.expire_date);
+                                
+                                // Increment item count
+                                if (!supplierCounts[supplier.id]) {
+                                    supplierCounts[supplier.id] = 0;
+                                }
+                                supplierCounts[supplier.id]++;
+                            });
+                            
+                            // Fetch existing items for this supplier (for existing item dropdowns)
+                            fetchSupplierItems(supplier.id);
+                        });
+                        
+                        // Clear the stored state
+                        sessionStorage.removeItem('currentSuppliers');
+                        sessionStorage.removeItem('supplierCounts');
+                    }
+                } catch(e) {
+                    console.log('Error restoring supplier state:', e);
                 }
-            });
-            
-            // Add supplier section when button is clicked
-            $('#add-supplier').click(function() {
-                const supplierId = $('#supplier-id-input').val();
-                const supplierName = $('#supplier-name-input').val();
-                if (supplierId === '' || supplierName === '') {
-                    showAlert('Please select a supplier from the suggestions', 'error');
-                    return;
-                }
-                // Check if supplier already added
-                if ($('.supplier-section[data-supplier-id="' + supplierId + '"]').length > 0) {
-                    showAlert('This supplier is already added', 'error');
-                    return;
-                }
-                // Initialize item count for this supplier
-                if (!supplierCounts[supplierId]) {
-                    supplierCounts[supplierId] = 0;
-                }
-                // Clone supplier template
-                const template = document.getElementById('supplier-template').innerHTML;
-                let supplierSection = template
-                    .replace(/{SUPPLIER_ID}/g, supplierId)
-                    .replace(/{SUPPLIER_NAME}/g, supplierName);
-                // Add to container
-               // Add to container
-$('#suppliers-container').append(supplierSection);
+            }
 
-// Ensure the data attribute is properly set
-$('.supplier-section[data-supplier-id="' + supplierId + '"]').attr('data-supplier-id', supplierId);
-                // Reset input fields
-                $('#supplier-name-input').val('');
-                $('#supplier-id-input').val('');
-                // Fetch existing items for this supplier
-                fetchSupplierItems(supplierId);
-            });
+            // Call restore function on page load
+            restoreSupplierState();
             
             // Fetch supplier items for existing items dropdown
             function fetchSupplierItems(supplierId) {
@@ -1344,10 +1410,7 @@ $('.supplier-section[data-supplier-id="' + supplierId + '"]').attr('data-supplie
                     }
                 });
             }
-            // --- Modal instance for stock items ---
-            // Create a single modal instance for #stockItemsModal
-            const stockItemsModal = new bootstrap.Modal(document.getElementById('stockItemsModal'));
-
+            
             // Add from stock button click handler
             $(document).on('click', '.add-from-stock', function() {
                 const supplierSection = $(this).closest('.supplier-section');
@@ -1485,63 +1548,65 @@ $('.supplier-section[data-supplier-id="' + supplierId + '"]').attr('data-supplie
             });
 
             // Initialize tooltips for low stock items
-const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-tooltipTriggerList.map(function (tooltipTriggerEl) {
-    return new bootstrap.Tooltip(tooltipTriggerEl);
-});
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+
+           
+
             
             // Add existing item to supplier - redirect to selection page
-            // Add existing item to supplier - redirect to selection page
-$(document).on('click', '.add-existing-item', function() {
-    const supplierSection = $(this).closest('.supplier-section');
-    const supplierId = supplierSection.data('supplier-id');
-    const supplierName = supplierSection.find('.supplier-header h3').text();
-    
-    // Store current suppliers state in session storage (fallback to localStorage for persistence)
-    const currentSuppliers = [];
-    $('.supplier-section').each(function() {
-        const section = $(this);
-        const id = section.data('supplier-id');
-        const name = section.find('.supplier-header h3').text();
-        const items = [];
-        
-        // Collect existing items in this supplier section
-        section.find('.item-row').each(function() {
-            const itemRow = $(this);
-            const itemData = {
-                item_name: itemRow.find('.item-name, .existing-item-select').val(),
-                quantity: itemRow.find('input[name*="[quantity]"]').val(),
-                unit_size: itemRow.find('input[name*="[unit_size]"]').val(),
-                price_per_unit: itemRow.find('.price-per-unit').val(),
-                unit: itemRow.find('.unit-select').val(),
-                type: itemRow.find('select[name*="[type]"]').val(),
-                purchase_date: itemRow.find('input[name*="[purchase_date]"]').val(),
-                expire_date: itemRow.find('input[name*="[expire_date]"]').val(),
-                is_existing: itemRow.find('.existing-item-select').length > 0
-            };
-            if (itemData.item_name) {
-                items.push(itemData);
-            }
-        });
-        
-        currentSuppliers.push({
-            id: id,
-            name: name,
-            items: items
-        });
-    });
-    
-    // Store in sessionStorage
-    try {
-        sessionStorage.setItem('currentSuppliers', JSON.stringify(currentSuppliers));
-        sessionStorage.setItem('supplierCounts', JSON.stringify(supplierCounts));
-    } catch(e) {
-        console.log('SessionStorage not available, state may not persist');
-    }
+            $(document).on('click', '.add-existing-item', function() {
+                const supplierSection = $(this).closest('.supplier-section');
+                const supplierId = supplierSection.data('supplier-id');
+                const supplierName = supplierSection.find('.supplier-header h3').text();
+                
+                // Store current suppliers state in session storage (fallback to localStorage for persistence)
+                const currentSuppliers = [];
+                $('.supplier-section').each(function() {
+                    const section = $(this);
+                    const id = section.data('supplier-id');
+                    const name = section.find('.supplier-header h3').text();
+                    const items = [];
+                    
+                    // Collect existing items in this supplier section
+                    section.find('.item-row').each(function() {
+                        const itemRow = $(this);
+                        const itemData = {
+                            item_name: itemRow.find('.item-name, .existing-item-select').val(),
+                            quantity: itemRow.find('input[name*="[quantity]"]').val(),
+                            unit_size: itemRow.find('input[name*="[unit_size]"]').val(),
+                            price_per_unit: itemRow.find('.price-per-unit').val(),
+                            unit: itemRow.find('.unit-select').val(),
+                            type: itemRow.find('select[name*="[type]"]').val(),
+                            purchase_date: itemRow.find('input[name*="[purchase_date]"]').val(),
+                            expire_date: itemRow.find('input[name*="[expire_date]"]').val(),
+                            is_existing: itemRow.find('.existing-item-select').length > 0
+                        };
+                        if (itemData.item_name) {
+                            items.push(itemData);
+                        }
+                    });
+                    
+                    currentSuppliers.push({
+                        id: id,
+                        name: name,
+                        items: items
+                    });
+                });
+                
+                // Store in sessionStorage
+                try {
+                    sessionStorage.setItem('currentSuppliers', JSON.stringify(currentSuppliers));
+                    sessionStorage.setItem('supplierCounts', JSON.stringify(supplierCounts));
+                } catch(e) {
+                    console.log('SessionStorage not available, state may not persist');
+                }
 
-    // Redirect to select items page with supplier name
-    window.location.href = `select_items.php?supplier_id=${supplierId}&supplier_name=${encodeURIComponent(supplierName)}&return_url=${encodeURIComponent(window.location.href)}`;
-});
+                // Redirect to select items page with supplier name
+                window.location.href = `select_items.php?supplier_id=${supplierId}&supplier_name=${encodeURIComponent(supplierName)}&return_url=${encodeURIComponent(window.location.href)}`;
+            });
             
             // Check for returned items from selection
             <?php if (isset($_SESSION['selected_items'])): ?>
