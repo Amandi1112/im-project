@@ -110,10 +110,10 @@ if (isset($_POST['generate_pdf'])) {
     require_once('fpdf/fpdf.php'); // Make sure FPDF is installed
     
     class PDF extends FPDF {
-        private $companyName = "YOUR COMPANY NAME";
-        private $companyAddress = "123 Business Street, City, State 12345";
-        private $companyPhone = "+1 (555) 123-4567";
-        private $companyEmail = "procurement@yourcompany.com";
+        private $companyName = "T&C CO-OP City Shop";
+        private $companyAddress = "Pahala Karawita, Karawita";
+        private $companyPhone = "+94 11 23456789";
+        private $companyEmail = "co_op@sanasa.com";
         
         function Header() {
             // Company Logo placeholder (add your logo here)
@@ -180,7 +180,7 @@ if (isset($_POST['generate_pdf'])) {
         function supplierSection($supplierName, $contact, $address) {
             // Supplier Information Box
             $this->SetFont('Arial', 'B', 12);
-            $this->SetFillColor(51, 51, 51);
+            $this->SetFillColor(23, 37, 84);
             $this->SetTextColor(255, 255, 255);
             $this->Cell(190, 8, 'SUPPLIER INFORMATION', 1, 1, 'L', true);
             
@@ -210,7 +210,7 @@ if (isset($_POST['generate_pdf'])) {
         
         function itemTableHeader() {
             $this->SetFont('Arial', 'B', 9);
-            $this->SetFillColor(51, 51, 51);
+            $this->SetFillColor(23, 37, 84);
             $this->SetTextColor(255, 255, 255);
             $this->SetDrawColor(51, 51, 51);
             
@@ -260,11 +260,10 @@ if (isset($_POST['generate_pdf'])) {
         
         function grandTotal($total) {
             $this->SetFont('Arial', 'B', 12);
-            $this->SetFillColor(51, 51, 51);
+            $this->SetFillColor(23, 37, 84);
             $this->SetTextColor(255, 255, 255);
-            $this->Cell(131, 10, 'GRAND TOTAL:', 1, 0, 'R', true);
-            $this->Cell(20, 10, 'LKR ' . number_format($total, 2), 1, 0, 'R', true);
-            $this->Cell(29, 10, '', 1, 1, 'C', true);
+            $this->Cell(140, 10, 'Grand Total:', 1, 0, 'R', true);
+            $this->Cell(49, 10, 'Rs. ' . number_format($total, 2), 1, 1, 'R', true);
         }
     }
     
