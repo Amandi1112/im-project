@@ -109,163 +109,172 @@ $currentFilter = isset($_GET['filter']) ? $_GET['filter'] : 'all';
 if (isset($_POST['generate_pdf'])) {
     require_once('fpdf/fpdf.php'); // Make sure FPDF is installed
     
-    class PDF extends FPDF {
-        private $companyName = "T&C CO-OP City Shop";
-        private $companyAddress = "Pahala Karawita, Karawita";
-        private $companyPhone = "+94 11 23456789";
-        private $companyEmail = "co_op@sanasa.com";
+class PDF extends FPDF {
+    private $companyName = "T&C CO-OP City Shop";
+    private $companyAddress = "Pahala Karawita, Karawita";
+    private $companyPhone = "+94 11 23456789";
+    private $companyEmail = "co_op@sanasa.com";
+    
+    function Header() {
+        // Company Logo placeholder (add your logo here)
+        // $this->Image('logo.png', 10, 6, 30);
         
-        function Header() {
-            // Company Logo placeholder (add your logo here)
-            // $this->Image('logo.png', 10, 6, 30);
-            
-            // Company Information
-            $this->SetFont('Arial', 'B', 20);
-            $this->SetTextColor(51, 51, 51);
-            $this->Cell(0, 10, $this->companyName, 0, 1, 'L');
-            
-            $this->SetFont('Arial', '', 9);
-            $this->SetTextColor(102, 102, 102);
-            $this->Cell(0, 4, $this->companyAddress, 0, 1, 'L');
-            $this->Cell(0, 4, 'Phone: ' . $this->companyPhone . ' | Email: ' . $this->companyEmail, 0, 1, 'L');
-            
-            // Horizontal line
-            $this->SetDrawColor(51, 51, 51);
-            $this->Line(10, 35, 200, 35);
-            
-            // Document title
-            $this->Ln(8);
-            $this->SetFont('Arial', 'B', 24);
-            $this->SetTextColor(51, 51, 51);
-            $this->Cell(0, 12, 'PURCHASE ORDER', 0, 1, 'C');
-            
-            // Document info box
-            $this->SetFont('Arial', 'B', 10);
-            $this->SetFillColor(240, 240, 240);
-            $this->SetTextColor(51, 51, 51);
-            
-            // PO Number and Date
-            $poNumber = 'PO-' . date('Ymd') . '-' . str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT);
-            $this->Cell(95, 6, 'Purchase Order Number:', 1, 0, 'L', true);
-            $this->SetFont('Arial', '', 10);
-            $this->Cell(95, 6, $poNumber, 1, 1, 'L');
-            
-            $this->SetFont('Arial', 'B', 10);
-            $this->Cell(95, 6, 'Date:', 1, 0, 'L', true);
-            $this->SetFont('Arial', '', 10);
-            $this->Cell(95, 6, date('F j, Y'), 1, 1, 'L');
-            
-            $this->SetFont('Arial', 'B', 10);
-            $this->Cell(95, 6, 'Delivery Required By:', 1, 0, 'L', true);
-            $this->SetFont('Arial', '', 10);
-            $this->Cell(95, 6, date('F j, Y', strtotime('+14 days')), 1, 1, 'L');
-            
-            $this->Ln(5);
-        }
+        // Company Information
+        $this->SetFont('Arial', 'B', 20);
+        $this->SetTextColor(51, 51, 51);
+        $this->Cell(0, 10, $this->companyName, 0, 1, 'L');
         
-        function Footer() {
-            $this->SetY(-25);
-            
-            // Footer line
-            $this->SetDrawColor(51, 51, 51);
-            $this->Line(10, $this->GetY(), 200, $this->GetY());
-            
-            $this->Ln(2);
-            $this->SetFont('Arial', 'I', 8);
-            $this->SetTextColor(102, 102, 102);
-            $this->Cell(0, 4, 'This is a computer-generated purchase order and does not require a signature.', 0, 1, 'C');
-            $this->Cell(0, 4, 'Page ' . $this->PageNo() . ' of {nb}', 0, 0, 'C');
-        }
+        $this->SetFont('Arial', '', 9);
+        $this->SetTextColor(102, 102, 102);
+        $this->Cell(0, 4, $this->companyAddress, 0, 1, 'L');
+        $this->Cell(0, 4, 'Phone: ' . $this->companyPhone . ' | Email: ' . $this->companyEmail, 0, 1, 'L');
         
-        function supplierSection($supplierName, $contact, $address) {
-            // Supplier Information Box
-            $this->SetFont('Arial', 'B', 12);
-            $this->SetFillColor(23, 37, 84);
-            $this->SetTextColor(255, 255, 255);
-            $this->Cell(190, 8, 'SUPPLIER INFORMATION', 1, 1, 'L', true);
-            
-            $this->SetFont('Arial', 'B', 11);
-            $this->SetFillColor(248, 248, 248);
-            $this->SetTextColor(51, 51, 51);
-            $this->Cell(40, 6, 'Supplier Name:', 1, 0, 'L', true);
-            $this->SetFont('Arial', '', 11);
-            $this->Cell(150, 6, $supplierName, 1, 1, 'L');
-            
-            if (!empty($contact)) {
-                $this->SetFont('Arial', 'B', 11);
-                $this->Cell(40, 6, 'Contact:', 1, 0, 'L', true);
-                $this->SetFont('Arial', '', 11);
-                $this->Cell(150, 6, $contact, 1, 1, 'L');
-            }
-            
-            if (!empty($address)) {
-                $this->SetFont('Arial', 'B', 11);
-                $this->Cell(40, 6, 'Address:', 1, 0, 'L', true);
-                $this->SetFont('Arial', '', 11);
-                $this->Cell(150, 6, $address, 1, 1, 'L');
-            }
-            
-            $this->Ln(3);
-        }
+        // Horizontal line
+        $this->SetDrawColor(51, 51, 51);
+        $this->Line(10, 35, 200, 35);
         
-        function itemTableHeader() {
-            $this->SetFont('Arial', 'B', 9);
-            $this->SetFillColor(23, 37, 84);
-            $this->SetTextColor(255, 255, 255);
-            $this->SetDrawColor(51, 51, 51);
-            
-            $this->Cell(20, 8, 'Item Code', 1, 0, 'C', true);
-            $this->Cell(55, 8, 'Item Description', 1, 0, 'C', true);
-            $this->Cell(18, 8, 'Current', 1, 0, 'C', true);
-            $this->Cell(18, 8, 'Order Qty', 1, 0, 'C', true);
-            $this->Cell(20, 8, 'Unit Price', 1, 0, 'C', true);
-            $this->Cell(20, 8, 'Total', 1, 0, 'C', true);
-            $this->Cell(15, 8, 'Unit', 1, 0, 'C', true);
-            $this->Cell(14, 8, 'Type', 1, 1, 'C', true);
-        }
+        // Document title
+        $this->Ln(8);
+        $this->SetFont('Arial', 'B', 24);
+        $this->SetTextColor(51, 51, 51);
+        $this->Cell(0, 12, 'PURCHASE ORDER', 0, 1, 'C');
         
-        function itemRow($item, $orderQty, $isAlternate = false) {
-            $this->SetFont('Arial', '', 8);
-            $this->SetTextColor(51, 51, 51);
-            $this->SetDrawColor(200, 200, 200);
-            
-            if ($isAlternate) {
-                $this->SetFillColor(250, 250, 250);
-            } else {
-                $this->SetFillColor(255, 255, 255);
-            }
-            
-            $itemTotal = $orderQty * $item['price_per_unit'];
-            
-            $this->Cell(20, 7, $item['item_code'], 1, 0, 'C', true);
-            $this->Cell(55, 7, substr($item['item_name'], 0, 35), 1, 0, 'L', true);
-            $this->Cell(18, 7, $item['current_quantity'], 1, 0, 'C', true);
-            $this->Cell(18, 7, $orderQty, 1, 0, 'C', true);
-            $this->Cell(20, 7, 'LKR ' . number_format($item['price_per_unit'], 2), 1, 0, 'R', true);
-            $this->Cell(20, 7, 'LKR ' . number_format($itemTotal, 2), 1, 0, 'R', true);
-            $this->Cell(15, 7, $item['unit'], 1, 0, 'C', true);
-            $this->Cell(14, 7, $item['type'], 1, 1, 'C', true);
-            
-            return $itemTotal;
-        }
+        // Document info box
+        $this->SetFont('Arial', 'B', 10);
+        $this->SetFillColor(240, 240, 240);
+        $this->SetTextColor(51, 51, 51);
         
-        function supplierTotal($total) {
-            $this->SetFont('Arial', 'B', 10);
-            $this->SetFillColor(240, 240, 240);
-            $this->SetTextColor(51, 51, 51);
-            $this->Cell(131, 8, 'Supplier Subtotal:', 1, 0, 'R', true);
-            $this->Cell(20, 8, 'LKR ' . number_format($total, 2), 1, 0, 'R', true);
-            $this->Cell(29, 8, '', 1, 1, 'C', true);
-        }
+        // PO Number and Date
+        $poNumber = 'PO-' . date('Ymd') . '-' . str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT);
+        $this->Cell(95, 6, 'Purchase Order Number:', 1, 0, 'L', true);
+        $this->SetFont('Arial', '', 10);
+        $this->Cell(95, 6, $poNumber, 1, 1, 'L');
         
-        function grandTotal($total) {
-            $this->SetFont('Arial', 'B', 12);
-            $this->SetFillColor(23, 37, 84);
-            $this->SetTextColor(255, 255, 255);
-            $this->Cell(140, 10, 'Grand Total:', 1, 0, 'R', true);
-            $this->Cell(49, 10, 'Rs. ' . number_format($total, 2), 1, 1, 'R', true);
-        }
+        $this->SetFont('Arial', 'B', 10);
+        $this->Cell(95, 6, 'Date:', 1, 0, 'L', true);
+        $this->SetFont('Arial', '', 10);
+        $this->Cell(95, 6, date('F j, Y'), 1, 1, 'L');
+        
+        $this->SetFont('Arial', 'B', 10);
+        $this->Cell(95, 6, 'Delivery Required By:', 1, 0, 'L', true);
+        $this->SetFont('Arial', '', 10);
+        $this->Cell(95, 6, date('F j, Y', strtotime('+14 days')), 1, 1, 'L');
+        
+        $this->Ln(5);
     }
+    
+    function Footer() {
+        $this->SetY(-25);
+        
+        // Footer line
+        $this->SetDrawColor(51, 51, 51);
+        $this->Line(10, $this->GetY(), 200, $this->GetY());
+        
+        $this->Ln(2);
+        $this->SetFont('Arial', 'I', 8);
+        $this->SetTextColor(102, 102, 102);
+        $this->Cell(0, 4, 'This is a computer-generated purchase order and does not require a signature.', 0, 1, 'C');
+        $this->Cell(0, 4, 'Page ' . $this->PageNo() . ' of {nb}', 0, 0, 'C');
+    }
+    
+    function supplierSection($supplierName, $contact, $address) {
+        // Supplier Information Box
+        $this->SetFont('Arial', 'B', 12);
+        $this->SetFillColor(23, 37, 84);
+        $this->SetTextColor(255, 255, 255);
+        $this->Cell(190, 8, 'SUPPLIER INFORMATION', 1, 1, 'L', true);
+        
+        $this->SetFont('Arial', 'B', 11);
+        $this->SetFillColor(248, 248, 248);
+        $this->SetTextColor(51, 51, 51);
+        $this->Cell(40, 6, 'Supplier Name:', 1, 0, 'L', true);
+        $this->SetFont('Arial', '', 11);
+        $this->Cell(150, 6, $supplierName, 1, 1, 'L');
+        
+        if (!empty($contact)) {
+            $this->SetFont('Arial', 'B', 11);
+            $this->Cell(40, 6, 'Contact:', 1, 0, 'L', true);
+            $this->SetFont('Arial', '', 11);
+            $this->Cell(150, 6, $contact, 1, 1, 'L');
+        }
+        
+        if (!empty($address)) {
+            $this->SetFont('Arial', 'B', 11);
+            $this->Cell(40, 6, 'Address:', 1, 0, 'L', true);
+            $this->SetFont('Arial', '', 11);
+            $this->Cell(150, 6, $address, 1, 1, 'L');
+        }
+        
+        $this->Ln(3);
+    }
+    
+    function itemTableHeader() {
+        $this->SetFont('Arial', 'B', 9);
+        $this->SetFillColor(23, 37, 84);
+        $this->SetTextColor(255, 255, 255);
+        $this->SetDrawColor(51, 51, 51);
+        
+        // Adjusted column widths for better alignment
+        $this->Cell(20, 8, 'Item Code', 1, 0, 'C', true);
+        $this->Cell(60, 8, 'Item Description', 1, 0, 'C', true);
+        $this->Cell(15, 8, 'Current', 1, 0, 'C', true);
+        $this->Cell(15, 8, 'Order Qty', 1, 0, 'C', true);
+        $this->Cell(25, 8, 'Unit Price', 1, 0, 'C', true);
+        $this->Cell(25, 8, 'Total', 1, 0, 'C', true);
+        $this->Cell(15, 8, 'Unit', 1, 0, 'C', true);
+        $this->Cell(15, 8, 'Type', 1, 1, 'C', true);
+    }
+    
+    function itemRow($item, $orderQty, $isAlternate = false) {
+        $this->SetFont('Arial', '', 8);
+        $this->SetTextColor(51, 51, 51);
+        $this->SetDrawColor(200, 200, 200);
+        
+        if ($isAlternate) {
+            $this->SetFillColor(250, 250, 250);
+        } else {
+            $this->SetFillColor(255, 255, 255);
+        }
+        
+        $itemTotal = $orderQty * $item['price_per_unit'];
+        
+        // Adjusted column widths to match header
+        $this->Cell(20, 7, $item['item_code'], 1, 0, 'C', true);
+        $this->Cell(60, 7, $this->shortenText($item['item_name'], 35), 1, 0, 'L', true);
+        $this->Cell(15, 7, $item['current_quantity'], 1, 0, 'C', true);
+        $this->Cell(15, 7, $orderQty, 1, 0, 'C', true);
+        $this->Cell(25, 7, 'LKR ' . number_format($item['price_per_unit'], 2), 1, 0, 'R', true);
+        $this->Cell(25, 7, 'LKR ' . number_format($itemTotal, 2), 1, 0, 'R', true);
+        $this->Cell(15, 7, $item['unit'], 1, 0, 'C', true);
+        $this->Cell(15, 7, $item['type'], 1, 1, 'C', true);
+        
+        return $itemTotal;
+    }
+    
+    function shortenText($text, $maxLength) {
+        if (strlen($text) > $maxLength) {
+            return substr($text, 0, $maxLength) . '...';
+        }
+        return $text;
+    }
+    
+    function supplierTotal($total) {
+        $this->SetFont('Arial', 'B', 10);
+        $this->SetFillColor(240, 240, 240);
+        $this->SetTextColor(51, 51, 51);
+        $this->Cell(135, 8, 'Supplier Subtotal:', 1, 0, 'R', true);
+        $this->Cell(25, 8, 'LKR ' . number_format($total, 2), 1, 0, 'R', true);
+        $this->Cell(30, 8, '', 1, 1, 'C', true);
+    }
+    
+    function grandTotal($total) {
+        $this->SetFont('Arial', 'B', 12);
+        $this->SetFillColor(23, 37, 84);
+        $this->SetTextColor(255, 255, 255);
+        $this->Cell(150, 10, 'Grand Total:', 1, 0, 'R', true);
+        $this->Cell(40, 10, 'Rs. ' . number_format($total, 2), 1, 1, 'R', true);
+    }
+}
     
     $pdf = new PDF();
     $pdf->AliasNbPages();

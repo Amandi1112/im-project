@@ -31,6 +31,30 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             header("Location: ".$_SERVER['PHP_SELF']);
             exit();
         }
+    } elseif (isset($_POST['action']) && $_POST['action'] == 'update') {
+        // Update Supplier
+        $supplier_id = $_POST['supplier_id'];
+        $supplier_name = $_POST['supplier_name'];
+        $address = $_POST['address'];
+        $nic = $_POST['nic'];
+        $contact_number = $_POST['contact_number'];
+        
+        $sql = "UPDATE supplier SET 
+                supplier_name = '$supplier_name',
+                address = '$address',
+                nic = '$nic',
+                contact_number = '$contact_number'
+                WHERE supplier_id = '$supplier_id'";
+        
+        if ($conn->query($sql)) {
+            $_SESSION['success'] = "Supplier updated successfully!";
+            header("Location: ".$_SERVER['PHP_SELF']);
+            exit();
+        } else {
+            $_SESSION['error'] = "Error updating supplier: " . $conn->error;
+            header("Location: ".$_SERVER['PHP_SELF']);
+            exit();
+        }
     }
 }
 
@@ -52,8 +76,6 @@ if (isset($_SESSION['success'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>View and Delete Suppliers</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap">
-    
-   
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -159,7 +181,6 @@ if (isset($_SESSION['success'])) {
         
         button {
             padding: 8px 15px;
-            background: linear-gradient(to right, #ff4757, #dc3545);
             border: none;
             border-radius: 6px;
             color: white;
@@ -167,12 +188,21 @@ if (isset($_SESSION['success'])) {
             font-weight: 500;
             cursor: pointer;
             transition: all 0.3s;
-            box-shadow: 0 4px 10px rgba(220, 53, 69, 0.3);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
         }
         
         button:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 15px rgba(220, 53, 69, 0.4);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4);
+        }
+        
+        .delete-btn {
+            background: linear-gradient(to right, #ff4757, #dc3545);
+        }
+        
+        .edit-btn {
+            background: linear-gradient(to right, #4CAF50, #2E7D32);
+            margin-right: 10px;
         }
         
         .btn-group {
@@ -300,6 +330,103 @@ if (isset($_SESSION['success'])) {
             background: #2ed573;
         }
         
+        /* Edit form styles */
+        .edit-form-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .edit-form-container.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .edit-form {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            width: 500px;
+            max-width: 90%;
+            position: relative;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+        }
+        
+        .edit-form-container.active .edit-form {
+            transform: translateY(0);
+        }
+        
+        .edit-form h3 {
+            margin-bottom: 20px;
+            color: #333;
+            text-align: center;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        
+        .form-group input:focus {
+            border-color: #667eea;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+        
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .form-actions button {
+            padding: 8px 20px;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .save-btn {
+            background: linear-gradient(to right, #667eea, #764ba2);
+            color: white;
+            border: none;
+        }
+        
+        .cancel-btn {
+            background: #f1f1f1;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+        
         @media (max-width: 768px) {
             .container {
                 padding: 20px;
@@ -337,10 +464,11 @@ if (isset($_SESSION['success'])) {
                 echo "<td style='font-size:20px;'>" . $row["nic"] . "</td>";
                 echo "<td style='font-size:20px;'>" . $row["contact_number"] . "</td>";
                 echo "<td>";
+                echo "<button class='edit-btn' onclick='openEditForm(" . json_encode($row) . ")'>Edit</button>";
                 echo "<form method='post' style='display: inline;'>";
                 echo "<input type='hidden' name='action' value='delete'>";
                 echo "<input type='hidden' name='supplier_id' value='" . $row["supplier_id"] . "'>";
-                echo "<button type='submit' onclick='return confirm(\"Are you sure you want to delete this supplier? This action cannot be undone.\")'>Delete</button>";
+                echo "<button type='submit' class='delete-btn' onclick='return confirm(\"Are you sure you want to delete this supplier? This action cannot be undone.\")'>Delete</button>";
                 echo "</form>";
                 echo "</td>";
                 echo "</tr>";
@@ -354,6 +482,42 @@ if (isset($_SESSION['success'])) {
         <div class="btn-group">
             <a href="supplier.php" class="btn btn-primary" style="font-size: 20px;">Supplier Registration</a>
             <a href="new2.php" class="btn btn-secondary" style="font-size: 20px;">Item Purchases</a>
+        </div>
+    </div>
+
+    <!-- Edit Form Popup -->
+    <div class="edit-form-container" id="editFormContainer">
+        <div class="edit-form">
+            <h3>Edit Supplier Details</h3>
+            <form method="post" id="editSupplierForm">
+                <input type="hidden" name="action" value="update">
+                <input type="hidden" name="supplier_id" id="editSupplierId">
+                
+                <div class="form-group">
+                    <label for="editSupplierName">Supplier Name</label>
+                    <input type="text" id="editSupplierName" name="supplier_name" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="editAddress">Address</label>
+                    <input type="text" id="editAddress" name="address" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="editNic">NIC</label>
+                    <input type="text" id="editNic" name="nic" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="editContactNumber">Contact Number</label>
+                    <input type="text" id="editContactNumber" name="contact_number" required>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" class="cancel-btn" onclick="closeEditForm()">Cancel</button>
+                    <button type="submit" class="save-btn">Save Changes</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -404,6 +568,27 @@ if (isset($_SESSION['success'])) {
                     window.location.href = window.location.href.split('?')[0];
                 }
             });
+        });
+        
+        // Edit form functions
+        function openEditForm(supplier) {
+            document.getElementById('editSupplierId').value = supplier.supplier_id;
+            document.getElementById('editSupplierName').value = supplier.supplier_name;
+            document.getElementById('editAddress').value = supplier.address;
+            document.getElementById('editNic').value = supplier.nic;
+            document.getElementById('editContactNumber').value = supplier.contact_number;
+            document.getElementById('editFormContainer').classList.add('active');
+        }
+        
+        function closeEditForm() {
+            document.getElementById('editFormContainer').classList.remove('active');
+        }
+        
+        // Close edit form when clicking outside
+        document.getElementById('editFormContainer').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeEditForm();
+            }
         });
     </script>
 </body>

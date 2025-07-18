@@ -107,21 +107,22 @@ if (isset($_GET['action'])) {
 }
 
 // Function to generate invoice PDF
+// Function to generate invoice PDF
 function generateInvoicePDF($purchaseId, $pdo) {
     // Get purchase details for all items in this transaction
     $stmt = $pdo->prepare("
-    SELECT p.*, m.id as member_id, m.full_name, m.bank_membership_number, 
-           m.address, m.telephone_number, i.item_name, i.price_per_unit, 
-           i.item_code, i.unit_size, i.unit, s.supplier_name, p.unit as purchase_unit
-    FROM purchases p
-    JOIN members m ON p.member_id = m.id
-    JOIN items i ON p.item_id = i.item_id
-    LEFT JOIN supplier s ON i.supplier_id = s.supplier_id
-    WHERE p.purchase_id = ? OR 
-          (p.member_id = (SELECT member_id FROM purchases WHERE purchase_id = ?) 
-           AND p.purchase_date = (SELECT purchase_date FROM purchases WHERE purchase_id = ?))
-    ORDER BY p.purchase_id
-");
+        SELECT p.*, m.id as member_id, m.full_name, m.bank_membership_number, 
+               m.address, m.telephone_number, i.item_name, i.price_per_unit, 
+               i.item_code, i.unit_size, i.unit, s.supplier_name, p.unit as purchase_unit
+        FROM purchases p
+        JOIN members m ON p.member_id = m.id
+        JOIN items i ON p.item_id = i.item_id
+        LEFT JOIN supplier s ON i.supplier_id = s.supplier_id
+        WHERE p.purchase_id = ? OR 
+              (p.member_id = (SELECT member_id FROM purchases WHERE purchase_id = ?) 
+               AND p.purchase_date = (SELECT purchase_date FROM purchases WHERE purchase_id = ?))
+        ORDER BY p.purchase_id
+    ");
     $stmt->execute([$purchaseId, $purchaseId, $purchaseId]);
     $purchases = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
@@ -136,159 +137,156 @@ function generateInvoicePDF($purchaseId, $pdo) {
         $subtotal += $purchase['total_price'];
     }
 
-    // Create PDF with professional design in landscape
-    $pdf = new FPDF('L','mm','A4'); // Changed to landscape orientation
+    // Create PDF with new design matching the example
+    $pdf = new FPDF('P', 'mm', 'A4');
     $pdf->AddPage();
+    $pdf->SetMargins(10, 10, 10);
+    $pdf->SetAutoPageBreak(true, 10);
 
-    // ========== COLOR SCHEME ========== //
-    $primaryColor = array(102, 126, 234);   // #667eea
-    $primaryDark = array(90, 103, 216);    // #5a67d8
-    $secondaryColor = array(237, 242, 247); // #edf2f7
-    $dangerColor = array(229, 62, 62);      // #e53e3e
-    $successColor = array(72, 187, 120);    // #48bb78
-    $warningColor = array(237, 137, 54);    // #ed8936
-    $infoColor = array(66, 153, 225);       // #4299e1
-    $lightColor = array(247, 250, 252);     // #f7fafc
-    $darkColor = array(45, 55, 72);         // #2d3748
-    $grayColor = array(113, 128, 150);      // #718096
-    $grayLight = array(226, 232, 240);      // #e2e8f0
+    // Define colors
+    $corporateBlue = [23, 37, 84];      // #172554
+    $accentBlue = [59, 130, 246];      // #3B82F6
+    $lightBlue = [239, 246, 255];      // #EFF6FF
+    $darkGray = [31, 41, 55];          // #1F2937
+    $mediumGray = [107, 114, 128];     // #6B7280
+    $lightGray = [243, 244, 246];      // #F3F4F6
 
-    // ========== HEADER SECTION ========== //
-    // Header with primary color background (wider for landscape)
-    $pdf->SetFillColor($primaryColor[0], $primaryColor[1], $primaryColor[2]);
-    $pdf->Rect(10, 10, 277, 20, 'F');
+    // For compatibility with the rest of the code
+    $headerBlue = $corporateBlue;
+    $lightGray = array(240, 240, 240);  // Light gray for alternate rows
+    $darkBlue = array(41, 128, 185);    // Dark blue for titles
+    $darkText = array(51, 51, 51);      // Dark text color
 
-    // Shop name
-    $pdf->SetTextColor(255);
-    $pdf->SetFont('Helvetica','B',16);
-    $pdf->SetXY(15, 12);
-    $pdf->Cell(0,8,'T&C co-op City shop',0,1,'L');
+    // =============== HEADER SECTION ===============
+    // Company name (top left) - LARGE BLUE HEADER
+    $pdf->SetFont('Arial', 'B', 18);
+    $pdf->SetTextColor($headerBlue[0], $headerBlue[1], $headerBlue[2]);
+    $pdf->Cell(120, 10, 'T&C CO-OP CITY SHOP', 0, 0, 'L');
 
-    // Invoice info box (position adjusted for landscape)
-    $pdf->SetFillColor($primaryDark[0], $primaryDark[1], $primaryDark[2]);
-    $pdf->Rect(200, 12, 80, 16, 'F'); // Moved further right
-    $pdf->SetFont('Helvetica','B',12);
-    $pdf->SetXY(200, 12);
-    $pdf->Cell(80,8,'INVOICE',0,1,'C');
-    $pdf->SetFont('Helvetica','',10);
-    $pdf->SetXY(200, 18);
-    $pdf->Cell(80,6,'#INV-'.str_pad($purchaseId, 5, '0', STR_PAD_LEFT),0,1,'C');
+    // Invoice title (top right)
+    $pdf->SetFont('Arial', 'B', 18);
+    $pdf->Cell(70, 10, 'MEMBER INVOICE', 0, 1, 'R');
 
-    // Shop contact info (adjusted for landscape width)
-    $pdf->SetTextColor(255);
-    $pdf->SetFont('Helvetica','',9);
-    $pdf->SetXY(15, 22);
-    $pdf->Cell(0,5,'Pahala Karawita, Karawita, Ratnapura, Sri Lanka | Tel: +94 11 2345678 | Email: co_op@sanasa.com',0,1,'L');
+    // Company details (left)
+    $pdf->SetFont('Arial', '', 10);
+    $pdf->SetTextColor($darkText[0], $darkText[1], $darkText[2]);
+    $pdf->Cell(120, 5, 'Pahala Karawita, Karawita', 0, 0, 'L');
 
-    // Invoice date and payment terms
-    $pdf->SetTextColor($darkColor[0], $darkColor[1], $darkColor[2]);
-    $pdf->SetFont('Helvetica','',10);
-    $pdf->SetXY(15, 40);
-    $pdf->Cell(50,5,'Invoice Date:',0,0);
-    $pdf->SetFont('Helvetica','B',10);
-    $pdf->Cell(0,5,$firstPurchase['purchase_date'],0,1);
+    // Invoice number (right)
+    $pdf->SetFont('Arial', '', 10);
+    $pdf->Cell(70, 5, 'INVOICE NO #: INV-' . str_pad($purchaseId, 5, '0', STR_PAD_LEFT), 0, 1, 'R');
 
-    $pdf->SetFont('Helvetica','',10);
-    $pdf->SetXY(15, 45);
-    $pdf->Cell(50,5,'Payment Terms:',0,0);
-    $pdf->SetFont('Helvetica','B',10);
-    $pdf->Cell(0,5,'Credit Account',0,1);
+    // More company details
+    $pdf->Cell(120, 5, 'Ratnapura, Sri Lanka', 0, 0, 'L');
+    
+    // Date
+    $pdf->Cell(70, 5, 'Date: ' . date('d/m/Y', strtotime($firstPurchase['purchase_date'])), 0, 1, 'R');
 
-    // ========== BILL TO SECTION ========== //
-    $pdf->SetFillColor($secondaryColor[0], $secondaryColor[1], $secondaryColor[2]);
-    $pdf->Rect(15, 55, 130, 30, 'F'); // Wider for landscape
-    $pdf->SetTextColor($darkColor[0], $darkColor[1], $darkColor[2]);
-    $pdf->SetFont('Helvetica','B',12);
-    $pdf->SetXY(15, 55);
-    $pdf->Cell(130,8,'BILL TO',0,1,'L');
-    $pdf->SetFont('Helvetica','',10);
+    // Phone and email
+    $pdf->Cell(120, 5, 'Phone: +94 11 2345678 | Email: ', 0, 0, 'L');
+    // Add a more attractive email display with a mailto link and icon
+    $pdf->SetFont('Arial', 'B', 10);
+    $pdf->SetTextColor(41, 128, 185); // Vibrant blue for email
+    $pdf->Cell(0, 5, chr(64) . ' co_op@sanasa.com', 0, 0, 'R', false, 'mailto:co_op@sanasa.com');
+    $pdf->SetFont('Arial', '', 10);
+    $pdf->SetTextColor($darkText[0], $darkText[1], $darkText[2]);
 
-    $pdf->SetXY(17, 63);
-    $pdf->Cell(126,5,$firstPurchase['full_name'],0,1);
-    $pdf->SetXY(17, 68);
-    $pdf->Cell(126,5,$firstPurchase['address'],0,1);
-    $pdf->SetXY(17, 73);
-    $pdf->Cell(126,5,'Tel: '.$firstPurchase['telephone_number'],0,1);
-    $pdf->SetXY(17, 78);
-    $pdf->Cell(126,5,'Coop: '.$firstPurchase['id'],0,1);
+    // Draw horizontal line
+    $pdf->Ln(5);
+    $pdf->SetDrawColor(200, 200, 200);
+    $pdf->Line(10, $pdf->GetY(), 200, $pdf->GetY());
+    $pdf->Ln(7);
 
-    // ========== ITEM TABLE ========== //
-    $pdf->SetY(90);
+    // =============== BILL TO SECTION ===============
+    // Bill To Header - Blue background
+    $pdf->SetFillColor($headerBlue[0], $headerBlue[1], $headerBlue[2]);
+    $pdf->SetTextColor(255, 255, 255);
+    $pdf->SetFont('Arial', 'B', 12);
+    $pdf->Cell(190, 8, 'BILL TO', 0, 1, 'L', true);
+    $pdf->Ln(5);
 
-    // Table Header (wider columns for landscape)
-    $pdf->SetFillColor($primaryColor[0], $primaryColor[1], $primaryColor[2]);
-$pdf->SetTextColor(255);
-$pdf->SetFont('Helvetica','B',10);
+    // Member info
+    $pdf->SetTextColor($darkText[0], $darkText[1], $darkText[2]);
+    $pdf->SetFont('Arial', 'B', 12);
+    $pdf->Cell(190, 6, $firstPurchase['full_name'], 0, 1, 'L');
+    
+    $pdf->SetFont('Arial', '', 10);
+    $pdf->Cell(190, 5, $firstPurchase['address'], 0, 1, 'L');
+    $pdf->Cell(190, 5, 'Coop ID: ' . $firstPurchase['member_id'] . ' | Contact: ' . $firstPurchase['telephone_number'], 0, 1, 'L');
+    $pdf->Ln(5);
 
-$pdf->Cell(15,10,'#',1,0,'C',true);
-$pdf->Cell(65,10,'ITEM DESCRIPTION',1,0,'L',true);    // Reduced from 90
-$pdf->Cell(45,10,'ITEM CODE',1,0,'C',true);           // Reduced from 30
-$pdf->Cell(25,10,'UNIT SIZE',1,0,'C',true);           // NEW COLUMN
-$pdf->Cell(25,10,'UNIT PRICE',1,0,'R',true);          // Reduced from 30
-$pdf->Cell(20,10,'QTY',1,0,'C',true);                 // Reduced from 25
-$pdf->Cell(30,10,'TOTAL',1,1,'R',true); 
+    // =============== PURCHASE DETAILS SECTION ===============
+    // Purchase Details Header - Blue background
+    $pdf->SetFillColor($headerBlue[0], $headerBlue[1], $headerBlue[2]);
+    $pdf->SetTextColor(255, 255, 255);
+    $pdf->SetFont('Arial', 'B', 12);
+    $pdf->Cell(190, 8, 'PURCHASE DETAILS', 0, 1, 'L', true);
+    $pdf->Ln(5);
 
-    // Table Rows
-    $pdf->SetTextColor($darkColor[0], $darkColor[1], $darkColor[2]);
-$pdf->SetFont('Helvetica','',10);
+    // Table headers
+    $pdf->SetFillColor(240, 240, 240);
+    $pdf->SetTextColor($darkText[0], $darkText[1], $darkText[2]);
+    $pdf->SetFont('Arial', 'B', 10);
+    $pdf->SetDrawColor(200, 200, 200);
+    
+    // Table header row
+    $pdf->Cell(15, 8, '#', 1, 0, 'C', true);
+    $pdf->Cell(65, 8, 'ITEM DESCRIPTION', 1, 0, 'C', true);
+    $pdf->Cell(25, 8, 'UNIT SIZE', 1, 0, 'C', true);
+    $pdf->Cell(25, 8, 'UNIT PRICE', 1, 0, 'C', true);
+    $pdf->Cell(20, 8, 'QTY', 1, 0, 'C', true);
+    $pdf->Cell(40, 8, 'AMOUNT', 1, 1, 'C', true);
 
-$rowNum = 1;
-foreach ($purchases as $purchase) {
-    $pdf->Cell(15,8,$rowNum,1,0,'C');
-    $pdf->Cell(65,8,$purchase['item_name'],1,0,'L');
-    $pdf->Cell(45,8,$purchase['item_code'],1,0,'C');
-    $pdf->Cell(25,8,$purchase['unit_size'].' '.$purchase['unit'],1,0,'C');  // NEW COLUMN
-    $pdf->Cell(25,8,'Rs. '.number_format($purchase['price_per_unit'],2),1,0,'R');
-    $pdf->Cell(20,8,$purchase['quantity'],1,0,'C');
-    $pdf->Cell(30,8,'Rs. '.number_format($purchase['total_price'],2),1,1,'R');
-    $rowNum++;
-}
+    // Table rows
+    $pdf->SetFont('Arial', '', 10);
+    $fill = false;
+    $rowNum = 1;
+    
+    foreach ($purchases as $purchase) {
+        $pdf->Cell(15, 8, $rowNum, 1, 0, 'C', $fill);
+        $pdf->Cell(65, 8, $purchase['item_name'], 1, 0, 'L', $fill);
+        $pdf->Cell(25, 8, $purchase['unit_size'].' '.$purchase['unit'], 1, 0, 'C', $fill);
+        $pdf->Cell(25, 8, 'Rs.'.number_format($purchase['price_per_unit'],2), 1, 0, 'R', $fill);
+        $pdf->Cell(20, 8, $purchase['quantity'], 1, 0, 'C', $fill);
+        $pdf->Cell(40, 8, 'Rs.'.number_format($purchase['total_price'],2), 1, 1, 'R', $fill);
+        $fill = !$fill; // Alternate row colors
+        $rowNum++;
+    }
 
-    // Subtotal row
-   $pdf->SetFont('Helvetica','B',10);
-$pdf->Cell(195,8,'SUBTOTAL',1,0,'R');  // Adjusted from 210 to 195
-$pdf->Cell(30,8,'Rs. '.number_format($subtotal,2),1,1,'R');
-
-    // ========== NEW CREDIT LIMIT ========== //
+    // Summary section - right aligned
+    $pdf->Ln(7);
+    $pdf->SetFont('Arial', 'B', 10);
+    
+    // Total row width for right side
+    $summaryWidth = 100;
+    $leftPadding = 190 - $summaryWidth;
+    
+    // Summary table with borders
+    $pdf->Cell($leftPadding, 8, '', 0, 0); // Empty cell for spacing
+    $pdf->Cell($summaryWidth - 30, 8, 'SUBTOTAL:', 1, 0, 'R');
+    $pdf->Cell(30, 8, 'Rs.'.number_format($subtotal,2), 1, 1, 'R');
+    
     // Check if credit_limit exists before using it
     $creditLimit = isset($firstPurchase['credit_limit']) ? $firstPurchase['credit_limit'] : 0;
     $newCreditLimit = $creditLimit - $subtotal;
 
     if ($creditLimit > 0) {
-        $pdf->SetY($pdf->GetY() + 10);
-        $pdf->SetFont('Helvetica','B',10);
-        $pdf->Cell(180,8,'New Credit Limit:',0,0,'R');
-        $pdf->SetFillColor($successColor[0], $successColor[1], $successColor[2]);
-        $pdf->Cell(35,8,'Rs. '.number_format($newCreditLimit,2),1,1,'R',true);
+        $pdf->Cell($leftPadding, 8, '', 0, 0); // Empty cell for spacing
+        $pdf->SetFillColor(220, 230, 241); // Light blue background for balance
+        $pdf->Cell($summaryWidth - 30, 8, 'NEW CREDIT LIMIT:', 1, 0, 'R', true);
+        $pdf->Cell(30, 8, 'Rs.'.number_format($newCreditLimit,2), 1, 1, 'R', true);
     }
 
-    // ========== SIGNATURE SECTION ========== //
-    $pdf->SetY($pdf->GetY() + 15); // Start signature section 15mm below previous content
-
-    // Signature Labels with comfortable spacing
-    $pdf->SetFont('Helvetica','B',10);
-    $pdf->Cell(115, 8, 'Customer Signature', 0, 0, 'C');
-    $pdf->Cell(140, 8, 'Authorized Signature', 0, 1, 'C');
-
-    // Space between labels and signature lines (added 5mm gap)
-    $pdf->Cell(0, 5, '', 0, 1);
-
-    // Space for signatures (original height)
-    $pdf->Cell(115, 15, '', 0, 0, 'C');
-    $pdf->Cell(140, 15, '', 0, 1, 'C');
-
-    // Signature lines positioned with better spacing
-    $yPosition = $pdf->GetY() - 10; // Lines will be 10mm above current position
-    $pdf->SetDrawColor($grayColor[0], $grayColor[1], $grayColor[2]);
-    $pdf->Line(45, $yPosition, 125, $yPosition); // Customer line
-    $pdf->Line(160, $yPosition, 240, $yPosition); // Authorized line
-
-    // Additional space after signature lines
-    $pdf->SetY($yPosition + 5); // Move 5mm below signature lines
-
-    // Footer note
-    $pdf->SetFont('Helvetica','I',8);
-    $pdf->SetTextColor($grayColor[0], $grayColor[1], $grayColor[2]);
+    // =============== FOOTER SECTION ===============
+    $pdf->Ln(35);
+    
+    // Signature lines
+    $pdf->SetFont('Arial', '', 10);
+    $pdf->Cell(90, 6, '__________________________', 0, 0, 'L');
+    $pdf->Cell(90, 6, '__________________________', 0, 1, 'R');
+    
+    $pdf->Cell(90, 5, 'Customer Authorization', 0, 0, 'L');
+    $pdf->Cell(90, 5, 'Co-Op Staff', 0, 1, 'R');
 
     // Clear any output buffers before sending PDF
     while (ob_get_level()) {
