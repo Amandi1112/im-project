@@ -486,7 +486,7 @@ if (isset($_GET['suggest']) && isset($_GET['filter_column']) && isset($_GET['q']
     exit;
 }
 
-    // Handle Edit Member
+    // Handle Edit Member details
     if (isset($_POST['action']) && $_POST['action'] === 'edit') {
         header('Content-Type: application/json');
         
