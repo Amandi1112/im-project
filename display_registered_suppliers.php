@@ -453,7 +453,9 @@ if (isset($_SESSION['success'])) {
         
         if ($result->num_rows > 0) {
             echo "<table>";
-            echo "<thead><tr><th style='font-size:20px;'>Supplier ID</th><th style='font-size:20px;'>Supplier Name</th><th style='font-size:20px;'>Address</th><th style='font-size:20px;'>NIC</th><th style='font-size:20px;'>Contact Number</th><th style='font-size:20px;'>Actions</th></tr></thead>";
+            echo "<thead><tr><th style='font-size:20px;'>Supplier ID</th><th style='font-size:20px;'>Supplier Name</th>
+            <th style='font-size:20px;'>Address</th><th style='font-size:20px;'>NIC</th><th style='font-size:20px;'>Contact Number</th>
+            <th style='font-size:20px;'>Actions</th></tr></thead>";
             echo "<tbody>";
             
             while($row = $result->fetch_assoc()) {
@@ -468,7 +470,8 @@ if (isset($_SESSION['success'])) {
                 echo "<form method='post' style='display: inline;'>";
                 echo "<input type='hidden' name='action' value='delete'>";
                 echo "<input type='hidden' name='supplier_id' value='" . $row["supplier_id"] . "'>";
-                echo "<button type='submit' class='delete-btn' onclick='return confirm(\"Are you sure you want to delete this supplier? This action cannot be undone.\")'>Delete</button>";
+                echo "<button type='submit' class='delete-btn' onclick='return confirm(\"Are you sure you want to delete this supplier? This action cannot be undone.\")'>
+                Delete</button>";
                 echo "</form>";
                 echo "</td>";
                 echo "</tr>";

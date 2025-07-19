@@ -35,8 +35,29 @@ function getAggregatedItemQuantities($pdo) {
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
+// Function to get supplier details for hover
+function getSupplierDetails($pdo, $supplierIds) {
+    if (empty($supplierIds)) return [];
+    
+    $placeholders = str_repeat('?,', count($supplierIds) - 1) . '?';
+    $query = "SELECT supplier_id as id, supplier_name as name, contact_number as contact, nic FROM supplier WHERE supplier_id IN ($placeholders)";
+    $stmt = $pdo->prepare($query);
+    $stmt->execute($supplierIds);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
 // Get the data
 $items = getAggregatedItemQuantities($pdo);
+
+// Get supplier details for each item
+foreach ($items as &$item) {
+    if (!empty($item['supplier_ids'])) {
+        $supplierIds = explode(',', $item['supplier_ids']);
+        $item['supplier_details'] = getSupplierDetails($pdo, $supplierIds);
+    } else {
+        $item['supplier_details'] = [];
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -205,7 +226,8 @@ $items = getAggregatedItemQuantities($pdo);
             padding: 16px 12px;
             text-align: left;
             border-bottom: 1.5px solid #e0e0e0;
-            font-size: 1em;
+            font-size: 20px; /* Increased base font size for all table cells */
+            color: #333;
         }
         .items-table th {
             background: #f8f9fa;
@@ -215,75 +237,144 @@ $items = getAggregatedItemQuantities($pdo);
             top: 0;
             z-index: 10;
             border-bottom: 2px solid #e0e0e0;
+            font-size: 22px; /* Slightly larger for headers */
         }
         .items-table tr:hover {
             background-color: #f3f6ff;
             transition: background 0.2s;
         }
-        .quantity-badge {
-            background: linear-gradient(to right, #1c2c20ff, #378b1fff);
-            color: white;
-            padding: 7px 16px;
-            border-radius: 20px;
+        .quantity-display {
             font-weight: 600;
-            font-size: 1em;
-            box-shadow: 0 2px 8px rgba(40,167,69,0.08);
-            letter-spacing: 0.5px;
+            font-size: 24px; /* Increased from 15px */
+            padding: 8px 12px;
+            border-radius: 6px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            color: #495057;
+            display: inline-block;
+            min-width: 60px;
+            text-align: center;
         }
-        .quantity-badge.low {
-            background: linear-gradient(to right, #fb5e53ff, #ef4c4aff);
-            color: #212529;
+        .quantity-display.low {
+            background: #fff5f5;
+            border: 1px solid #fc8181;
+            color: #c53030;
+            font-weight: 700;
         }
-        .quantity-badge.out {
-            background: linear-gradient(to right, #dc3545, #ff6a6a);
+        .quantity-display.out {
+            background: #fff5f5;
+            border: 1px solid #fc8181;
+            color: #c53030;
+            font-weight: 700;
         }
-        .type-badge {
-            background: linear-gradient(to right, #6c757d, #495057);
-            color: white;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 0.85em;
+        .unit-item {
+            background: #f8f9fa;
+            color: #495057;
+            padding: 6px 10px; /* Increased padding */
+            border-radius: 4px;
+            font-size: 16px; /* Increased from 13px */
+            margin-right: 6px;
+            margin-bottom: 3px;
+            display: inline-block;
+            border: 1px solid #dee2e6;
+            font-weight: 500;
+        }
+        .type-item {
+            background: #f8f9fa;
+            color: #495057;
+            padding: 5px 10px; /* Increased padding */
+            border-radius: 4px;
+            font-size: 15px; /* Increased from 12px */
             text-transform: uppercase;
             margin-right: 4px;
             margin-bottom: 2px;
             display: inline-block;
-        }
-        .unit-size-badge {
-            background: linear-gradient(to right, #323cd1ff, #6c8eccff);
-            color: white;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 0.85em;
-            display: inline-block;
-            margin-right: 7px;
-            margin-bottom: 3px;
+            border: 1px solid #dee2e6;
             font-weight: 500;
         }
         .price-range {
-            font-size: 1em;
-            color: #764ba2;
+            font-size: 18px; /* Increased from 14px */
+            color: #495057;
             font-weight: 500;
         }
+        .supplier-info {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+        }
         .supplier-count {
-            background: linear-gradient(to right, #323cd1ff, #6c8eccff);
+            background: #17a2b8;
             color: white;
-            padding: 3px 10px;
+            padding: 6px 12px; /* Increased padding */
             border-radius: 12px;
-            font-size: 0.9em;
+            font-size: 16px; /* Increased from 13px */
             font-weight: 500;
             display: inline-block;
+        }
+        .supplier-tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 14px; /* Increased from 13px */
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 1000;
+            margin-bottom: 5px;
+            min-width: 200px;
+            white-space: normal;
+            width: max-content;
+            max-width: 300px;
+        }
+        .supplier-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 5px solid transparent;
+            border-top-color: rgba(0, 0, 0, 0.9);
+        }
+        .supplier-info:hover .supplier-tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
+        .supplier-item {
+            margin-bottom: 8px;
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .supplier-item:last-child {
+            margin-bottom: 0;
+            border-bottom: none;
+        }
+        .supplier-name {
+            font-weight: 600;
+            color: #fff;
+            font-size: 14px; /* Increased font size */
+        }
+        .supplier-contact {
+            font-size: 12px; /* Increased from 11px */
+            color: #ccc;
+            margin-top: 2px;
         }
         .no-items {
             text-align: center;
             padding: 50px;
             color: #666;
-            font-size: 1.1em;
+            font-size: 1.2em; /* Increased from 1.1em */
         }
         .loading {
             text-align: center;
             padding: 50px;
             color: #999;
-            font-size: 1.1em;
+            font-size: 1.2em; /* Increased from 1.1em */
         }
         @media (max-width: 768px) {
             .stats {
@@ -297,10 +388,36 @@ $items = getAggregatedItemQuantities($pdo);
             .items-table th,
             .items-table td {
                 padding: 10px 5px;
-                font-size: 0.95em;
+                font-size: 16px; /* Increased mobile font size from 14px */
+            }
+            .items-table th {
+                font-size: 18px; /* Increased mobile header size from 16px */
             }
             .header h1 {
                 font-size: 2em;
+            }
+            .supplier-tooltip {
+                position: fixed;
+                left: 10px !important;
+                right: 10px;
+                transform: none !important;
+                width: auto !important;
+                max-width: none !important;
+            }
+            .quantity-display {
+                font-size: 20px; /* Adjusted for mobile */
+            }
+            .unit-item {
+                font-size: 14px; /* Adjusted for mobile */
+            }
+            .type-item {
+                font-size: 13px; /* Adjusted for mobile */
+            }
+            .price-range {
+                font-size: 16px; /* Adjusted for mobile */
+            }
+            .supplier-count {
+                font-size: 14px; /* Adjusted for mobile */
             }
         }
     </style>
@@ -342,17 +459,14 @@ $items = getAggregatedItemQuantities($pdo);
             <table class="items-table" id="itemsTable">
                 <thead>
                     <tr>
-                        <th style="font-size: 20px; color:black;">Item Name</th>
-                        <th style="font-size: 20px; color:black;">Total Quantity</th>
-                        <th style="font-size: 20px; color:black;">Units</th>
-                        <th style="font-size: 20px; color:black;">Types</th>
-                        <th style="font-size: 20px; color:black;">Price Range</th>
-                        <th style="font-size: 20px; color:black;">Suppliers</th>
-                        
+                        <th style="font-size: 22px; color:black; font-weight:bold;">Item Name</th>
+                        <th style="font-size: 22px; color:black; font-weight:bold;">Total Quantity</th>
+                        <th style="font-size: 22px; color:black; font-weight:bold;">Units</th>
+                        <th style="font-size: 22px; color:black; font-weight:bold;">Types</th>
+                        <th style="font-size: 22px; color:black; font-weight:bold;">Price Range</th>
+                        <th style="font-size: 22px; color:black; font-weight:bold;">Suppliers</th>
                     </tr>
-                    <tr></tr>
                 </thead>
-                <br>
                 <tbody>
                     <?php if (empty($items)): ?>
                         <tr>
@@ -361,10 +475,10 @@ $items = getAggregatedItemQuantities($pdo);
                     <?php else: ?>
                         <?php foreach ($items as $item): ?>
                             <tr>
-                                <td style="font-size: 20px; color:black;">
+                                <td>
                                     <strong><?php echo htmlspecialchars($item['item_name']); ?></strong>
                                 </td>
-                                <td style="font-size: 20px; color:black;">
+                                <td>
                                     <?php
                                     $quantity = $item['total_quantity'];
                                     $badgeClass = '';
@@ -374,48 +488,67 @@ $items = getAggregatedItemQuantities($pdo);
                                         $badgeClass = 'low';
                                     }
                                     ?>
-                                    <span class="quantity-badge <?php echo $badgeClass; ?>">
+                                    <span class="quantity-display <?php echo $badgeClass; ?>">
                                         <?php echo number_format($quantity); ?>
                                     </span>
                                 </td>
-                                <td style="font-size: 20px;">
+                                <td>
                                     <?php
                                     // Display unit size first
-                                    echo '<span class="unit-size-badge">' . htmlspecialchars($item['unit_size']) . '</span>';
+                                    echo '<span class="unit-item">' . htmlspecialchars($item['unit_size']) . '</span>';
                                     
                                     // Then display units
                                     $units = explode(',', $item['units']);
                                     foreach ($units as $unit) {
-                                        echo '<span class="type-badge">' . htmlspecialchars(trim($unit)) . '</span>';
+                                        echo '<span class="unit-item">' . htmlspecialchars(trim($unit)) . '</span>';
                                     }
                                     ?>
                                 </td>
-                                <td style="font-size: 20px;">
+                                <td>
                                     <?php
                                     $types = explode(',', $item['types']);
                                     foreach ($types as $type) {
-                                        echo '<span class="type-badge">' . htmlspecialchars(trim($type)) . '</span>';
+                                        echo '<span class="type-item">' . htmlspecialchars(trim($type)) . '</span>';
                                     }
                                     ?>
                                 </td>
-                                <td class="price-range" style="font-size: 20px;">
+                                <td class="price-range">
                                     <?php if ($item['min_price'] == $item['max_price']): ?>
                                         Rs. <?php echo number_format($item['min_price'], 2); ?>
                                     <?php else: ?>
                                         Rs. <?php echo number_format($item['min_price'], 2); ?> - Rs. <?php echo number_format($item['max_price'], 2); ?>
                                     <?php endif; ?>
                                 </td>
-                                <td style="font-size: 20px;">
-                                    <span class="supplier-count">
-                                        <?php 
-                                        $supplierCount = (int)$item['supplier_count'];
-                                        if ($supplierCount == 0) {
-                                            echo "No supplier";
-                                        } else {
-                                            echo $supplierCount . ' supplier' . ($supplierCount > 1 ? 's' : '');
-                                        }
-                                        ?>
-                                    </span>
+                                <td>
+                                    <div class="supplier-info">
+                                        <span class="supplier-count">
+                                            <?php 
+                                            $supplierCount = (int)$item['supplier_count'];
+                                            if ($supplierCount == 0) {
+                                                echo "No supplier";
+                                            } else {
+                                                echo $supplierCount . ' supplier' . ($supplierCount > 1 ? 's' : '');
+                                            }
+                                            ?>
+                                        </span>
+                                        <?php if (!empty($item['supplier_details'])): ?>
+                                            <div class="supplier-tooltip">
+                                                <?php foreach ($item['supplier_details'] as $supplier): ?>
+                                                    <div class="supplier-item">
+                                                        <div class="supplier-name"><?php echo htmlspecialchars($supplier['name']); ?></div>
+                                                        <div class="supplier-contact">
+                                                            <?php if (!empty($supplier['contact'])): ?>
+                                                                📞 <?php echo htmlspecialchars($supplier['contact']); ?>
+                                                            <?php endif; ?>
+                                                            <?php if (!empty($supplier['nic'])): ?>
+                                                                <br>🆔 <?php echo htmlspecialchars($supplier['nic']); ?>
+                                                            <?php endif; ?>
+                                                        </div>
+                                                    </div>
+                                                <?php endforeach; ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

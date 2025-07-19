@@ -114,28 +114,11 @@ class MemberRegistration {
 
         // Prepare SQL statement
         $sql = "INSERT INTO members (
-            full_name,
-            bank_membership_number,
-            id,
-            address,
-            nic,
-            date_of_birth,
-            age,
-            telephone_number,
-            occupation,
-            monthly_income,
-            credit_limit
+            full_name,bank_membership_number,id,address,nic,date_of_birth,age,telephone_number,
+            occupation,monthly_income,credit_limit
         ) VALUES (
-            :full_name,
-            :bank_membership_number,
-            :id,
-            :address,
-            :nic,
-            :date_of_birth,
-            :age,
-            :telephone_number,
-            :occupation,
-            :monthly_income,
+            :full_name,:bank_membership_number,:id,:address,:nic,:date_of_birth,
+            :age,:telephone_number,:occupation,:monthly_income,
             :credit_limit
         )";
 
