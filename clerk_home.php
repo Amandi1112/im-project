@@ -59,7 +59,7 @@ $recentActivities = [
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
     <style>
         :root {
-            --primary-color:rgb(64, 86, 137);
+            --primary-color:rgb(43, 70, 132);
             --primary-light: rgba(10, 36, 99, 0.1);
             --secondary-color: #3e92cc;
             --accent-color: #2ecc71;
@@ -728,9 +728,10 @@ $recentActivities = [
     <div class="container">
         <header class="header">
             <div class="d-flex align-items-center">
-                <div class="user-avatar">
-                    <i class="fas fa-store"></i>
-                </div>
+                
+                <div style="margin-right: 18px;"></div>
+                <img src="images/logo.jpeg" alt="T&C Co-op City Shop Logo" class="header-logo animate__animated animate__pulse" style="border-radius: 50%; border: 3px solid #3e92cc; box-shadow: 0 4px 16px rgba(62,146,204,0.15); width: 80px; height: 80px; object-fit: cover; animation-iteration-count: infinite;">
+                <div style="margin-right: 18px;"></div>
                 <h1 class="header-title" style="color:black;">T&C Co-op City Shop</h1>
             </div>
             <div class="user-menu">
@@ -739,8 +740,8 @@ $recentActivities = [
                         <i class="fas fa-user-shield"></i>
                     </div>
                     <div>
-                        <div>Welcome, <?php echo $_SESSION['user_name']; ?></div>
-                        <small>Clerk</small>
+                        <div style="font-weight: bold; color: black;">Welcome, <?php echo $_SESSION['user_name']; ?></div>
+                        <small  style="font-weight: bold; color:black;">Clerk</small>
                     </div>
                 </div>
                 <a href="logout.php" class="logout-btn">
@@ -751,8 +752,8 @@ $recentActivities = [
 
         <div class="welcome-banner animate__animated animate__fadeIn">
             <div class="welcome-content">
-                <h2 class="welcome-title">Welcome to the clerk Dashboard</h2>
-                <p class="welcome-text" style="font-size: 20px;">Manage your co-op shop operations efficiently. Monitor real-time statistics, track inventory, and streamline member services with our comprehensive tools.</p>
+                <h2 class="welcome-title" style="color:white; font-weight:bold; font-size:35px;">Welcome to the Clerk Dashboard</h2>
+                <p class="welcome-text" style="font-size: 20px; font-weight: bold; color:white;">Manage your co-op shop operations efficiently. Monitor real-time statistics, track inventory, and streamline member services with our comprehensive tools.</p>
                 <div class="mt-3">
                     <span class="time-badge">
                         <i class="far fa-calendar me-1"></i><?php echo $currentDate; ?>
@@ -775,15 +776,16 @@ $recentActivities = [
                 <div class="collapse navbar-collapse" id="navbarNavDropdown">
                     <ul class="navbar-nav">
                         
+                        
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="suppliersDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="fas fa-truck"></i> Suppliers
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="suppliersDropdown">
-                                <li><a class="dropdown-item" href="supplier.php"><i class="fas fa-user-plus"></i> Registration</a></li>
-                                <li><a class="dropdown-item" href="supplier_purchases.php"><i class="fas fa-shopping-basket"></i> Item Purchases</a></li>
-                                <li><a class="dropdown-item" href="supplier_payments.php"><i class="fas fa-file-invoice-dollar"></i> Purchase Amount Details</a></li>
-                                <li><a class="dropdown-item" href="actual_payment_supplier.php"><i class="fas fa-money-bill-wave"></i> Payment Handling</a></li>
+                                <li><a class="dropdown-item" href="supplier.php" style="font-size: 17px; color:black;"><i class="fas fa-user-plus"></i> Registration</a></li>
+                                <li><a class="dropdown-item" href="new2.php" style="font-size: 17px; color:black;"><i class="fas fa-shopping-basket"></i> Item Purchases</a></li>
+                                <li><a class="dropdown-item" href="supplier_payments.php" style="font-size: 17px; color:black;"><i class="fas fa-file-invoice-dollar"></i> Purchase Amount Details</a></li>
+                               
                             </ul>
                         </li>
                         <li class="nav-item dropdown">
@@ -791,8 +793,10 @@ $recentActivities = [
                                 <i class="fas fa-box-open"></i> Inventory
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="inventoryDropdown">
-                                <li><a class="dropdown-item" href="display_purchase_details.php"><i class="fas fa-boxes"></i> Current Stock</a></li>
-                                <li><a class="dropdown-item" href="inventory.php"><i class="fas fa-exchange-alt"></i> Transaction Summary</a></li>
+                                <li><a class="dropdown-item" href="itemDetails.php" style="font-size: 17px; color:black;"><i class="fas fa-boxes"></i> Current Stock</a></li>
+                                <li><a class="dropdown-item" href="inventory.php" style="font-size: 17px; color:black;"><i class="fas fa-exchange-alt"></i> Safety Stock</a></li>
+                                <li><a class="dropdown-item" href="track.php" style="font-size:17px; color:black;"><i class="fas fa-truck-moving"></i> Track Items</a></li>
+                                <li><a class="dropdown-item" href="purchaseOrder.php" style="font-size: 17px; color:black;"><i class="fas fa-shopping-cart"></i> Purchase Order</a></li>
                             </ul>
                         </li>
                         <li class="nav-item dropdown">
@@ -800,9 +804,9 @@ $recentActivities = [
                                 <i class="fas fa-users"></i> Members
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="membersDropdown">
-                                <li><a class="dropdown-item" href="member.php"><i class="fas fa-user-plus"></i> Member Registration</a></li>
-                                <li><a class="dropdown-item" href="view_registered_members.php"><i class="fas fa-id-badge"></i> Membership Numbers</a></li>
-                                <li><a class="dropdown-item" href="purchase.php"><i class="fas fa-shopping-cart"></i> Member Purchases</a></li>
+                                <li><a class="dropdown-item" href="member.php" style="font-size: 17px; color:black;"><i class="fas fa-user-plus"></i> Member Registration</a></li>
+                                <li><a class="dropdown-item" href="view_registered_members.php" style="font-size: 17px; color:black;"><i class="fas fa-id-badge"></i> Membership Numbers</a></li>
+                                <li><a class="dropdown-item" href="purchase.php" style="font-size: 17px; color:black;"><i class="fas fa-shopping-cart"></i> Member Purchases</a></li>
                             </ul>
                         </li>
                         <li class="nav-item dropdown">
@@ -810,11 +814,11 @@ $recentActivities = [
                                 <i class="fas fa-chart-line"></i> Reports
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="reportsDropdown">
-                                <li><a class="dropdown-item" href="member_credit_report.php"><i class="fas fa-credit-card"></i> Credit Balance Reports</a></li>
-                                <li><a class="dropdown-item" href="member_purchase_history.php"><i class="fas fa-star"></i>Purchase history of members</a></li>
-                                <li><a class="dropdown-item" href="report2.php"><i class="fas fa-file-alt"></i> Purchase Details Report</a></li>
-                                <li><a class="dropdown-item" href="supplier_performance_report.php"><i class="fas fa-star"></i> Supplier Performance Report</a></li>
-                                <li><a class="dropdown-item" href="profit.php"><i class="fas fa-star"></i> Sales vs Purchases</a></li>
+                                <li><a class="dropdown-item" href="member_credit_report.php" style="font-size: 17px; color:black;"><i class="fas fa-credit-card"></i> Credit Balance Reports</a></li>
+                                <li><a class="dropdown-item" href="member_purchase_history.php" style="font-size: 17px; color:black;"><i class="fas fa-star"></i>Purchase history of members</a></li>
+                                <li><a class="dropdown-item" href="display_purchase_details.php" style="font-size: 17px; color:black;"><i class="fas fa-file-alt"></i> Purchase Details Report</a></li>
+                                <li><a class="dropdown-item" href="supplier_performance_report.php" style="font-size: 17px; color:black;"><i class="fas fa-star"></i> Supplier Performance Report</a></li>
+                                <li><a class="dropdown-item" href="profit.php" style="font-size: 17px; color:black;"><i class="fas fa-star"></i> Sales vs Purchases</a></li>
                             </ul>
                         </li>
                     </ul>
@@ -833,7 +837,7 @@ $recentActivities = [
                             <i class="fas fa-users"></i>
                         </div>
                         <div class="metric-value" id="totalMembers"><?php echo $totalMembers; ?></div>
-                        <div class="metric-label" style="font-size: 20px;">Active Members</div>
+                        <div class="metric-label animate__animated animate__pulse" style="font-size: 20px; font-weight: bold; color:black; animation-duration: 1.5s; animation-iteration-count: infinite;">Active Members</div>
                     </div>
 
                     <div class="metric-card">
@@ -841,7 +845,7 @@ $recentActivities = [
                             <i class="fas fa-handshake"></i>
                         </div>
                         <div class="metric-value" id="totalSuppliers"><?php echo $totalSuppliers; ?></div>
-                        <div class="metric-label" style="font-size: 20px;">Active Suppliers</div>
+                        <div class="metric-label animate__animated animate__pulse" style="font-size: 20px; font-weight: bold; color:black; animation-duration: 1.5s; animation-iteration-count: infinite;">Active Suppliers</div>
                     </div>
 
                     <div class="metric-card">
@@ -849,32 +853,12 @@ $recentActivities = [
                             <i class="fas fa-boxes"></i>
                         </div>
                         <div class="metric-value" id="totalInventoryLevel"><?php echo $totalInventoryLevel; ?></div>
-                        <div class="metric-label" style="font-size: 20px;">Inventory Items</div>
+                        <div class="metric-label animate__animated animate__pulse" style="font-size: 20px; font-weight: bold; color:black; animation-duration: 1.5s; animation-iteration-count: infinite;">Inventory Items</div>
                     </div>
 
-                    <div class="metric-card">
-                        <div class="metric-icon">
-                            <i class="fas fa-chart-line"></i>
-                        </div>
-                        <div class="metric-value">+0%</div>
-                        <div class="metric-label">Monthly Growth</div>
-                    </div>
+                    
                 </div>
 
-                <div class="quick-actions" style="font-weight: bold;">
-                    <a href="report1.php" class="action-btn" style="font-weight: bold; font-size: 20px; background-color:rgb(170, 209, 237);">
-                        <i class="fas fa-file-alt"></i> View Sales Report
-                    </a>
-                    <a href="report2.php" class="action-btn" style="font-weight: bold; font-size: 20px; background-color:rgb(170, 209, 237);">
-                        <i class="fas fa-warehouse"></i> Check Inventory
-                    </a>
-                    <a href="member_registration.php" class="action-btn" style="font-weight: bold; font-size: 20px; background-color:rgb(170, 209, 237);">
-                        <i class="fas fa-user-plus"></i> Register Member
-                    </a>
-                    <a href="supplier.php" class="action-btn" style="font-weight: bold; font-size: 20px; background-color:rgb(170, 209, 237);">
-                        <i class="fas fa-truck-loading"></i> Add Supplier
-                    </a>
-                </div>
             </div>
         </div>
     </div>

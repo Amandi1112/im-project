@@ -474,9 +474,7 @@ body::after {
         </div>
     </div>
     
-    <a href="home.php" class="btn btn-primary floating-btn animate__animated animate__fadeInUp">
-        <i class="fas fa-home"></i>
-    </a>
+   
     <script>
         // Animate summary boxes on load
         document.addEventListener('DOMContentLoaded', function() {
