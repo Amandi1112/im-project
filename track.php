@@ -528,11 +528,7 @@ $summary = getSummaryData($db);
                 <div class="number"><?= $summary['available']['total_available'] ?></div>
                 <p>Items in Stock</p>
             </div>
-            <div class="summary-card available">
-                <h3>Total Stock Quantity</h3>
-                <div class="number"><?= number_format($summary['available']['total_stock']) ?></div>
-                <p>Units Available</p>
-            </div>
+            
             <div class="summary-card sold">
                 <h3>Total Sales</h3>
                 <div class="number"><?= $summary['sold']['total_sold'] ?></div>

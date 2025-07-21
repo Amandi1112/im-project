@@ -939,7 +939,7 @@ $items = $conn->query("SELECT * FROM items ORDER BY item_name");
                             </div>
                             <div class="col-md-3">
                                 <label for="amount" class="form-label">Amount (Rs.)</label>
-                                <input type="number" step="0.01" class="form-control" id="amount" name="amount" min="0.01" required>
+                                <input type="number" step="100" class="form-control" id="amount" name="amount" min="50" required>
                                 <div id="amountError" class="small text-danger mt-1"></div>
                             </div>
                             <div class="col-md-3">

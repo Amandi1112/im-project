@@ -274,20 +274,47 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['item_name']) && isset(
         }
     }
     
-    // Get similar item names for suggestions
-    $sql = "SELECT DISTINCT item_name FROM items WHERE supplier_id = ? AND item_name LIKE ? AND item_name != ? LIMIT 5";
+    // Get similar item names for suggestions (for this supplier)
+    $sql = "SELECT DISTINCT item_name, current_quantity FROM items WHERE supplier_id = ? AND item_name LIKE ? AND item_name != ? LIMIT 5";
     $stmt = $conn->prepare($sql);
     $likeTerm = '%' . $itemName . '%';
     $stmt->bind_param("sss", $supplierId, $likeTerm, $itemName);
     $stmt->execute();
     $result = $stmt->get_result();
-    
     $suggestions = [];
     while ($row = $result->fetch_assoc()) {
-        $suggestions[] = $row['item_name'];
+        $suggestions[] = [
+            'item_name' => $row['item_name'],
+            'in_stock' => ($row['current_quantity'] > 0)
+        ];
     }
+    $stmt->close();
+
+    // Also suggest items from all stock (other suppliers, not already in suggestions)
+    $sql = "SELECT item_name, SUM(current_quantity) as total_qty FROM items WHERE item_name LIKE ? AND item_name != ? GROUP BY item_name LIMIT 5";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("ss", $likeTerm, $itemName);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    while ($row = $result->fetch_assoc()) {
+        $already = false;
+        foreach ($suggestions as $s) {
+            if (strtolower($s['item_name']) === strtolower($row['item_name'])) {
+                $already = true;
+                break;
+            }
+        }
+        if (!$already) {
+            $suggestions[] = [
+                'item_name' => $row['item_name'],
+                'in_stock' => ($row['total_qty'] > 0)
+            ];
+        }
+    }
+    $stmt->close();
+
     $response['suggestions'] = $suggestions;
-    
+
     header('Content-Type: application/json');
     echo json_encode($response);
     exit;
@@ -1749,11 +1776,23 @@ $message = isset($_GET['message']) ? $_GET['message'] : '';
                         if (response.suggestions && response.suggestions.length > 0) {
                             const dropdown = itemNameInput.siblings('.suggestions-dropdown');
                             dropdown.empty();
-                            
                             response.suggestions.forEach(suggestion => {
-                                dropdown.append(`<div class="suggestion-item">${suggestion}</div>`);
+                                let name, inStock;
+                                if (typeof suggestion === 'string') {
+                                    name = suggestion;
+                                    inStock = undefined;
+                                } else {
+                                    name = suggestion.item_name || suggestion.name || '';
+                                    inStock = suggestion.in_stock;
+                                }
+                                let badge = '';
+                                if (inStock !== undefined) {
+                                    badge = inStock
+                                        ? '<span class="badge bg-success ms-2">In Stock</span>'
+                                        : '<span class="badge bg-danger ms-2">Not in Stock</span>';
+                                }
+                                dropdown.append(`<div class="suggestion-item">${name}${badge}</div>`);
                             });
-                            
                             dropdown.show();
                         }
                     }
@@ -1762,11 +1801,13 @@ $message = isset($_GET['message']) ? $_GET['message'] : '';
             
             // Handle suggestion selection
             $(document).on('click', '.suggestion-item', function() {
-                const suggestion = $(this).text();
+                // Only set the item name, not the badge text
+                let itemName = $(this).contents().filter(function() {
+                    return this.nodeType === 3; // Node.TEXT_NODE
+                }).text().trim();
                 const itemNameInput = $(this).parent().siblings('.item-name');
-                itemNameInput.val(suggestion);
+                itemNameInput.val(itemName);
                 $(this).parent().hide();
-                
                 // Trigger blur to check item details
                 itemNameInput.trigger('blur');
             });
