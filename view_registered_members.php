@@ -977,7 +977,7 @@ ob_end_flush();
             </select>
             <input type="text" id="filter_value" name="filter_value" class="form-control" placeholder="Enter value" style="width: 200px;" disabled>
             <button type="submit" class="btn btn-primary">Search</button>
-            <button type="button" id="clearFilterBtn" class="btn btn-secondary">Clear</button>
+            <button type="button" id="clearFilterBtn" class="btn btn-secondary" style="background-color:black; font-color: white;">Clear</button>
         </form>
                 <a href="member.php" class="btn btn-success">
                     <i class="fas fa-plus"></i> Add New Member
