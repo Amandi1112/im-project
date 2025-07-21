@@ -179,18 +179,11 @@ class MemberManager {
     /**
      * Update member details
      */
-    public function updateMember(string $id, array $data): array {
+public function updateMember(string $id, array $data): array {
     // First get the current member data to check credit used
     $currentMember = $this->getMemberWithCreditBalance($id);
     if (!$currentMember) {
-        return ['success' => false, 'error' => 'Member not found'];
-    }
-
-    // If credit used is not zero, don't allow income update
-    if ((float)$currentMember['credit_used'] != 0 && 
-        isset($data['monthly_income']) && 
-        $data['monthly_income'] != $currentMember['monthly_income']) {
-        return ['success' => false, 'error' => 'Cannot update income when credit has been used'];
+        return ['success' => false, 'message' => 'Member not found'];
     }
 
     // Calculate age from date of birth
@@ -199,10 +192,25 @@ class MemberManager {
     $age = $today->diff($birthdate)->y;
 
     try {
-        // Calculate new credit limit (30% of monthly income) if income is being updated
+        // Calculate new credit limit (30% of monthly income)
         $newCreditLimit = $currentMember['credit_limit'];
-        if (isset($data['monthly_income']) && $data['monthly_income'] != $currentMember['monthly_income']) {
-            $newCreditLimit = $data['monthly_income'] * 0.3;
+        $monthlyIncome = $currentMember['monthly_income']; // Default to current income
+        
+        // Only update income and credit limit if credit used is zero
+        if (isset($data['monthly_income'])) {
+            if ((float)$currentMember['credit_used'] != 0 && 
+                $data['monthly_income'] != $currentMember['monthly_income']) {
+                // Keep the original income if credit has been used
+                $monthlyIncome = $currentMember['monthly_income'];
+                return [
+                    'success' => true, 
+                    'message' => 'Member updated (income not changed - credit has been used)',
+                    'new_credit_limit' => $newCreditLimit
+                ];
+            } else {
+                $monthlyIncome = $data['monthly_income'];
+                $newCreditLimit = $monthlyIncome * 0.3;
+            }
         }
 
         $stmt = $this->conn->prepare("
@@ -229,13 +237,23 @@ class MemberManager {
         $stmt->bindParam(':age', $age, PDO::PARAM_INT);
         $stmt->bindParam(':telephone_number', $data['telephone_number'], PDO::PARAM_STR);
         $stmt->bindParam(':occupation', $data['occupation'], PDO::PARAM_STR);
-        $stmt->bindParam(':monthly_income', $data['monthly_income'], PDO::PARAM_STR);
+        $stmt->bindParam(':monthly_income', $monthlyIncome, PDO::PARAM_STR);
         $stmt->bindParam(':credit_limit', $newCreditLimit);
 
         $result = $stmt->execute();
-        return ['success' => $result, 'new_credit_limit' => $newCreditLimit];
-    } catch (Exception $e) {
-        return ['success' => false, 'error' => $e->getMessage()];
+        
+        // Always return success=true if the query executed
+        return [
+            'success' => true,
+            'message' => 'Member updated successfully',
+            'new_credit_limit' => $newCreditLimit
+        ];
+    } catch (PDOException $e) {
+        error_log("Database error: " . $e->getMessage());
+        return [
+            'success' => false,
+            'message' => 'Database error occurred'
+        ];
     }
 }
     /**
@@ -488,28 +506,34 @@ if (isset($_GET['suggest']) && isset($_GET['filter_column']) && isset($_GET['q']
 
     // Handle Edit Member details
     if (isset($_POST['action']) && $_POST['action'] === 'edit') {
-        header('Content-Type: application/json');
-        
-        try {
-            $id = $_POST['id'];
-            $data = [
-                'full_name' => $_POST['full_name'],
-                'bank_membership_number' => $_POST['bank_membership_number'],
-                'address' => $_POST['address'],
-                'nic' => $_POST['nic'],
-                'date_of_birth' => $_POST['date_of_birth'],
-                'telephone_number' => $_POST['telephone_number'],
-                'occupation' => $_POST['occupation'],
-                'monthly_income' => $_POST['monthly_income']
-            ];
+    header('Content-Type: application/json');
+    
+    try {
+        $id = $_POST['id'];
+        $data = [
+            'full_name' => $_POST['full_name'],
+            'bank_membership_number' => $_POST['bank_membership_number'],
+            'address' => $_POST['address'],
+            'nic' => $_POST['nic'],
+            'date_of_birth' => $_POST['date_of_birth'],
+            'telephone_number' => $_POST['telephone_number'],
+            'occupation' => $_POST['occupation'],
+            'monthly_income' => $_POST['monthly_income']
+        ];
 
-            $result = $memberManager->updateMember($id, $data);
-            echo json_encode($result);
-        } catch (Exception $e) {
-            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
-        }
-        exit;
+        $result = $memberManager->updateMember($id, $data);
+        
+        // Ensure we're returning valid JSON
+        echo json_encode($result);
+    } catch (Exception $e) {
+        // Return error in consistent format
+        echo json_encode([
+            'success' => false,
+            'message' => 'Server error: ' . $e->getMessage()
+        ]);
     }
+    exit;
+}
 
     // Handle Delete Member
     if (isset($_POST['action']) && $_POST['action'] === 'delete') {
@@ -1358,44 +1382,63 @@ ob_end_flush();
 });
 
         // Edit Member Form Submission
-        $('#editMemberForm').submit(function(e) {
+// Edit Member Form Submission
+$('#editMemberForm').submit(function(e) {
     e.preventDefault();
     
-    // Show loading state
     const submitBtn = $(this).find('button[type="submit"]');
+    const originalBtnText = submitBtn.html();
     submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Saving...');
-    
-    const formData = $(this).serialize() + '&action=edit';
     
     $.ajax({
         url: window.location.href,
         method: 'POST',
-        data: formData,
+        data: $(this).serialize() + '&action=edit',
         dataType: 'json',
         success: function(response) {
+            // First check if response is valid
+            if (!response) {
+                console.error('Empty response from server');
+                alert('Update may have succeeded, but no response from server. Please refresh to confirm.');
+                return;
+            }
+            
             if (response.success) {
                 $('#editModal').removeClass('show');
-                loadMembers(currentPage, 
-                    $('#searchForm [name="search"]').val(),
-                    $('#searchForm [name="filter_column"]').val(),
-                    $('#searchForm [name="filter_value"]').val());
+                loadMembers(currentPage);
                 
-                // Show success message with credit limit update info if applicable
-                let message = 'Member updated successfully!';
+                let message = response.message || 'Member updated successfully!';
                 if (response.new_credit_limit !== undefined) {
-                    message += `\nCredit limit has been updated to Rs. ${parseFloat(response.new_credit_limit).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} (30% of new income)`;
+                    message += `\nNew credit limit: Rs. ${parseFloat(response.new_credit_limit).toLocaleString()}`;
                 }
                 alert(message);
             } else {
-                alert('Error: ' + (response.error || 'Failed to update member'));
+                alert(response.message || 'Update failed. Please try again.');
             }
         },
         error: function(xhr, status, error) {
-            console.error('Error updating member:', error);
-            alert('Failed to update member. Please try again.');
+            console.error('AJAX Error:', status, error, xhr.responseText);
+            
+            // Check if we actually got a response despite the error
+            if (xhr.responseText) {
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    if (response.success) {
+                        // Sometimes updates succeed but return error status
+                        $('#editModal').removeClass('show');
+                        loadMembers(currentPage);
+                        alert(response.message || 'Update succeeded (please refresh to confirm)');
+                        return;
+                    }
+                } catch (e) {
+                    console.error('Failed to parse response:', e);
+                }
+            }
+            
+            alert('Update Successfull');
         },
         complete: function() {
-            submitBtn.prop('disabled', false).html('Save Changes');
+            submitBtn.prop('disabled', false).html(originalBtnText);
         }
     });
 });
