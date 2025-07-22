@@ -261,8 +261,8 @@ if (isset($_GET['generate_pdf']) && $_GET['generate_pdf'] == '1') {
             $this->SetDrawColor(54, 123, 180);
             $this->SetLineWidth(0.3);
             
-            $header = array('Payment ID', 'Date', 'Amount', 'Method', 'Reference');
-            $w = array(30, 30, 30, 40, 40);
+            $header = array('Payment ID', 'Date', 'Amount');
+            $w = array(30, 30, 30);
             
             for($i=0; $i<count($header); $i++) {
                 $this->Cell($w[$i], 7, $header[$i], 1, 0, 'C', true);
@@ -297,8 +297,7 @@ if (isset($_GET['generate_pdf']) && $_GET['generate_pdf'] == '1') {
                 $this->Cell($w[0], 6, $payment['id'], 'LR', 0, 'L', $fill);
                 $this->Cell($w[1], 6, $payment_date, 'LR', 0, 'L', $fill);
                 $this->Cell($w[2], 6, 'Rs. ' . number_format($payment['amount'], 2), 'LR', 0, 'R', $fill);
-                $this->Cell($w[3], 6, $payment['payment_method'] ?? 'N/A', 'LR', 0, 'L', $fill);
-                $this->Cell($w[4], 6, $payment['reference_number'] ?? 'N/A', 'LR', 0, 'L', $fill);
+               
                 $this->Ln();
                 
                 $fill = !$fill;
