@@ -209,10 +209,10 @@ $result = $conn->query($sql);
         <table>
             <thead>
                 <tr>
-                    <th style="font-weight: bold; color: black; font-size: 20px; color:black;">Name</th>
-                    <th style="font-weight: bold; color: black; font-size: 20px;color:black;">Email</th>
-                    <th style="font-weight: bold; color: black; font-size: 20px; color:black;">Position</th>
-                    <th style="font-weight: bold; color: black; font-size: 20px; color:black;">Actions</th>
+                    <th style="font-weight: bold; color: black; font-size: 20px; color:white;">Name</th>
+                    <th style="font-weight: bold; color: black; font-size: 20px;color:white;">Email</th>
+                    <th style="font-weight: bold; color: black; font-size: 20px; color:white;">Position</th>
+                    <th style="font-weight: bold; color: black; font-size: 20px; color:white;">Actions</th>
                 </tr>
             </thead>
             <tbody style="font-weight: bold; color: black; font-size: 17px;">
@@ -233,7 +233,7 @@ $result = $conn->query($sql);
                             </td>
                             <td>
                                 <input type="hidden" name="id" value="<?php echo $row['id']; ?>">
-                                <button type="submit" name="update" class="button" style="font-size: 17px; color:black;">Update</button>
+                                <button type="submit" name="update" class="button" style="font-size: 17px; color:white;">Update</button>
                             </td>
                         </form>
                     </tr>

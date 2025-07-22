@@ -53,7 +53,7 @@ class PDF extends FPDF {
         'Expiry Date'
     );
     
-    $w = array(27, 25, 25, 20, 25, 25, 25, 20);
+    $w = array(27, 28, 25, 20, 25, 25, 25, 20);
     
     for($i=0; $i<count($header); $i++) {
         $this->Cell($w[$i],7,$header[$i],1,0,'C',true);
@@ -70,7 +70,7 @@ class PDF extends FPDF {
         $fill = false;
         
         // Use same widths as in TableHeader
-        $w = array(27, 25, 25, 20, 25, 25, 25, 20);
+        $w = array(27, 28, 25, 20, 25, 25, 25, 20);
         
         foreach($purchases as $purchase) {
             // Check if we need a new page
