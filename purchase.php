@@ -317,23 +317,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Validate items array structure
             $validItems = [];
             foreach ($items as $itemData) {
-                if (!isset($itemData['item_id']) || !isset($itemData['quantity'])) {
-                    $error = "Invalid item data format";
-                    break;
-                }
-                
-                $itemId = $itemData['item_id'];
-                $quantity = (int)$itemData['quantity'];
-                $unit = $itemData['unit'];
-                
-                if ($quantity <= 0) continue;
-                
-                $validItems[] = [
-                    'item_id' => $itemId,
-                    'quantity' => $quantity,
-                    
-                ];
-            }
+    if (!isset($itemData['item_id']) || !isset($itemData['quantity'])) {
+        $error = "Invalid item data format";
+        break;
+    }
+    
+    $itemId = $itemData['item_id'];
+    $quantity = (int)$itemData['quantity'];
+    
+    if ($quantity <= 0) continue;
+    
+    $validItems[] = [
+        'item_id' => $itemId,
+        'quantity' => $quantity,
+        // Removed 'unit' since it's not in your form
+    ];
+}
             
             if (empty($validItems)) {
                 $error = "No valid items selected for purchase";
